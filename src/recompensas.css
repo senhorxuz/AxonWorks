@@ -1,0 +1,227 @@
+/* Parte 10 — Polimento e Recompensas Honestas
+   Estilos de refinamento visual e microinterações de recompensa.
+   Regra de ouro: recompensa só vem de evento real verificado.
+   Apagável sozinha: basta remover este arquivo, src/recompensas.ts e os imports correspondentes. */
+
+/* Item 1: Aviso de nome de agente informativo e neutro, sem tom alarmista de erro */
+.agent-warning-hint {
+  font-size: 11px;
+  color: #94a3b8;
+  background: #1a1e26;
+  border: 1px solid #2e3848;
+  border-radius: 6px;
+  padding: 6px 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  line-height: 1.4;
+}
+
+/* Item 2: Rodapé do cartão "Próximo passo" organizado e respirando */
+.resume-card-hint-row {
+  margin-bottom: 12px;
+}
+
+.resume-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  border-top: 1px solid #2f3542;
+  padding-top: 18px;
+  margin-top: 22px;
+}
+
+.resume-card-footer-author {
+  font-size: 11px;
+  color: #94a3b8;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.resume-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.resume-card-actions button {
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+/* Item 3: Botão "Reabrir tarefa" nítido e distinguível do desativado */
+.task-reopen-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid #38bdf8;
+  background: rgba(56, 189, 248, 0.08);
+  color: #38bdf8;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.task-reopen-btn:hover:not(:disabled) {
+  background: rgba(56, 189, 248, 0.18);
+  color: #7dd3fc;
+  border-color: #7dd3fc;
+}
+
+.task-reopen-btn:disabled {
+  border-color: #2a313d;
+  background: transparent;
+  color: #64748b;
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Item 4: Aviso calmo para reconferir evidências desatualizadas (não alarme de travamento) */
+.resumo-reconferir h3 svg {
+  color: #38bdf8;
+}
+
+.resumo-aviso-reconferir {
+  background: #18202c;
+  border: 1px solid #283950;
+  border-radius: 8px;
+  padding: 13px 16px;
+}
+
+.resumo-aviso-reconferir strong {
+  color: #7dd3fc;
+  font-size: 13px;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.resumo-aviso-reconferir p {
+  color: #cbd5e1;
+  font-size: 12px;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* Item 8: Resumo técnico longo com "Ver mais" / "Ver menos" */
+.resumo-tecnico-toggle {
+  background: none;
+  border: none;
+  color: #38bdf8;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 0;
+  margin-top: 4px;
+  display: inline-block;
+}
+
+.resumo-tecnico-toggle:hover {
+  text-decoration: underline;
+  color: #7dd3fc;
+}
+
+/* Estado "Tudo em dia" calmo e bonito quando nada está travado nem pendente */
+.resumo-tudo-em-dia {
+  background: #151d18;
+  border: 1px solid #25422d;
+  border-radius: 9px;
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.resumo-tudo-em-dia svg {
+  color: #4ade80;
+  flex-shrink: 0;
+}
+
+.resumo-tudo-em-dia-content strong {
+  display: block;
+  font-size: 13px;
+  color: #4ade80;
+  margin-bottom: 2px;
+}
+
+.resumo-tudo-em-dia-content p {
+  font-size: 12px;
+  color: #cbd5e1;
+  margin: 0;
+}
+
+/* Marcador visual de progresso real do projeto */
+.projeto-progresso-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: var(--surface-raised, #1f232b);
+  border: 1px solid var(--line, #2c3444);
+  border-radius: 7px;
+  margin-bottom: 14px;
+}
+
+.projeto-progresso-rotulo {
+  font-size: 11px;
+  font-weight: 600;
+  color: #e2e8f0;
+  white-space: nowrap;
+}
+
+.projeto-progresso-barra {
+  flex: 1;
+  height: 6px;
+  background: #14171d;
+  border-radius: 3px;
+  overflow: hidden;
+  border: 1px solid #28303e;
+}
+
+.projeto-progresso-preenchimento {
+  height: 100%;
+  background: linear-gradient(90deg, #38bdf8, #34d399);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.projeto-progresso-porcentagem {
+  font-size: 11px;
+  font-weight: 700;
+  color: #38bdf8;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Microinterações e feedback elegante */
+.task-criterion-chip {
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+}
+
+.task-criterion-chip.completed {
+  border-color: rgba(56, 189, 248, 0.4);
+}
+
+.criteria-progress-fill {
+  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Respeito estrito a prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  .projeto-progresso-preenchimento,
+  .criteria-progress-fill,
+  .task-criterion-chip,
+  .task-reopen-btn {
+    transition: none !important;
+    animation: none !important;
+  }
+}

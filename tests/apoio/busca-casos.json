@@ -1,0 +1,41 @@
+{
+  "descricao": "Busca na memória (D7): casos em português com resultado fixo. Cada esperado é a ordem dos 3 primeiros (ou menos), como tipo:número do item. O projeto é P1; P2 é outro projeto, que nunca pode aparecer.",
+  "itens": [
+    { "n": 1, "tipo": "decisao", "projeto": "P1", "titulo": "Pagamento só com Pix no lançamento", "corpo": "Cartão de crédito fica para a segunda fase; o Pix tem taxa menor.", "data": "2026-09-10T12:00:00.000Z", "estado": "accepted" },
+    { "n": 2, "tipo": "decisao", "projeto": "P1", "titulo": "Frete grátis acima de R$ 100", "corpo": "Revogada: o frete grátis comia a margem.", "data": "2026-09-01T12:00:00.000Z", "estado": "revoked" },
+    { "n": 3, "tipo": "decisao", "projeto": "P1", "titulo": "Frete fixo de R$ 15 para todo o Brasil", "corpo": "Substitui o frete grátis; simples de explicar.", "data": "2026-09-05T12:00:00.000Z", "estado": "accepted" },
+    { "n": 4, "tipo": "licao", "projeto": "P1", "corpo": "Antes de mexer no checkout, rodar o teste de ponta a ponta do pagamento com Pix.", "data": "2026-09-12T12:00:00.000Z" },
+    { "n": 5, "tipo": "licao", "projeto": null, "corpo": "No Windows, o Stryker roda pelo binário local; npx stryker resolve para um pacote legado.", "data": "2026-08-01T12:00:00.000Z" },
+    { "n": 6, "tipo": "licao", "projeto": "P1", "corpo": "O checkout antigo travava no Safari; usar o polyfill.", "data": "2026-08-15T12:00:00.000Z", "estado": "aposentada" },
+    { "n": 7, "tipo": "cartao", "projeto": "P1", "titulo": "Checkout no celular", "corpo": "O botão de pagar some atrás do teclado no iPhone.", "data": "2026-09-15T12:00:00.000Z" },
+    { "n": 8, "tipo": "backlog", "projeto": "P1", "titulo": "Cupom de desconto para a primeira compra", "corpo": "Ideia do dono: cupom de 10% no primeiro pedido.", "data": "2026-09-08T12:00:00.000Z" },
+    { "n": 9, "tipo": "bloqueio", "projeto": "P1", "titulo": "Chave do Pix em análise no banco", "corpo": "O banco ainda não liberou a chave de produção.", "data": "2026-09-11T12:00:00.000Z" },
+    { "n": 10, "tipo": "checkpoint", "projeto": "P1", "titulo": "Salvamento antes de compactar: checkout com Pix pronto no teste", "corpo": "Checkout com Pix concluído em homologação; faltam os e-mails de confirmação.", "extra": "Configurar os e-mails transacionais.", "data": "2026-09-14T12:00:00.000Z", "estado": "compactacao" },
+    { "n": 11, "tipo": "checkpoint", "projeto": "P1", "titulo": "Página de produto com fotos novas", "corpo": "Galeria de fotos dos bolos com zoom.", "extra": "Revisar textos.", "data": "2026-09-02T12:00:00.000Z" },
+    { "n": 12, "tipo": "mensagem", "projeto": "P1", "corpo": "Dono pediu: as mensagens de confirmação do pedido precisam ter o nome da loja.", "data": "2026-09-13T12:00:00.000Z" },
+    { "n": 13, "tipo": "mensagem", "projeto": "P1", "corpo": "Revisei a compactação das imagens; ficou 40% menor.", "data": "2026-09-03T12:00:00.000Z" },
+    { "n": 14, "tipo": "diretriz", "projeto": "P1", "corpo": "Loja de bolos caseiros da Alfa: vender pela internet com entrega na cidade, simples para quem não é técnico.", "data": "2026-08-01T12:00:00.000Z" },
+    { "n": 15, "tipo": "biblioteca", "projeto": "P1", "titulo": "Guia de atendimento", "corpo": "Como responder dúvidas sobre entrega, prazos e trocas.", "data": "2026-08-20T12:00:00.000Z" },
+    { "n": 16, "tipo": "mensagem", "projeto": "P2", "corpo": "Checkout do outro projeto com cartão e Pix.", "data": "2026-09-20T12:00:00.000Z" },
+    { "n": 17, "tipo": "licao", "projeto": "P2", "corpo": "Frete e Pix no projeto dois.", "data": "2026-09-20T12:00:00.000Z" },
+    { "n": 18, "tipo": "backlog", "projeto": "P1", "titulo": "Decisões do quadro em lote", "corpo": "Confirmar várias decisões de uma vez.", "data": "2026-09-09T12:00:00.000Z" },
+    { "n": 19, "tipo": "cartao", "projeto": "P1", "titulo": "Mensagens automáticas de e-mail", "corpo": "Enviar e-mail quando o pedido sair para entrega.", "data": "2026-09-16T12:00:00.000Z" }
+  ],
+  "casos": [
+    { "nome": "acento e caixa: maiúsculas e sem acento acham com acento", "consulta": "PAGAMENTO pix", "esperado": ["licao:4", "decisao:1"] },
+    { "nome": "prefixo: compact acha compactar e compactação", "consulta": "compact", "esperado": ["mensagem:13", "checkpoint:10"] },
+    { "nome": "plural acha singular e plural (mensagens)", "consulta": "mensagens", "esperado": ["cartao:19", "mensagem:12"] },
+    { "nome": "singular acha plural que o prefixo não alcança (decisão → decisões)", "consulta": "decisão", "esperado": ["backlog:18"] },
+    { "nome": "termo em várias tabelas: peso decide", "consulta": "pix", "esperado": ["decisao:1", "licao:4", "checkpoint:10"] },
+    { "nome": "decisão aceita acima da revogada", "consulta": "frete", "esperado": ["decisao:3", "decisao:2"] },
+    { "nome": "lição global aparece no projeto", "consulta": "stryker windows", "esperado": ["licao:5"] },
+    { "nome": "lição aposentada pesa menos", "consulta": "checkout", "esperado": ["licao:4", "cartao:7", "checkpoint:10"] },
+    { "nome": "termo inexistente: nada", "consulta": "kubernetes", "esperado": [] },
+    { "nome": "várias palavras em qualquer ordem", "consulta": "banco chave pix", "esperado": ["bloqueio:9"] },
+    { "nome": "mesmas palavras, outra ordem", "consulta": "pix chave banco", "esperado": ["bloqueio:9"] },
+    { "nome": "outro projeto nunca aparece (cartão)", "consulta": "cartão", "esperado": ["decisao:1"] },
+    { "nome": "diretriz pesa mais que checkpoint", "consulta": "bolos", "esperado": ["diretriz:14", "checkpoint:11"] },
+    { "nome": "biblioteca no mesmo índice: pontua junto com a memória", "consulta": "entrega", "esperado": ["diretriz:14", "biblioteca:15", "cartao:19"] },
+    { "nome": "emoji e aspas viram nada; o resto é texto", "consulta": "🚀 \"frete\" -fixo", "esperado": ["decisao:3"] }
+  ]
+}

@@ -1,0 +1,603 @@
+/*
+ * Retrospectiva — a história do projeto contada pelas próprias entregas.
+ *
+ * Um só ponto de ousadia: o número gigante apoiado no pulso de checkpoints por dia.
+ * O resto é quieto: cor só onde carrega informação (ciano = ritmo, azul = conferido
+ * por outra IA, lilás = arquivos conferidos pelo sistema).
+ *
+ * Por que há !important em alguns tamanhos: src/leitura.css (Parte 9) força
+ * h2, h3, p e li com !important no app inteiro. Aqui a especificidade é maior
+ * (.retro .classe) e os tamanhos continuam acima dos mínimos de leitura.
+ */
+
+.retro {
+  --retro-display: "Segoe UI Variable Display", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  --retro-tinta: #f8fafc;
+  --retro-texto: #cbd5e1;
+  --retro-suave: #94a3b8;
+  --retro-linha: #262a31;
+  --retro-trilho: #1b1e23;
+  --retro-pulso: #67e8f9;
+  --retro-pulso-forte: #cffafe;
+  --retro-outra-ia: #7bc3f7;
+  --retro-sistema: #caa6f7;
+  --retro-sem-dado: #3b4452;
+  --retro-curva: cubic-bezier(0.23, 1, 0.32, 1);
+  max-width: 1120px;
+  padding: 4px 0 104px;
+  color: var(--retro-texto);
+}
+
+/* Abertura */
+
+.retro .retro-titulo {
+  margin: 0 0 22px;
+  font-family: var(--retro-display);
+  font-size: 22px !important;
+  font-weight: 450;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+  color: var(--retro-texto);
+}
+
+.retro-abertura-corpo {
+  display: grid;
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+  column-gap: clamp(40px, 6vw, 104px);
+  align-items: end;
+}
+
+.retro .retro-numero-principal {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  font-size: 16px !important;
+  line-height: 1;
+}
+
+.retro-numero {
+  display: block;
+  margin-left: -0.05em;
+  font-family: var(--retro-display);
+  font-size: clamp(132px, 15vw, 240px);
+  font-weight: 280;
+  line-height: 0.8;
+  letter-spacing: -0.065em;
+  font-feature-settings: "lnum";
+  color: var(--retro-tinta);
+}
+
+.retro-numero-rotulo {
+  margin-top: 18px;
+  font-family: var(--retro-display);
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: var(--retro-tinta);
+}
+
+/* Fatos de apoio: números reais, cada um só aparece quando existe. */
+
+.retro-fatos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 30px 28px;
+  margin: 0 0 6px;
+}
+
+.retro-fato {
+  display: flex;
+  flex-direction: column-reverse;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-left: 16px;
+  border-left: 1px solid var(--retro-linha);
+}
+
+.retro-fato dd {
+  margin: 0;
+  font-family: var(--retro-display);
+  font-size: clamp(40px, 4vw, 58px);
+  font-weight: 300;
+  line-height: 0.95;
+  letter-spacing: -0.045em;
+  font-feature-settings: "lnum";
+  color: var(--retro-tinta);
+}
+
+.retro-fato dt {
+  max-width: 22ch;
+  font-size: 14px;
+  line-height: 1.35;
+  color: var(--retro-suave);
+}
+
+.retro-fato[data-tom="sistema"] { border-left-color: rgba(202, 166, 247, 0.55); }
+.retro-fato[data-tom="sistema"] dd { color: var(--retro-sistema); }
+
+/* Trilha de luz: cada traço é um checkpoint no tempo real; cada ponto, uma entrega. */
+
+.retro-trilha {
+  margin: 64px 0 0;
+}
+
+.retro-trilha-area {
+  position: relative;
+  height: 76px;
+  border-radius: 8px;
+  cursor: crosshair;
+  touch-action: pan-y;
+  outline-offset: 6px;
+}
+
+.retro-trilha-area:focus-visible {
+  outline: 2px solid var(--retro-pulso);
+}
+
+.retro-trilha-linha {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: calc(var(--extensao) * 100%);
+  height: 1px;
+  background: rgba(103, 232, 249, 0.38);
+}
+
+.retro-trilha-cauda {
+  position: absolute;
+  top: 50%;
+  left: calc(var(--extensao) * 100%);
+  right: 0;
+  border-top: 1px dashed var(--retro-sem-dado);
+}
+
+.retro-marca {
+  position: absolute;
+  top: 50%;
+  left: calc(var(--x) * var(--extensao) * 100%);
+  width: 2px;
+  height: 22px;
+  margin: -11px 0 0 -1px;
+  border-radius: 2px;
+  background: var(--retro-pulso);
+  opacity: 0.55;
+  pointer-events: none;
+  transition: opacity 160ms ease, transform 220ms var(--retro-curva), box-shadow 220ms ease;
+}
+
+.retro-marca[data-ativo] {
+  opacity: 1;
+  transform: scaleY(1.5);
+  box-shadow: 0 0 12px rgba(103, 232, 249, 0.8);
+}
+
+.retro-marca[data-entrega] {
+  --brilho: rgba(103, 232, 249, 0.6);
+  width: 12px;
+  height: 12px;
+  margin: -6px 0 0 -6px;
+  border-radius: 50%;
+  background: var(--retro-pulso-forte);
+  opacity: 1;
+  box-shadow: 0 0 0 3px #141415, 0 0 18px var(--brilho);
+}
+
+.retro-marca[data-entrega][data-tom="relato"] { --brilho: rgba(226, 232, 240, 0.45); background: #e2e8f0; }
+.retro-marca[data-entrega][data-tom="ia"] { --brilho: rgba(123, 195, 247, 0.7); background: var(--retro-outra-ia); }
+.retro-marca[data-entrega][data-tom="sistema"] { --brilho: rgba(202, 166, 247, 0.75); background: var(--retro-sistema); }
+.retro-marca[data-entrega][data-tom="sem-evidencia"] { --brilho: transparent; background: var(--retro-suave); }
+
+.retro-marca[data-entrega][data-ativo],
+.retro-marca[data-entrega][data-destaque] {
+  transform: scale(1.6);
+  box-shadow: 0 0 0 2px #141415, 0 0 28px var(--brilho), 0 0 6px var(--brilho);
+}
+
+.retro-trilha-cursor {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  left: 0;
+  width: 1px;
+  background: rgba(207, 250, 254, 0.45);
+  pointer-events: none;
+  transition: transform 140ms var(--retro-curva);
+}
+
+.retro-trilha-dica {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  z-index: 2;
+  width: 300px;
+  padding: 14px 16px;
+  border: 1px solid #333a44;
+  border-radius: 10px;
+  background: rgba(22, 25, 30, 0.97);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+  transition: transform 160ms var(--retro-curva);
+  animation: retro-dica-entra 160ms var(--retro-curva);
+}
+
+@keyframes retro-dica-entra {
+  from { opacity: 0; }
+}
+
+.retro-trilha-dica strong {
+  display: block;
+  font-family: var(--retro-display);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--retro-tinta);
+}
+
+.retro-trilha-dica span {
+  display: block;
+  margin-top: 3px;
+  font-size: 12px;
+  color: var(--retro-suave);
+}
+
+.retro .retro-trilha-dica p {
+  margin: 8px 0 0;
+  font-size: 13px !important;
+  line-height: 1.5;
+  color: var(--retro-texto);
+}
+
+.retro-trilha-legenda {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--retro-suave);
+}
+
+.retro-trilha-anuncio {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.retro-entrega {
+  transition: background-color 220ms ease;
+}
+
+.retro-entrega[data-destaque] {
+  background: linear-gradient(90deg, rgba(148, 163, 184, 0.06), transparent 70%);
+}
+
+.retro-entrega[data-destaque] .retro-entrega-corpo::before {
+  box-shadow: 0 0 14px currentColor;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .retro-marca,
+  .retro-trilha-cursor,
+  .retro-trilha-dica,
+  .retro-entrega {
+    transition: none;
+    animation: none;
+  }
+}
+
+/* Estado vazio */
+
+.retro-vazio {
+  max-width: 52ch;
+  padding: 40px 0 16px;
+}
+
+.retro .retro-vazio-frase {
+  margin: 0;
+  font-family: var(--retro-display);
+  font-size: 40px !important;
+  font-weight: 300;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  color: var(--retro-tinta);
+}
+
+.retro .retro-vazio-apoio {
+  margin: 16px 0 0;
+  font-size: 16px !important;
+  line-height: 1.6;
+  color: var(--retro-suave);
+}
+
+/* Seções */
+
+.retro-semana {
+  margin-top: 80px;
+}
+
+.retro .retro-semana-frase {
+  margin: 10px 0 0;
+  font-family: var(--retro-display);
+  font-size: 36px !important;
+  font-weight: 300;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  color: var(--retro-tinta);
+}
+
+.retro-secao {
+  margin-top: 96px;
+}
+
+.retro-secao-cabecalho {
+  max-width: 62ch;
+  margin-bottom: 28px;
+}
+
+.retro .retro-secao-titulo {
+  margin: 0;
+  font-family: var(--retro-display);
+  font-size: 30px !important;
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  color: var(--retro-tinta);
+}
+
+.retro .retro-secao-apoio {
+  margin: 8px 0 0;
+  font-size: 14px !important;
+  line-height: 1.55;
+  color: var(--retro-suave);
+}
+
+/* Entregas */
+
+.retro-entregas-lista,
+.retro-pessoas-lista,
+.retro-decisoes-lista {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.retro .retro-entrega {
+  display: grid;
+  grid-template-columns: 136px minmax(0, 1fr);
+  gap: 24px;
+  padding: 26px 0;
+  border-top: 1px solid var(--retro-linha);
+  font-size: 14px !important;
+}
+
+.retro-entrega > time {
+  padding-top: 7px;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  color: var(--retro-suave);
+}
+
+.retro-entrega-corpo {
+  position: relative;
+  padding-left: 22px;
+}
+
+.retro-entrega-corpo::before {
+  content: "";
+  position: absolute;
+  top: 5px;
+  bottom: 5px;
+  left: 0;
+  width: 3px;
+  border-radius: 3px;
+  background: var(--retro-sem-dado);
+}
+
+.retro-entrega[data-tom="relato"] .retro-entrega-corpo::before { background: var(--retro-suave); }
+.retro-entrega[data-tom="ia"] .retro-entrega-corpo::before { background: var(--retro-outra-ia); }
+.retro-entrega[data-tom="sistema"] .retro-entrega-corpo::before { background: var(--retro-sistema); }
+
+.retro-entrega-titulo {
+  margin: 0;
+  font-family: var(--retro-display);
+  font-size: 21px;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  color: var(--retro-tinta);
+}
+
+.retro-entrega:first-child .retro-entrega-titulo {
+  font-size: 28px;
+  letter-spacing: -0.02em;
+}
+
+.retro .retro-entrega-frase {
+  max-width: 64ch;
+  margin: 8px 0 0;
+  font-size: 17px !important;
+  line-height: 1.55;
+  color: var(--retro-texto);
+}
+
+.retro .retro-entrega-tecnico {
+  display: -webkit-box;
+  max-width: 72ch;
+  margin: 8px 0 0;
+  overflow: hidden;
+  font-size: 14px !important;
+  line-height: 1.55;
+  color: var(--retro-suave);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.retro-entrega-tecnico > span {
+  display: block;
+  margin-bottom: 2px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--retro-suave);
+}
+
+.retro .retro-entrega-rodape {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 20px;
+  margin: 14px 0 0;
+  font-size: 13px !important;
+  color: var(--retro-suave);
+}
+
+.retro-selo { font-weight: 600; }
+.retro-entrega[data-tom="relato"] .retro-selo { color: var(--retro-texto); }
+.retro-entrega[data-tom="ia"] .retro-selo { color: var(--retro-outra-ia); }
+.retro-entrega[data-tom="sistema"] .retro-selo { color: var(--retro-sistema); }
+
+.retro-mais {
+  margin-top: 20px;
+}
+
+/* Quem entregou o quê */
+
+.retro-pessoas-lista {
+  display: grid;
+  gap: 22px;
+  max-width: 900px;
+}
+
+.retro .retro-pessoa {
+  display: grid;
+  grid-template-columns: minmax(0, 170px) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 20px;
+  font-size: 14px !important;
+}
+
+.retro-pessoa-nome {
+  overflow: hidden;
+  font-family: var(--retro-display);
+  font-size: 20px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--retro-tinta);
+}
+
+.retro-pessoa-trilho {
+  position: relative;
+  height: 12px;
+  border-radius: 2px;
+  background: var(--retro-trilho);
+}
+
+.retro-pessoa-checkpoints,
+.retro-pessoa-entregas {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  border-radius: 2px;
+}
+
+.retro-pessoa-checkpoints { background: rgba(103, 232, 249, 0.28); }
+.retro-pessoa-entregas { background: var(--retro-pulso); }
+
+.retro-pessoa-contagem {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--retro-texto);
+}
+
+/* Decisões do rumo: a ordem é real, então a linha do tempo é informação */
+
+.retro-decisoes-lista {
+  position: relative;
+  max-width: 900px;
+}
+
+.retro-decisoes-lista::before {
+  content: "";
+  position: absolute;
+  top: 20px;
+  bottom: 20px;
+  left: 5px;
+  width: 1px;
+  background: var(--retro-linha);
+}
+
+.retro .retro-decisao {
+  position: relative;
+  display: grid;
+  grid-template-columns: 11px minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 20px;
+  padding: 14px 0;
+  font-size: 14px !important;
+}
+
+.retro-decisao-marco {
+  width: 11px;
+  height: 11px;
+  margin-top: 7px;
+  border-radius: 50%;
+  background: var(--retro-pulso);
+  box-shadow: 0 0 0 4px #141415;
+}
+
+.retro-decisao[data-situacao="substituida"] .retro-decisao-marco,
+.retro-decisao[data-situacao="revogada"] .retro-decisao-marco {
+  border: 1.5px solid var(--retro-suave);
+  background: #141415;
+}
+
+.retro-decisao-titulo {
+  margin: 0;
+  font-family: var(--retro-display);
+  font-size: 19px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--retro-tinta);
+}
+
+.retro-decisao[data-situacao="substituida"] .retro-decisao-titulo,
+.retro-decisao[data-situacao="revogada"] .retro-decisao-titulo {
+  font-weight: 500;
+  color: var(--retro-texto);
+}
+
+.retro .retro-decisao-situacao {
+  margin: 4px 0 0;
+  font-size: 13px !important;
+  color: var(--retro-suave);
+}
+
+.retro-decisao[data-situacao="vale-hoje"] .retro-decisao-situacao { color: var(--retro-pulso); }
+
+.retro-decisao > time {
+  padding-top: 5px;
+  font-size: 13px;
+  white-space: nowrap;
+  color: var(--retro-suave);
+}
+
+/* Telas estreitas */
+
+@media (max-width: 860px) {
+  .retro-abertura-corpo { grid-template-columns: minmax(0, 1fr); row-gap: 36px; }
+  .retro-fatos { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px 16px; }
+  .retro-trilha-dica-de-uso { display: none; }
+  .retro-trilha-dica { width: 260px; }
+  .retro-entrega:first-child .retro-entrega-titulo { font-size: 23px; }
+  .retro .retro-entrega { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .retro-entrega > time { padding-top: 0; }
+  .retro .retro-pessoa { grid-template-columns: minmax(0, 1fr) auto; row-gap: 8px; }
+  .retro-pessoa-trilho { grid-column: 1 / -1; grid-row: 2; }
+  .retro .retro-secao-titulo { font-size: 24px !important; }
+  .retro .retro-semana-frase { font-size: 26px !important; }
+  .retro .retro-vazio-frase { font-size: 30px !important; }
+  .retro-secao { margin-top: 72px; }
+}

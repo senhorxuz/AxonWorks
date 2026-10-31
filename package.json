@@ -1,0 +1,52 @@
+{
+  "name": "axon",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "dev": "tsx watch server/index.ts",
+    "build": "tsc --noEmit && vite build && node scripts/montar.mjs",
+    "montar": "node scripts/montar.mjs",
+    "start": "node scripts/montar.mjs && node dist-server/index.mjs --production",
+    "mcp": "tsx server/mcp.ts",
+    "test": "tsx --test --test-concurrency=1 tests/*.test.ts",
+    "test:e2e": "playwright test",
+    "check": "npm run test && npm run build && npm run test:e2e",
+    "qualidade:cobertura": "node scripts/qualidade/cobertura.mjs",
+    "qualidade:complexidade": "node scripts/qualidade/complexidade.mjs",
+    "atalho": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/criar-atalho.ps1",
+    "claude:ligar": "tsx scripts/claude/instalar.ts",
+    "claude:desligar": "tsx scripts/claude/instalar.ts --desligar",
+    "axon:diagnostico": "tsx scripts/diagnostico.ts"
+  },
+  "dependencies": {
+    "@fontsource-variable/manrope": "^5.3.0",
+    "@gsap/react": "^2.1.2",
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "express": "^5.2.1",
+    "gsap": "^3.15.0",
+    "lucide-react": "^1.45.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@babel/parser": "^8.0.8",
+    "@playwright/test": "^1.63.0",
+    "@stryker-mutator/core": "^10.1.1",
+    "@types/express": "^5.0.6",
+    "@types/node": "^26.5.1",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.1",
+    "c8": "^12.0.0",
+    "esbuild": "^0.28.2",
+    "tsx": "^4.23.13",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.0"
+  }
+}

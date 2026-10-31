@@ -1,0 +1,3 @@
+# Scripts e serviços da VPS rodam no Linux: quebra de linha sempre LF.
+*.sh text eol=lf
+deploy/systemd/* text eol=lf

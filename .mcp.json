@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "axon": {
+      "command": "node",
+      "args": [
+        "./dist-server/mcp.mjs"
+      ]
+    }
+  }
+}

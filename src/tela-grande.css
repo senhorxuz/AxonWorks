@@ -1,0 +1,92 @@
+/*
+ * Tela grande — o app aproveita monitores largos (por exemplo, QHD de 32 polegadas).
+ *
+ * Só vale a partir de 1800 px de largura: em notebook e telas comuns nada muda.
+ * Regra: largura sobrando vira mais colunas, nunca linhas de texto cansativas.
+ *
+ * Apagável sozinho: remova este arquivo e o import em src/main.tsx.
+ */
+
+@media (min-width: 1800px) {
+  .main-shell main {
+    max-width: none;
+    padding-left: 48px;
+    padding-right: 48px;
+  }
+
+  /* Visão geral: a coluna de tarefas ganha espaço para títulos respirarem. */
+  .workspace-grid {
+    grid-template-columns: minmax(0, 1fr) 380px;
+  }
+
+  /* Parágrafos mantêm um limite de leitura; os blocos em volta é que se multiplicam. */
+  .workspace-primary p {
+    max-width: 120ch;
+  }
+
+  .fila-identidade-campo {
+    max-width: 640px;
+  }
+
+  /* Resumo ao acordar: as seções crescem até preencher a linha, sem sobra à direita. */
+  .resumo-ao-acordar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    column-gap: 32px;
+    row-gap: 20px;
+  }
+
+  .resumo-ao-acordar > * {
+    flex: 1 1 100%;
+  }
+
+  .resumo-ao-acordar > .resumo-secao {
+    flex: 1 1 340px;
+  }
+
+  .resumo-ao-acordar > .resumo-secao[aria-label="Sugestões para agora"] {
+    flex-basis: 100%;
+  }
+
+  .resumo-lista-proximo {
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  }
+
+  /* Retrospectiva: largura inteira, com entregas à esquerda e pessoas e decisões ao lado. */
+  .retro {
+    display: grid;
+    grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+    align-items: start;
+    column-gap: 72px;
+    max-width: none;
+  }
+
+  .retro > .retro-abertura,
+  .retro > .retro-semana {
+    grid-column: 1 / -1;
+  }
+
+  .retro > .retro-entregas {
+    grid-column: 1;
+  }
+
+  /* Pessoas e decisões ficam juntas numa lateral: uma logo abaixo da outra, sem buraco. */
+  .retro > .retro-lateral {
+    grid-column: 2;
+  }
+
+  /* Sem entregas, a lateral ocupa a largura toda em vez de deixar uma coluna vazia. */
+  .retro:not(:has(> .retro-entregas)) > .retro-lateral {
+    grid-column: 1 / -1;
+  }
+
+  /* Guia para IAs: os passos dividem a largura em duas colunas. */
+  .guide-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 64px;
+    max-width: none;
+    margin-bottom: 28px;
+  }
+}

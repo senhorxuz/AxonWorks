@@ -1,0 +1,9 @@
+[Unit]
+Description=Axon Works: confere o endereço do DuckDNS a cada 30 minutos
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=30min
+
+[Install]
+WantedBy=timers.target

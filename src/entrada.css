@@ -1,0 +1,117 @@
+/* A porta da Axon: primeira tela de quem abre o endereço no servidor.
+   Mesma paleta escura do resto do app (art-direction.css). */
+
+.porta-carregando {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: #141415;
+  color: #a6a8ab;
+  font-size: 12px;
+  letter-spacing: .2px;
+}
+.porta-carregando svg { animation: porta-girar 1.1s linear infinite; }
+
+.porta {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 32px 20px;
+  background:
+    radial-gradient(900px 420px at 50% -10%, #1f2023 0%, rgba(31, 32, 35, 0) 68%),
+    linear-gradient(180deg, #151516 0%, #101011 100%);
+}
+
+.porta-cartao {
+  width: 100%;
+  max-width: 396px;
+  background: #1d1d1e;
+  border: 1px solid #2f3032;
+  border-radius: 14px;
+  padding: 38px 34px 26px;
+  box-shadow: 0 1px 0 #ffffff08 inset, 0 24px 60px -30px #000000cc;
+}
+
+.porta-marca {
+  font-size: 21px;
+  font-weight: 700;
+  letter-spacing: 3.4px;
+  color: #e9eaec;
+  margin-bottom: 28px;
+}
+.porta-marca-ponto { color: #bdc3cb; letter-spacing: 0; }
+
+.porta-cartao h1 {
+  font-size: 25px;
+  font-weight: 600;
+  letter-spacing: -.5px;
+  line-height: 1.25;
+  color: #e9eaec;
+}
+
+.porta-legenda {
+  margin-top: 10px;
+  font-size: 12px;
+  line-height: 1.75;
+  color: #a6a8ab;
+}
+
+.porta-form { margin-top: 26px; gap: 16px; }
+.porta-form input { padding: 12px 13px; }
+
+.porta-erro {
+  font-size: 12px;
+  line-height: 1.65;
+  color: #f0b7ac;
+  background: #2a1d1b;
+  border: 1px solid #5d3a33;
+  border-radius: 7px;
+  padding: 11px 13px;
+}
+
+.porta-botao { width: 100%; margin-top: 2px; }
+.porta-botao:disabled { opacity: .68; }
+.porta-girando { animation: porta-girar 1.1s linear infinite; }
+
+.porta-rodape {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 24px;
+  padding-top: 18px;
+  border-top: 1px solid #2f3032;
+  font-size: 11px;
+  color: #828385;
+}
+.porta-rodape svg { color: #6f7174; }
+
+/* Sair, no rodapé da barra lateral */
+.sidebar-sair {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  font-size: 10px;
+  letter-spacing: .7px;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: #8e9094;
+  background: none;
+  border: 0;
+  padding: 5px 0;
+}
+.sidebar-sair:hover { color: #e9eaec; }
+
+@keyframes porta-girar { to { transform: rotate(360deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .porta-carregando svg, .porta-girando { animation: none; }
+}
+
+@media (max-width: 520px) {
+  .porta { padding: 20px 16px; }
+  .porta-cartao { padding: 30px 22px 22px; border-radius: 12px; }
+  .porta-cartao h1 { font-size: 23px; }
+}

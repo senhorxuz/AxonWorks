@@ -1,0 +1,30 @@
+[Unit]
+Description=Axon Works
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=axon
+Group=axon
+WorkingDirectory=/srv/axon/app
+EnvironmentFile=/etc/axon/axon.env
+ExecStart=/usr/bin/node --import /srv/axon/app/node_modules/tsx/dist/loader.mjs server/index.ts --production
+Restart=always
+RestartSec=3
+TimeoutStopSec=15
+
+# Proteções: o processo só grava no banco e nos backups.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/srv/axon/dados /srv/axon/backups
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+
+[Install]
+WantedBy=multi-user.target

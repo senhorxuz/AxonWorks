@@ -1,0 +1,24 @@
+node_modules/
+dist/
+.continua/
+.env
+.env.*
+!.env.example
+output/playwright/
+test-results/
+playwright-report/
+*.sqlite*
+
+.axon/
+.playwright-cli/
+output/orchestration/
+output/validation/
+*.log
+.DS_Store
+Thumbs.db
+
+# Ferramentas de qualidade (padrão ouro)
+.stryker-tmp/
+coverage/
+dist-server/
+.axon/ganchos/

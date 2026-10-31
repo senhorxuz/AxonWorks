@@ -1,0 +1,8 @@
+[Unit]
+Description=Axon Works: mantém o endereço do DuckDNS apontando para esta VPS
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash /srv/axon/app/deploy/atualizar-duckdns.sh

@@ -1,0 +1,268 @@
+/* Partes 7 e 5 — Resumo ao acordar e Esperando por voce.
+   Estilos so destas duas telas. Apagavel junto com elas.
+   Reaproveita as variaveis de :root definidas em art-direction.css (--surface,
+   --surface-raised, --ink, --text-secondary, --line, --accent) e as classes
+   globais .button/.eyebrow/.alert/.text-button já existentes — nada disso é
+   redefinido aqui, só o layout novo. Contraste de texto de leitura sempre
+   verificado para 4,5:1 no mínimo; #64748b nunca é usado. */
+
+.resumo-ao-acordar,
+.fila-de-aprovacoes {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  padding: 26px 28px;
+  margin-bottom: 24px;
+  display: grid;
+  gap: 20px;
+}
+
+.resumo-header h2,
+.fila-de-aprovacoes .resumo-header h2 {
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -0.4px;
+  color: var(--ink);
+  margin: 6px 0 0;
+}
+
+.resumo-sub {
+  color: var(--text-secondary);
+  font-size: 13px;
+  margin: 8px 0 0;
+}
+
+.resumo-momentum {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.resumo-momentum-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--surface-raised);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 8px 14px;
+  font-size: 12px;
+  color: var(--ink);
+}
+
+.resumo-momentum-chip svg { color: var(--accent); flex-shrink: 0; }
+
+.resumo-secao h3 {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 0 0 12px;
+}
+
+.resumo-secao h3 svg { color: var(--accent); flex-shrink: 0; }
+
+.resumo-vazio {
+  color: var(--text-secondary);
+  font-size: 13px;
+  margin: 0;
+}
+
+.resumo-lista-pronto,
+.resumo-lista-travado,
+.resumo-lista-proximo {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.resumo-item-pronto {
+  background: var(--surface-raised);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  padding: 14px 16px;
+}
+
+.resumo-item-pronto-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.resumo-item-pronto-top strong {
+  color: var(--ink);
+  font-size: 13px;
+}
+
+.resumo-item-pronto-top time {
+  color: var(--text-secondary);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.resumo-item-pronto > p {
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 0 0 10px;
+}
+
+.resumo-tecnico span {
+  display: block;
+  color: var(--text-secondary);
+  font-size: 12px;
+  margin-bottom: 3px;
+}
+
+.resumo-confianca {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 20px;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.resumo-confianca.tom-relato { background: var(--surface-inset); border: 1px solid var(--line); color: var(--text-secondary); }
+.resumo-confianca.tom-ia { background: #1c3247; border: 1px solid #2e5984; color: #7bc3f7; }
+.resumo-confianca.tom-sistema { background: #2f2540; border: 1px solid #5c4280; color: #caa6f7; }
+.resumo-confianca.tom-sem-evidencia { background: var(--surface-inset); border: 1px solid var(--line); color: var(--text-secondary); }
+
+.resumo-lista-travado li,
+.resumo-lista-proximo li {
+  background: var(--surface-raised);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  padding: 13px 16px;
+}
+
+.resumo-lista-travado li { background: #38201a; border-color: #7d3525; }
+.resumo-lista-travado li strong { color: #fca5a5; font-size: 13px; }
+.resumo-lista-travado li p { color: #f3d4d0; font-size: 12px; margin: 5px 0 0; line-height: 1.6; }
+
+.resumo-lista-proximo li strong { color: var(--ink); font-size: 13px; display: block; margin-bottom: 4px; }
+.resumo-lista-proximo li p { color: var(--text-secondary); font-size: 12px; margin: 0; line-height: 1.6; }
+
+/* Fila de aprovações */
+
+.fila-identidade form { display: grid; gap: 6px; }
+.fila-identidade label { color: var(--text-secondary); font-size: 12px; }
+.fila-identidade-campo { display: flex; gap: 10px; flex-wrap: wrap; }
+.fila-identidade-campo input {
+  flex: 1 1 220px;
+  min-width: 0;
+  background: var(--surface-inset);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 10px 12px;
+  color: var(--ink);
+  font-size: 13px;
+}
+.fila-identidade-atual { color: var(--ink); font-size: 13px; margin: 0; }
+.fila-identidade-atual strong { color: var(--ink); }
+
+.fila-lista { display: grid; gap: 16px; }
+
+.fila-card {
+  background: var(--surface-raised);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 20px 22px;
+  display: grid;
+  gap: 12px;
+}
+
+.fila-card-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.fila-proposto-por { color: var(--text-secondary); font-size: 12px; }
+
+.fila-card h3 { color: var(--ink); font-size: 18px; font-weight: 600; margin: 0; }
+
+.fila-motivo { color: var(--ink); font-size: 13px; line-height: 1.6; margin: 0; }
+.fila-motivo strong { color: var(--ink); }
+
+.fila-comparacao {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.fila-comparacao-simples { grid-template-columns: 1fr; }
+
+.fila-comparacao > div {
+  background: var(--surface-inset);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+
+.fila-comparacao-rotulo {
+  display: block;
+  color: var(--text-secondary);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.fila-comparacao p {
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.65;
+  margin: 0;
+  white-space: pre-line;
+}
+
+.fila-card-acoes { display: flex; gap: 12px; flex-wrap: wrap; }
+
+.fila-confirmacao {
+  display: grid;
+  gap: 12px;
+  background: var(--surface-inset);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  padding: 16px;
+}
+
+.fila-confirmacao > p { color: var(--ink); font-size: 13px; margin: 0; line-height: 1.6; }
+.fila-confirmacao label { color: var(--text-secondary); font-size: 12px; }
+.fila-confirmacao textarea {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 10px 12px;
+  color: var(--ink);
+  font-size: 13px;
+  resize: vertical;
+  font-family: inherit;
+}
+
+.fila-confirmacao-acoes { display: flex; gap: 10px; justify-content: flex-end; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .fila-confirmacao { animation: painel-surge 0.18s ease-out; }
+}
+
+@keyframes painel-surge {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 720px) {
+  .resumo-ao-acordar,
+  .fila-de-aprovacoes { padding: 20px; }
+  .fila-comparacao { grid-template-columns: 1fr; }
+  .resumo-item-pronto-top { flex-direction: column; align-items: flex-start; gap: 4px; }
+}

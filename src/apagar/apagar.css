@@ -1,0 +1,10 @@
+/* Botões e caixas de "Apagar trecho" e "Apagar registro inteiro" (27/10/2026). Tema escuro da Axon. */
+.apagar-acoes { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; padding-top: 14px; border-top: 1px solid #3a3e43; }
+.apagar-acoes .button { min-height: 44px; font-size: 11px; color: #c3c9d0; }
+.apagar-acoes .button.apagar-perigo { color: #e8c9bf; }
+.apagar-acoes .button:focus-visible { outline: 2px solid #c9d4df; outline-offset: 2px; }
+.apagar-contagem { font-size: 13px; line-height: 1.6; color: #dde4ea; }
+.apagar-aviso { font-size: 12px; line-height: 1.6; color: #f0d5cc; background: #3a2925; border: 1px solid #6a4a42; border-radius: 6px; padding: 10px 12px; margin: 0 0 12px; }
+.rascunho-descartar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; }
+.rascunho-descartar .button { min-height: 44px; font-size: 11px; }
+.rascunho-descartar p { font-size: 12px; color: #dde4ea; }

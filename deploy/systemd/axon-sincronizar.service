@@ -1,0 +1,8 @@
+[Unit]
+Description=Axon Works: atualiza as cópias do código usadas na conferência de arquivos
+
+[Service]
+Type=oneshot
+User=axon
+Group=axon
+ExecStart=/bin/bash /srv/axon/app/deploy/sincronizar-projetos.sh

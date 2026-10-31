@@ -1,0 +1,165 @@
+/*
+ * Tato — como o site responde a quem mexe nele.
+ *
+ * Regras (filosofia de Emil Kowalski):
+ * - O que se usa o dia inteiro (abas, botões, listas) é rápido e discreto.
+ * - Só o que é raro ou confirma algo real ganha um pouco de encanto.
+ * - Curva de saída forte, nunca ease-in. Nada aparece do nada (sem scale(0)).
+ * - Hover com movimento só em mouse de verdade. Nada disso existe com movimento reduzido.
+ *
+ * Apagável sozinho: remova este arquivo e o import em src/main.tsx.
+ */
+
+:root {
+  --tato-curva: cubic-bezier(0.23, 1, 0.32, 1);
+  --tato-foco: #67e8f9;
+}
+
+/* 1. Tudo que se aperta responde ao aperto. */
+
+.button,
+.icon-button,
+.text-button,
+.resolve-button,
+.task-contract-btn,
+.task-reopen-btn,
+.icon-button-danger,
+.snippet-copy-btn,
+.connector-tab-btn,
+.graph-subnav-btn,
+.filter-pill,
+.task-criterion-chip,
+.view-switch button,
+.library-filters button,
+.command-trigger,
+.tabs [role="tab"] {
+  transition-property: transform, background-color, border-color, color, box-shadow, opacity;
+  transition-duration: 160ms;
+  transition-timing-function: var(--tato-curva);
+}
+
+:is(
+  .button,
+  .icon-button,
+  .resolve-button,
+  .task-contract-btn,
+  .task-reopen-btn,
+  .icon-button-danger,
+  .snippet-copy-btn,
+  .connector-tab-btn,
+  .graph-subnav-btn,
+  .filter-pill,
+  .task-criterion-chip,
+  .view-switch button,
+  .library-filters button,
+  .command-trigger,
+  .tabs [role="tab"]
+):active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+/* 2. "transition: all" anima propriedades por acidente. Aqui cada uma é nomeada. */
+
+.task-contract-btn,
+.icon-button-danger,
+.contract-dep-card,
+.connector-tab-btn,
+.snippet-copy-btn,
+.graph-kpi-card,
+.graph-subnav-btn,
+.filter-pill,
+.graph-node-card,
+.task-reopen-btn {
+  transition-property: transform, background-color, border-color, color, box-shadow, opacity;
+}
+
+/* 3. Foco de teclado visível e com a cor do app. */
+
+:is(button, a, summary, [role="tab"], [tabindex="0"]):focus-visible {
+  outline: 2px solid var(--tato-foco);
+  outline-offset: 3px;
+}
+
+:is(input, textarea, select):focus-visible {
+  outline: 2px solid var(--tato-foco);
+  outline-offset: 1px;
+}
+
+/* 4. Cartões reconhecem o mouse, com um contorno que acende devagar. */
+
+.task,
+.checkpoint-card,
+.message-card,
+.decision-entry {
+  transition: box-shadow 220ms ease, border-color 220ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .task:hover,
+  .checkpoint-card:hover,
+  .message-card:hover,
+  .decision-entry:hover {
+    box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.16), 0 10px 30px rgba(0, 0, 0, 0.18);
+  }
+}
+
+/* 5. Trocar de aba: o conteúdo novo chega com um fade curto, sem deslocar a página. */
+
+#project-tabpanel > .workspace-primary > * {
+  animation: tato-troca-de-aba 180ms var(--tato-curva) both;
+}
+
+@keyframes tato-troca-de-aba {
+  from { opacity: 0; }
+}
+
+/* 6. Janela: o véu escurece junto com a janela, em vez de aparecer seco. */
+
+.modal[open]::backdrop {
+  animation: tato-veu 240ms ease-out both;
+}
+
+@keyframes tato-veu {
+  from { opacity: 0; }
+}
+
+/* 7. Aviso de confirmação: o check chega com um pequeno impulso. Só aparece depois de algo salvo de verdade. */
+
+.feedback-icon svg {
+  animation: tato-check 420ms var(--tato-curva) 90ms both;
+}
+
+@keyframes tato-check {
+  from { opacity: 0; transform: scale(0.6) rotate(-14deg); }
+}
+
+/* Movimento reduzido: fica a informação, some o movimento. */
+
+@media (prefers-reduced-motion: reduce) {
+  :is(
+    .button,
+    .icon-button,
+    .text-button,
+    .resolve-button,
+    .task-contract-btn,
+    .task-reopen-btn,
+    .icon-button-danger,
+    .snippet-copy-btn,
+    .connector-tab-btn,
+    .graph-subnav-btn,
+    .filter-pill,
+    .task-criterion-chip,
+    .view-switch button,
+    .library-filters button,
+    .command-trigger,
+    .tabs [role="tab"]
+  ):active:not(:disabled) {
+    transform: none;
+  }
+
+  #project-tabpanel > .workspace-primary > *,
+  .modal[open]::backdrop,
+  .feedback-icon svg {
+    animation: none;
+  }
+}

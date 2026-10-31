@@ -1,0 +1,196 @@
+/* Partes 8 e 6 — Copiar para outra IA e selo de IA sumida.
+   Estilos exclusivos destas telas. Apagáveis junto com elas.
+   Texto com font-size >= 12px e contraste >= 4.5:1. Sem uso de #64748b. */
+
+/* ==========================================================================
+   Parte 8 — Copiar para outra IA
+   ========================================================================== */
+
+.copiar-para-outra-ia {
+  margin-bottom: 20px;
+  padding: 18px 20px;
+  background: #111827;
+  border: 1px solid #1f2937;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.copiar-cabecalho {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.copiar-cabecalho h3 {
+  margin: 0 0 4px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #f8fafc;
+}
+
+.copiar-cabecalho p {
+  margin: 0;
+  font-size: 13px;
+  color: #cbd5e1;
+  line-height: 1.4;
+}
+
+.copiar-acoes {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.copiar-aviso-desativado {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #fde68a;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  padding: 8px 12px;
+  border-radius: 6px;
+  line-height: 1.4;
+}
+
+.copiar-sucesso {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #86efac;
+  background: rgba(34, 197, 94, 0.12);
+  border: 1px solid rgba(34, 197, 94, 0.35);
+  padding: 8px 12px;
+  border-radius: 6px;
+  line-height: 1.4;
+}
+
+.copiar-erro {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #fca5a5;
+  background: rgba(239, 68, 68, 0.14);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  padding: 8px 12px;
+  border-radius: 6px;
+  line-height: 1.4;
+}
+
+.copiar-previa-bloco {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.copiar-previa-bloco label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+.copiar-previa-texto {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #f8fafc;
+  background: #0b0f19;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  padding: 10px 12px;
+  resize: vertical;
+}
+
+.copiar-previa-texto:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 1px;
+}
+
+/* ==========================================================================
+   Parte 6 (tela) — Selo de IA sumida
+   ========================================================================== */
+
+.selo-ia-sumida {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  line-height: 1.2;
+  font-weight: 600;
+  color: #fca5a5;
+  background: rgba(239, 68, 68, 0.18);
+  border: 1px solid rgba(239, 68, 68, 0.45);
+  border-radius: 4px;
+  padding: 3px 8px;
+  cursor: help;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.selo-ia-sumida:focus,
+.selo-ia-sumida:focus-visible {
+  outline: 2px solid #ef4444;
+  outline-offset: 2px;
+}
+
+.selo-ia-sumida-icone {
+  flex-shrink: 0;
+  color: #fca5a5;
+}
+
+.selo-ia-sumida-texto {
+  white-space: nowrap;
+}
+
+.selo-ia-sumida-motivo {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 8px);
+  right: 0;
+  width: 290px;
+  max-width: 320px;
+  padding: 9px 12px;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.45;
+  color: #f8fafc;
+  background: #0f172a;
+  border: 1px solid #475569;
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+  z-index: 120;
+  pointer-events: none;
+  white-space: normal;
+  text-transform: none;
+}
+
+.selo-ia-sumida:hover .selo-ia-sumida-motivo,
+.selo-ia-sumida:focus .selo-ia-sumida-motivo,
+.selo-ia-sumida:focus-visible .selo-ia-sumida-motivo {
+  display: block;
+}
+
+/* ==========================================================================
+   Acessibilidade: Redução de movimento
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  .copiar-para-outra-ia,
+  .copiar-para-outra-ia button,
+  .selo-ia-sumida,
+  .selo-ia-sumida-motivo {
+    transition: none !important;
+    animation: none !important;
+  }
+}

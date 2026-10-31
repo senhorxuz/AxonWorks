@@ -1,0 +1,8 @@
+[Unit]
+Description=Axon Works: backup criptografado diário
+
+[Service]
+Type=oneshot
+User=axon
+Group=axon
+ExecStart=/bin/bash /srv/axon/app/deploy/backup.sh diario

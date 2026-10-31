@@ -1,0 +1,99 @@
+/* Parte 13 — comemorações ao vivo, só de eventos reais */
+
+/* Momento 1 — Tarefa concluída ao vivo enquanto o usuário olha */
+article.task[data-comemoracao="concluida"] {
+  animation: comemoracao-anel-concluida 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  position: relative;
+}
+
+@keyframes comemoracao-anel-concluida {
+  0% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
+  25% {
+    box-shadow: 0 0 0 2px #10b981, 0 0 16px rgba(16, 185, 129, 0.45);
+  }
+  100% {
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0), 0 0 0 rgba(16, 185, 129, 0);
+  }
+}
+
+article.task[data-comemoracao="concluida"] .task-indicator.done {
+  animation: comemoracao-icone-concluida 400ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes comemoracao-icone-concluida {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.3;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Transição suave da barra de progresso para crescer até o valor real */
+.projeto-progresso-preenchimento {
+  transition: width 600ms cubic-bezier(0.23, 1, 0.32, 1) !important;
+}
+
+/* Momento 2 — Linha de confirmação na Fila de Aprovações */
+.fila-confirmacao-decidida {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.5;
+  background: var(--surface-raised, #232425);
+  border: 1px solid var(--line, #2f3032);
+  color: var(--ink, #e9eaec);
+}
+
+.fila-confirmacao-decidida[data-comemoracao="aprovada"] {
+  border-color: rgba(16, 185, 129, 0.4);
+  background: rgba(16, 185, 129, 0.08);
+  color: #34d399;
+}
+
+.fila-confirmacao-decidida[data-comemoracao="aprovada"] .fila-confirmacao-check {
+  color: #10b981;
+  flex-shrink: 0;
+}
+
+.fila-confirmacao-decidida[data-comemoracao="aprovada"] .fila-confirmacao-check polyline {
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
+  animation: fila-check-desenhar 400ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fila-check-desenhar {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Respeito estrito a prefers-reduced-motion: nada se move nem pisca */
+@media (prefers-reduced-motion: reduce) {
+  article.task[data-comemoracao="concluida"] {
+    animation: none !important;
+    box-shadow: none !important;
+  }
+
+  article.task[data-comemoracao="concluida"] .task-indicator.done {
+    animation: none !important;
+    transform: none !important;
+    opacity: 1 !important;
+  }
+
+  .projeto-progresso-preenchimento {
+    transition: none !important;
+  }
+
+  .fila-confirmacao-decidida[data-comemoracao="aprovada"] .fila-confirmacao-check polyline {
+    animation: none !important;
+    stroke-dashoffset: 0 !important;
+  }
+}

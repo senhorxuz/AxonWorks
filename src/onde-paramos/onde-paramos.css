@@ -1,0 +1,530 @@
+/*
+ * Onde paramos — a carta de retorno do projeto.
+ *
+ * Uma página para ler de cima a baixo, em coluna única. Cor só onde carrega informação: cada grupo de
+ * "O que falta" tem a sua (amarelo = depende de você, vermelho = travado, ciano = em andamento).
+ * O texto sempre vem em tom claro sobre o fundo escuro; a cor aparece na borda e no pontinho do grupo.
+ *
+ * Alguns tamanhos usam !important com seletor mais específico porque src/leitura.css força
+ * h2 e h3 no app inteiro.
+ */
+
+.carta {
+  --c-tinta: #f1f5f9;
+  --c-texto: #cbd5e1;
+  --c-suave: #94a3b8;
+  --c-fio: rgba(255, 255, 255, 0.09);
+  --c-cartao: #1b1d21;
+  --c-cartao-sutil: #181a1e;
+  --c-precisa: #facc15;
+  --c-travado: #f87171;
+  --c-andamento: #22d3ee;
+  --c-fazer: #cbd5e1;
+  --c-ideias: #94a3b8;
+  --c-sucesso: #86efac;
+  --c-curva: cubic-bezier(0.23, 1, 0.32, 1);
+  max-width: 860px;
+  padding: 4px 0 64px;
+  color: var(--c-texto);
+  font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+
+/* Abertura */
+
+.carta .carta-titulo {
+  margin: 0;
+  font-size: 30px !important;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  color: var(--c-tinta);
+}
+
+.carta .carta-ultima {
+  margin: 8px 0 0;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--c-suave);
+}
+
+/* Blocos (Em uma frase, O que foi feito, O que falta) */
+
+.carta-bloco {
+  margin-top: 34px;
+  padding-top: 24px;
+  border-top: 1px solid var(--c-fio);
+}
+
+.carta .carta-bloco > h3 {
+  margin: 0 0 14px;
+  font-size: 17px !important;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--c-tinta);
+}
+
+.carta .carta-subtitulo {
+  margin: 18px 0 8px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--c-suave);
+}
+
+.carta .carta-frase {
+  margin: 0;
+  max-width: 62ch;
+  font-size: 18px;
+  line-height: 1.55;
+  color: var(--c-tinta);
+}
+
+.carta .carta-vazio {
+  margin: 0;
+  max-width: 62ch;
+  padding: 14px 16px;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--c-texto);
+  background: var(--c-cartao-sutil);
+  border: 1px dashed var(--c-fio);
+  border-radius: 8px;
+}
+
+/* O que foi feito */
+
+.carta-feito {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.carta-feito li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 14px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--c-texto);
+  background: var(--c-cartao);
+  border: 1px solid var(--c-fio);
+  border-radius: 8px;
+}
+
+.carta-feito time {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--c-suave);
+}
+
+.carta-mes,
+.carta-rascunho {
+  margin-top: 10px;
+  background: var(--c-cartao-sutil);
+  border: 1px solid var(--c-fio);
+  border-radius: 8px;
+}
+
+.carta-mes > summary,
+.carta-rascunho > summary,
+.carta-grupo details > summary {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 10px 14px;
+  font-size: 14px;
+  color: var(--c-tinta);
+  cursor: pointer;
+}
+
+.carta-mes > ul {
+  margin: 0;
+  padding: 0 14px 14px;
+  list-style: none;
+  display: grid;
+  gap: 8px;
+}
+
+.carta-rascunho {
+  border-left: 3px solid var(--c-andamento);
+}
+
+.carta .carta-rascunho-aviso {
+  margin: 0;
+  padding: 0 14px 10px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--c-suave);
+}
+
+.carta .carta-rascunho-texto {
+  max-height: 320px;
+  margin: 0 14px 14px;
+  padding: 12px 14px;
+  overflow: auto;
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--c-texto);
+  background: var(--c-cartao);
+  border-radius: 6px;
+}
+
+/* Avisos (diretriz velha): amarelo na borda, como o que depende do dono */
+
+.carta-avisos {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.carta .carta-avisos > li {
+  padding: 12px 14px;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--c-texto);
+  background: var(--c-cartao-sutil);
+  border: 1px solid var(--c-fio);
+  border-left: 3px solid var(--c-precisa);
+  border-radius: 8px;
+  overflow-wrap: anywhere;
+}
+
+/* Salvamentos de compactação */
+
+.carta .carta-salvamentos-aviso {
+  margin: 0 0 4px;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--c-suave);
+}
+
+.carta-salvamento {
+  margin-top: 10px;
+  background: var(--c-cartao-sutil);
+  border: 1px solid var(--c-fio);
+  border-left: 3px solid var(--c-sucesso);
+  border-radius: 8px;
+}
+
+.carta-salvamento > summary {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 10px 14px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--c-tinta);
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+
+.carta-salvamento-corpo {
+  padding: 0 14px 14px;
+}
+
+.carta .carta-salvamento-corpo h4,
+.carta .carta-salvamento-corpo h5 {
+  margin: 14px 0 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--c-tinta);
+}
+
+/* O texto principal do salvamento aberto: a frase escrita para o dono. */
+.carta .carta-salvamento-frase {
+  margin: 4px 0 0;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--c-tinta);
+  overflow-wrap: anywhere;
+}
+
+/* Resumo técnico e arquivos mexidos: recolhidos dentro do salvamento. */
+.carta-salvamento-tecnico {
+  margin-top: 14px;
+  padding-top: 4px;
+  border-top: 1px solid var(--c-fio);
+}
+
+.carta-salvamento-tecnico > summary {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--c-suave);
+  cursor: pointer;
+}
+
+.carta .carta-salvamento-tecnico h5:first-of-type {
+  margin-top: 4px;
+}
+
+.carta .carta-salvamento-corpo .carta-rascunho-texto {
+  margin: 0;
+}
+
+.carta-salvamento-corpo ul {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--c-texto);
+  overflow-wrap: anywhere;
+}
+
+.carta .carta-salvamento-passo {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--c-texto);
+  overflow-wrap: anywhere;
+}
+
+/* O que falta */
+
+.carta-grupo {
+  margin-top: 22px;
+  padding-left: 14px;
+  border-left: 3px solid var(--c-grupo, var(--c-fio));
+}
+
+.carta-grupo[data-grupo="precisa_de_voce"] { --c-grupo: var(--c-precisa); }
+.carta-grupo[data-grupo="travado"] { --c-grupo: var(--c-travado); }
+.carta-grupo[data-grupo="em_andamento"] { --c-grupo: var(--c-andamento); }
+.carta-grupo[data-grupo="a_fazer"] { --c-grupo: var(--c-fazer); }
+.carta-grupo[data-grupo="ideias"] { --c-grupo: var(--c-ideias); }
+
+.carta .carta-grupo > h4 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 10px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--c-tinta);
+}
+
+.carta-contagem {
+  min-width: 24px;
+  padding: 1px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  color: var(--c-tinta);
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+}
+
+.carta-grupo details {
+  background: var(--c-cartao-sutil);
+  border: 1px solid var(--c-fio);
+  border-radius: 8px;
+}
+
+.carta-grupo details > .carta-itens {
+  padding: 0 12px 12px;
+}
+
+.carta-itens {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.carta-item {
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+  background: var(--c-cartao);
+  border: 1px solid var(--c-fio);
+  border-radius: 8px;
+}
+
+.carta-item-topo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.carta-origem,
+.carta-etapa {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--c-suave);
+}
+
+.carta-etapa {
+  padding: 1px 8px;
+  color: var(--c-tinta);
+  background: rgba(34, 211, 238, 0.12);
+  border: 1px solid rgba(34, 211, 238, 0.35);
+  border-radius: 999px;
+}
+
+.carta .carta-item-titulo {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--c-tinta);
+  overflow-wrap: anywhere;
+}
+
+.carta .carta-detalhe {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+  white-space: pre-line;
+  color: var(--c-texto);
+  overflow-wrap: anywhere;
+}
+
+.carta-rotulo {
+  font-weight: 600;
+  color: var(--c-tinta);
+}
+
+.carta .carta-dica {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--c-suave);
+}
+
+.carta .carta-ver-mais {
+  justify-self: start;
+  min-height: 32px;
+  padding: 4px 0;
+  font-size: 13px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.carta-item-acao {
+  display: flex;
+  margin-top: 4px;
+}
+
+.carta .carta-erro {
+  margin: 0;
+  padding: 8px 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #fecaca;
+  background: rgba(248, 113, 113, 0.12);
+  border: 1px solid rgba(248, 113, 113, 0.4);
+  border-radius: 6px;
+}
+
+/* Linha de saúde da conexão */
+
+.carta .carta-saude {
+  margin: 28px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--c-suave);
+}
+
+/* Continuar com o Claude */
+
+.carta-continuar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px 24px;
+  margin-top: 22px;
+  padding: 20px;
+  background: var(--c-cartao);
+  border: 1px solid var(--c-fio);
+  border-radius: 10px;
+}
+
+.carta .carta-continuar h3 {
+  margin: 0 0 6px;
+  font-size: 16px !important;
+  font-weight: 600;
+  color: var(--c-tinta);
+}
+
+.carta .carta-continuar > div > p {
+  margin: 0;
+  max-width: 52ch;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--c-texto);
+}
+
+.carta-continuar .button {
+  min-height: 46px;
+  font-size: 14px;
+}
+
+.carta .carta-copiado {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 14px;
+  color: var(--c-sucesso);
+}
+
+.carta .carta-copia-manual {
+  flex-basis: 100%;
+  display: grid;
+  gap: 8px;
+}
+
+.carta .carta-copia-manual label {
+  font-size: 13px;
+  color: var(--c-texto);
+}
+
+.carta .carta-copia-manual input {
+  width: 100%;
+  padding: 11px 12px;
+  font-size: 14px;
+  color: var(--c-tinta);
+  background: var(--c-cartao-sutil);
+  border: 1px solid var(--c-fio);
+}
+
+.carta .alert {
+  margin-top: 18px;
+}
+
+/* Celular */
+
+@media (max-width: 720px) {
+  .carta .carta-titulo { font-size: 26px !important; }
+  .carta .carta-frase { font-size: 17px; }
+  .carta-feito li { flex-direction: column; gap: 4px; }
+  .carta-grupo { padding-left: 10px; }
+  .carta-continuar { padding: 16px; }
+  .carta-continuar .button { width: 100%; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .carta-item,
+  .carta-feito li {
+    transition: border-color 0.2s var(--c-curva), background-color 0.2s var(--c-curva);
+  }
+  .carta-item:hover { border-color: rgba(255, 255, 255, 0.16); }
+}
