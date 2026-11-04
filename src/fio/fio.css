@@ -1,0 +1,525 @@
+/*
+ * Fio do projeto — a peça de assinatura da Axon.
+ *
+ * Movimento (mesma filosofia de src/tato.css): o fio se tece uma vez quando a tela abre; depois só
+ * o que está vivo se move — o pulso de memória correndo até "onde paramos", o halo do nó aceso
+ * e os fios soltos das pendências. Com movimento reduzido, fica o desenho e some o movimento.
+ */
+
+.fio-palco {
+  /* A dica do dia pode passar da borda do quadro: nada aqui precisa ser cortado. */
+  --fio-tinta: #e6e2d9;
+  --fio-brasa: #e8794a;
+  --fio-brasa-clara: #f6b28e;
+  --fio-fundo: #141415;
+  --fio-mono: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+  --fio-curva: cubic-bezier(0.23, 1, 0.32, 1);
+
+  position: relative;
+  isolation: isolate;
+  /* Corta só na horizontal (nada passa da largura da tela); na vertical a dica do dia pode sair do quadro. */
+  overflow-x: clip;
+  overflow-y: visible;
+  margin: 26px 0 4px;
+  padding: 18px 22px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 18px;
+  background:
+    radial-gradient(34% 110% at var(--fio-fim) var(--fio-fim-y), rgba(232, 121, 74, 0.11), transparent 72%),
+    radial-gradient(120% 140% at 0% 0%, rgba(255, 255, 255, 0.025), transparent 60%),
+    linear-gradient(180deg, #18181a, #131314);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.045), 0 28px 60px -34px rgba(0, 0, 0, 0.85);
+}
+
+/* Trama de pontos ao fundo, que some nas bordas: a "folha" onde o fio é desenhado. */
+.fio-palco::before {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.055) 1px, transparent 1.3px);
+  background-size: 18px 18px;
+  content: "";
+  opacity: 0.7;
+  pointer-events: none;
+  mask-image: linear-gradient(90deg, transparent, #000 14%, #000 86%, transparent);
+}
+
+.fio-legenda {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 0 0 2px;
+}
+
+.fio-legenda-titulo {
+  font: 600 11px/1 var(--fio-mono);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #8f8c86;
+}
+
+.fio-legenda-titulo::before {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 10px;
+  border-radius: 50%;
+  background: var(--fio-brasa);
+  box-shadow: 0 0 10px var(--fio-brasa);
+  content: "";
+  vertical-align: 1px;
+}
+
+/* O que cada formato de nó quer dizer. */
+.fio-legenda-tipos {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  font-size: 11px;
+  color: #a9a59e;
+}
+
+.fio-legenda-tipos i {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-left: 8px;
+}
+
+.fio-legenda-tipos .tipo-entrega { border-radius: 50%; background: #efebe3; }
+.fio-legenda-tipos .tipo-cartao { width: 7px; height: 7px; background: #b9b3a7; transform: rotate(45deg); }
+.fio-legenda-tipos .tipo-registro { border: 1.3px solid #d6d1c7; border-radius: 50%; }
+
+.fio-legenda-resumo {
+  margin-left: 18px;
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  color: #aaa7a1;
+}
+
+.fio-tela {
+  position: relative;
+}
+
+.fio {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+/* Fibras */
+
+.fio-fibra {
+  stroke-width: 1;
+  stroke-linecap: round;
+}
+
+.fio-fibra-fundo {
+  stroke-width: 0.7;
+}
+
+.fio-fibra-brasa {
+  stroke-width: 1.2;
+}
+
+/* Tecer: cada fibra se desenha da origem até a borda, uma logo depois da outra. */
+.fio-heroi .fio-fibra {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: fio-tecer 1.8s var(--fio-curva) calc(var(--i) * 38ms) forwards;
+}
+
+.fio-heroi .fio-fibra-fundo {
+  animation-duration: 2.3s;
+  animation-delay: calc(120ms + var(--i) * 30ms);
+}
+
+@keyframes fio-tecer {
+  to { stroke-dashoffset: 0; }
+}
+
+/* Pulso de memória: um traço de luz corre pela trama e se apaga no nó aceso. */
+.fio-pulso {
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  /* Intervalo maior que o caminho: nunca sobra um traço de comprimento zero na ponta (viraria um ponto). */
+  stroke-dasharray: 0.045 2;
+  stroke-dashoffset: 0.045;
+  opacity: 0;
+  /* Corre cinco vezes e descansa: o halo do nó aceso continua dizendo onde paramos. */
+  animation: fio-correr 7.5s cubic-bezier(0.45, 0, 0.25, 1) 2.2s 5;
+}
+
+@keyframes fio-correr {
+  0% { stroke-dashoffset: 0.045; opacity: 0; }
+  8% { opacity: 1; }
+  62% { opacity: 1; }
+  74%, 100% { stroke-dashoffset: calc(0.03 - var(--fio-fim-num)); opacity: 0; }
+}
+
+/* Fios soltos: as pendências, tracejadas, andando devagar como quem ainda espera. */
+.fio-ponta {
+  opacity: 0;
+  animation: fio-surgir 600ms ease-out calc(1.3s + var(--i) * 90ms) forwards;
+}
+
+.fio-ponta-linha {
+  stroke: var(--fio-cor-ponta, var(--fio-brasa));
+  stroke-dasharray: 3 6;
+  stroke-opacity: 0.5;
+  stroke-width: 1.1;
+  animation: fio-marchar 2.8s linear infinite;
+}
+
+.fio-ponta-aro {
+  fill: var(--fio-fundo);
+  stroke: var(--fio-cor-ponta, var(--fio-brasa));
+  stroke-opacity: 0.75;
+  stroke-width: 1.3;
+}
+
+@keyframes fio-marchar {
+  to { stroke-dashoffset: -18; }
+}
+
+@keyframes fio-surgir {
+  to { opacity: 1; }
+}
+
+/* Nós: o grupo é posicionado pelo SVG; a entrada e o zoom acontecem no glifo de dentro. */
+.fio-no {
+  opacity: 0;
+  animation: fio-surgir 520ms var(--fio-curva) calc(650ms + var(--n) * 45ms) forwards;
+}
+
+.fio-glifo,
+.fio-halo,
+.fio-anel {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.fio-glifo {
+  transition: transform 280ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: fio-glifo-chega 620ms cubic-bezier(0.34, 1.56, 0.64, 1) calc(650ms + var(--n) * 45ms) backwards;
+}
+
+@keyframes fio-glifo-chega {
+  from { transform: scale(0.4); }
+}
+
+.fio-no-ativo .fio-glifo {
+  transform: scale(1.5);
+}
+
+.fio-anelzinho {
+  fill: var(--fio-fundo);
+  stroke: #d6d1c7;
+  stroke-width: 1.3;
+}
+
+.fio-cheio {
+  fill: #efebe3;
+}
+
+.fio-aro {
+  fill: none;
+  stroke: rgba(239, 235, 227, 0.3);
+  stroke-width: 1;
+}
+
+.fio-losango {
+  fill: #b9b3a7;
+}
+
+.fio-nucleo {
+  fill: var(--fio-brasa);
+  stroke: var(--fio-brasa-clara);
+  stroke-width: 1.6;
+  filter: drop-shadow(0 0 6px rgba(232, 121, 74, 0.9));
+}
+
+.fio-halo {
+  animation: fio-respirar 3.2s ease-in-out 1.6s infinite;
+}
+
+@keyframes fio-respirar {
+  0%, 100% { opacity: 0.55; transform: scale(0.85); }
+  50% { opacity: 1; transform: scale(1.12); }
+}
+
+/* Duas ondas saindo do nó aceso, uma atrás da outra. */
+.fio-anel {
+  fill: none;
+  stroke: var(--fio-brasa);
+  stroke-width: 1.2;
+  opacity: 0;
+  animation: fio-onda 3.2s var(--fio-curva) 1.6s infinite;
+}
+
+.fio-anel-2 {
+  animation-delay: 3.2s;
+}
+
+@keyframes fio-onda {
+  0% { opacity: 0.8; transform: scale(0.55); }
+  100% { opacity: 0; transform: scale(2.4); }
+}
+
+.fio-alvo {
+  fill: transparent;
+  pointer-events: all;
+}
+
+.fio-guia {
+  stroke: rgba(232, 121, 74, 0.5);
+  stroke-dasharray: 2 4;
+  stroke-width: 1;
+}
+
+/* Dica ao passar o mouse num nó. */
+.fio-dica {
+  position: absolute;
+  z-index: 2;
+  min-width: 170px;
+  max-width: 300px;
+  padding: 9px 12px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 10px;
+  background: rgba(24, 24, 26, 0.94);
+  box-shadow: 0 14px 34px -12px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(232, 121, 74, 0.08);
+  pointer-events: none;
+  backdrop-filter: blur(8px);
+  transform: translate(-50%, calc(-100% - 18px));
+  animation: fio-dica-chega 170ms var(--fio-curva) both;
+}
+
+.fio-dica[data-lado="esquerda"] { transform: translate(-14%, calc(-100% - 18px)); }
+.fio-dica[data-lado="direita"] { transform: translate(-86%, calc(-100% - 18px)); }
+
+@keyframes fio-dica-chega {
+  from { opacity: 0; translate: 0 6px; }
+}
+
+.fio-dica-tipo {
+  display: block;
+  font: 600 11px/1.25 var(--fio-mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--fio-brasa-clara);
+}
+
+.fio-dica-texto {
+  display: block;
+  margin-top: 5px;
+  font-size: 13px;
+  line-height: 1.42;
+  color: #ece9e3;
+}
+
+/* Quanto foi feito em cada dia: o número em cima do nó. */
+.fio-contagem {
+  position: absolute;
+  z-index: 1;
+  font: 600 11px/1 var(--fio-mono);
+  font-variant-numeric: tabular-nums;
+  color: #c9c4bb;
+  pointer-events: none;
+  transform: translate(-50%, -100%);
+  opacity: 0;
+  animation: fio-surgir 500ms var(--fio-curva) calc(900ms + var(--n, 0) * 40ms) forwards;
+}
+
+.fio-contagem-agora {
+  color: var(--fio-brasa-clara);
+}
+
+/* Cada fio solto tem a cor do seu grupo; o nome fica escrito na ponta. */
+.fio-ponta-brasa { --fio-cor-ponta: var(--fio-brasa); }
+.fio-ponta-perigo { --fio-cor-ponta: #e5534b; }
+.fio-ponta-neutro { --fio-cor-ponta: #8f8b84; }
+
+.fio-ponta-rotulo {
+  position: absolute;
+  z-index: 1;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 7px;
+  padding: 3px 9px 3px 7px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 999px;
+  background-color: #19191b;
+  font-size: 12px;
+  line-height: 1.2;
+  white-space: nowrap;
+  color: #c3beb5;
+  transform: translateY(-50%);
+  opacity: 0;
+  animation: fio-surgir 600ms ease-out calc(1.4s + var(--i) * 90ms) forwards;
+}
+
+.fio-ponta-rotulo b {
+  font: 700 12px/1.2 var(--fio-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--fio-cor-ponta-texto, #ece8e1);
+}
+
+.fio-ponta-rotulo.fio-ponta-brasa {
+  border-color: rgba(232, 121, 74, 0.35);
+  color: #f2d2c1;
+  --fio-cor-ponta-texto: var(--fio-brasa-clara);
+}
+
+.fio-ponta-rotulo.fio-ponta-perigo {
+  border-color: rgba(229, 83, 75, 0.35);
+  --fio-cor-ponta-texto: #f08a84;
+}
+
+/* A dica do dia: o que foi feito naquele dia. */
+.fio-dica-lista {
+  margin: 6px 0 0;
+  padding: 0 0 0 14px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: #ece9e3;
+}
+
+.fio-dica-item {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.fio-dica-lista li + li {
+  margin-top: 3px;
+}
+
+.fio-dica-lista li::marker {
+  color: var(--fio-brasa);
+}
+
+.fio-dica-mais {
+  display: block;
+  margin-top: 5px;
+  font-size: 12px;
+  color: #a9a59e;
+}
+
+/* Régua do tempo */
+.fio-regua {
+  position: relative;
+  height: 24px;
+  margin-top: 4px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.fio-regua-marca {
+  position: absolute;
+  top: 0;
+  padding-top: 8px;
+  font: 500 11px/1 var(--fio-mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: #8e8b85;
+  transform: translateX(-50%);
+}
+
+.fio-regua-marca::before {
+  position: absolute;
+  top: -1px;
+  left: 50%;
+  width: 1px;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.2);
+  content: "";
+}
+
+.fio-regua-inicio {
+  transform: translateX(-6px);
+}
+
+.fio-regua-inicio::before {
+  left: 6px;
+}
+
+.fio-regua-agora {
+  color: var(--fio-brasa-clara);
+  transform: translateX(-70%);
+}
+
+.fio-regua-agora::before {
+  left: 70%;
+  height: 7px;
+  background: var(--fio-brasa);
+  box-shadow: 0 0 6px var(--fio-brasa);
+}
+
+/* Miniatura da lista de projetos */
+.fio-mini {
+  width: 100%;
+  height: 100%;
+}
+
+.fio-mini-fibra {
+  stroke: #e6e2d9;
+  stroke-opacity: 0.2;
+  stroke-width: 0.8;
+  transition: stroke-opacity 260ms ease;
+}
+
+.fio-mini-brasa {
+  stroke: #e8794a;
+  stroke-opacity: 0.55;
+}
+
+.fio-mini-no {
+  fill: #d6d1c7;
+}
+
+.fio-mini-ultimo {
+  fill: #e8794a;
+  filter: drop-shadow(0 0 3px rgba(232, 121, 74, 0.8));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fio-heroi .fio-fibra {
+    stroke-dasharray: none;
+    stroke-dashoffset: 0;
+    animation: none;
+  }
+
+  .fio-no,
+  .fio-ponta,
+  .fio-contagem,
+  .fio-ponta-rotulo {
+    opacity: 1;
+    animation: none;
+  }
+
+  .fio-glifo,
+  .fio-halo,
+  .fio-anel,
+  .fio-ponta-linha,
+  .fio-dica {
+    animation: none;
+  }
+
+  .fio-pulso {
+    display: none;
+  }
+}
+
+/* Tela estreita: o desenho fica pequeno demais para os nomes; a lista de pendências logo abaixo diz o mesmo. */
+@media (max-width: 720px) {
+  .fio-ponta-rotulo,
+  .fio-legenda-tipos,
+  .fio-contagem {
+    display: none;
+  }
+}

@@ -1,0 +1,160 @@
+/*
+ * Biblioteca — grade de cartões, leitura em duas colunas e o ex-libris.
+ *
+ * Sem documento aberto, os cartões se distribuem por toda a largura (com prévia e ex-libris).
+ * Com documento aberto, lista compacta e documento lado a lado, cada um rolando sozinho e preso à tela.
+ */
+
+/* O ex-libris */
+
+.ex-libris {
+  flex: 0 0 auto;
+  overflow: visible;
+}
+
+.ex-libris-camada {
+  fill: none;
+  stroke: var(--tom);
+  stroke-linejoin: round;
+}
+
+.ex-libris-0 { stroke-opacity: 0.55; stroke-width: 0.55; }
+.ex-libris-1 { stroke-opacity: 0.35; stroke-width: 0.5; }
+.ex-libris-2 { stroke-opacity: 0.85; stroke-width: 0.6; }
+
+/* Grade: sem documento aberto, os cartões ocupam toda a largura. */
+
+.library-layout.em-grade {
+  display: block;
+}
+
+.library-layout.em-grade .library-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.library-layout .library-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "titulo selo" "meta selo" "previa previa";
+  align-content: start;
+  gap: 4px 14px;
+  min-width: 0;
+  border-color: rgba(255, 255, 255, 0.07);
+  border-radius: 12px;
+  background-color: #1b1b1d;
+  transition: border-color 200ms ease, transform 300ms var(--mola, ease), box-shadow 200ms ease;
+}
+
+.library-item strong { grid-area: titulo; }
+.library-item small { grid-area: meta; margin-top: 2px !important; }
+.library-item .ex-libris { grid-area: selo; }
+
+.library-item-previa {
+  display: -webkit-box;
+  overflow: hidden;
+  grid-area: previa;
+  margin-top: 8px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #b2ada4;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .library-layout.em-grade .library-item:hover {
+    border-color: rgba(232, 121, 74, 0.3);
+    box-shadow: 0 14px 30px -18px rgba(0, 0, 0, 0.9);
+    transform: translateY(-2px);
+  }
+}
+
+/* Leitura: lista compacta e documento lado a lado, cada um rolando sozinho, presos à tela. */
+
+.library-layout.lendo {
+  display: grid;
+  grid-template-columns: minmax(240px, 320px) minmax(0, 1fr);
+  align-items: start;
+  gap: 18px;
+}
+
+.library-layout.lendo .library-list,
+.library-layout.lendo .library-document {
+  position: sticky;
+  top: 12px;
+  max-height: calc(100vh / var(--ampliacao, 1) - 24px);
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.library-layout.lendo .library-list {
+  padding-right: 4px;
+}
+
+.library-layout.lendo .library-item .ex-libris,
+.library-layout.lendo .library-item-previa {
+  display: none;
+}
+
+.library-layout.lendo .library-item {
+  grid-template-areas: "titulo" "meta";
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.library-layout.lendo .library-item.is-active {
+  border-color: rgba(232, 121, 74, 0.5);
+  background-color: #221d1a;
+}
+
+.library-document {
+  position: relative;
+  isolation: isolate;
+}
+
+/* O ex-libris grande, como marca-d'água no canto do documento. */
+.library-document > .ex-libris {
+  position: absolute;
+  top: 18px;
+  right: 22px;
+  z-index: -1;
+  opacity: 0.55;
+}
+
+.library-document-fechar {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+}
+
+.library-document header {
+  padding-right: 150px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .library-layout .library-item {
+    animation: none;
+    transition: none;
+    transform: none;
+  }
+}
+
+/* O documento aberto no grafite da direção Brasa e Grafite (o tom oliva antigo destoava). */
+.library-layout .library-document {
+  border-color: rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  background-color: #1a1a1c;
+}
+
+.library-layout .library-document h3 {
+  color: #f4f1ec;
+}
+
+.library-layout .library-document header p {
+  color: #a9a59e;
+}
+
+.library-layout .library-document pre {
+  color: #d6d2ca;
+}

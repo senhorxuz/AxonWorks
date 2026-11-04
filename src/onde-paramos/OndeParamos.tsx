@@ -1,10 +1,12 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { AlertCircle, Check, Copy, RefreshCw } from 'lucide-react';
 import type { Carta, GrupoFalta, ItemFalta, ItemFeito, RascunhoAutomaticoVisivel, SalvamentoResumo } from '../../shared/carta';
 import { BotoesDeApagar, DescartarRascunhoAutomatico } from '../apagar/BotoesDeApagar';
 import { api, errorText } from '../api';
 import { useEntrada } from '../entrada';
 import { useFeedback } from '../Feedback';
+import { diasDaCarta, pontasDaCarta } from '../fio/dados';
+import { FioDoProjeto } from '../fio/FioDoProjeto';
 import type { EstadoDaCarta } from './useCarta';
 import { fraseDoSalvamento, horaDoSalvamento, listasDoSalvamento, rotuloDoSalvamento } from './salvamentos';
 import {
@@ -72,6 +74,8 @@ function CartaPronta(props: { projectId: string; carta: Carta; erro: string; rec
   const grupos = gruposDaFalta(carta.falta);
   const saude = linhaDeSaude(carta.saude, carta.ultimaAtividade);
   const semFeito = carta.feitoRecente.length === 0 && carta.feitoPorMes.length === 0 && carta.rascunhoAutomatico === null;
+  const diasDoFio = useMemo(() => diasDaCarta(carta), [carta]);
+  const pontasDoFio = useMemo(() => pontasDaCarta(carta), [carta]);
 
   async function confirmar(item: ItemFalta & { versao: number }) {
     setFalha('');
@@ -98,6 +102,8 @@ function CartaPronta(props: { projectId: string; carta: Carta; erro: string; rec
         <p className="carta-ultima">{ultimaVezAqui(carta.ultimaAtividade, carta.diasParado)}</p>
       </header>
 
+      <FioDoProjeto semente={carta.projeto.id} dias={diasDoFio} pontas={pontasDoFio} />
+
       {erro && (
         <div className="alert" role="alert">
           <span>Não foi possível atualizar agora; esta é a última leitura que deu certo. {erro}</span>
@@ -121,7 +127,7 @@ function CartaPronta(props: { projectId: string; carta: Carta; erro: string; rec
           : <p className="carta-vazio">Ainda não há uma frase simples do estado do projeto. Quando uma IA salvar um registro com a frase para o dono, ela aparece aqui.</p>}
       </section>
 
-      <section className="carta-bloco" aria-labelledby="carta-feito-titulo">
+      <section className="carta-bloco carta-bloco-feito" aria-labelledby="carta-feito-titulo">
         <h3 id="carta-feito-titulo">O que foi feito</h3>
         {carta.rascunhoAutomatico && <RascunhoAutomatico projectId={projectId} rascunho={carta.rascunhoAutomatico} recarregar={recarregar} />}
         {carta.feitoRecente.length > 0 && (
@@ -139,7 +145,7 @@ function CartaPronta(props: { projectId: string; carta: Carta; erro: string; rec
         {semFeito && <p className="carta-vazio">Nada concluído registrado ainda. Quando um cartão for concluído ou uma IA salvar um registro, o que foi feito aparece aqui.</p>}
       </section>
 
-      <section className="carta-bloco" aria-labelledby="carta-falta-titulo">
+      <section className="carta-bloco carta-bloco-falta" aria-labelledby="carta-falta-titulo">
         <h3 id="carta-falta-titulo">O que falta</h3>
         {grupos.length === 0 && <p className="carta-vazio">Nenhuma pendência registrada: nada espera por você, nada está travado ou em andamento, e não há ideias guardadas.</p>}
         {grupos.map(grupo => (

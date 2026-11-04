@@ -1,0 +1,41 @@
+name: Ideia
+description: Sugira um recurso novo ou uma melhoria para a Axon Works.
+title: "[Ideia] "
+labels: ["ideia"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Obrigado por pensar na Axon. Antes de escrever, lembre: **a Axon nunca inicia, pausa, agenda ou executa IAs.** Ela é o correio de continuidade entre elas.
+
+        Não cole chaves, tokens, senhas nem dados pessoais.
+  - type: textarea
+    id: problema
+    attributes:
+      label: Qual problema isso resolve
+      description: Descreva a situação em que você sente falta disso. Comece pelo problema, não pela solução.
+    validations:
+      required: true
+  - type: textarea
+    id: proposta
+    attributes:
+      label: Proposta
+      description: Como você imagina que isso funcionaria? Se ajudar, descreva o que a pessoa veria na tela.
+    validations:
+      required: true
+  - type: textarea
+    id: alternativas
+    attributes:
+      label: Alternativas consideradas
+      description: Outras formas de resolver, ou como você resolve hoje.
+    validations:
+      required: false
+  - type: checkboxes
+    id: confirmacoes
+    attributes:
+      label: Confirmações
+      options:
+        - label: A ideia não faz a Axon iniciar ou controlar IAs.
+          required: true
+        - label: Não colei chaves, tokens, senhas nem dados pessoais neste texto.
+          required: true

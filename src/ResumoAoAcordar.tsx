@@ -215,13 +215,7 @@ export function ResumoAoAcordar(props: {
         )}
       </section>
 
-      {temPendentes && (
-        <section className="resumo-secao" aria-label="Esperando por você">
-          <h3><Hourglass size={16} />Esperando por você</h3>
-          <p>{pluralizar(contagemPendentes, 'proposta espera', 'propostas esperam')} sua decisão.</p>
-          <button type="button" className="button secondary" onClick={onOpenApprovals}>Ver propostas<ArrowRight size={14} /></button>
-        </section>
-      )}
+      {temPendentes && <BlocoEsperando quantidade={contagemPendentes} aoAbrir={onOpenApprovals} />}
 
       {temTravado && (
         <section className="resumo-secao" aria-label="Travado">
@@ -257,6 +251,18 @@ export function ResumoAoAcordar(props: {
           </ul>
         </section>
       )}
+    </section>
+  );
+}
+
+/** "Esperando por você": o número grande é o que se procura primeiro; o botão leva às propostas. */
+function BlocoEsperando({ quantidade, aoAbrir }: { quantidade: number; aoAbrir: () => void }) {
+  return (
+    <section className="resumo-secao" aria-label="Esperando por você">
+      <h3><Hourglass size={16} />Esperando por você</h3>
+      <strong className="resumo-numero" aria-hidden="true">{quantidade}</strong>
+      <p>{pluralizar(quantidade, 'proposta espera', 'propostas esperam')} sua decisão.</p>
+      <button type="button" className="button secondary" onClick={aoAbrir}>Ver propostas<ArrowRight size={14} /></button>
     </section>
   );
 }

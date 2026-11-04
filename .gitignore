@@ -22,3 +22,6 @@ Thumbs.db
 coverage/
 dist-server/
 .axon/ganchos/
+
+# Saídas de testes e capturas (podem ter dados reais)
+output/

@@ -6,7 +6,7 @@
 /* Item 1: Aviso de nome de agente informativo e neutro, sem tom alarmista de erro */
 .agent-warning-hint {
   font-size: 11px;
-  color: #94a3b8;
+  color: #a4a29c;
   background: #1a1e26;
   border: 1px solid #2e3848;
   border-radius: 6px;
@@ -28,14 +28,14 @@
   justify-content: space-between;
   gap: 16px;
   flex-wrap: wrap;
-  border-top: 1px solid #2f3542;
+  border-top: 1px solid #363533;
   padding-top: 18px;
   margin-top: 22px;
 }
 
 .resume-card-footer-author {
   font-size: 11px;
-  color: #94a3b8;
+  color: #a4a29c;
   white-space: nowrap;
   display: flex;
   align-items: center;
@@ -65,30 +65,30 @@
   border-radius: 5px;
   font-size: 11px;
   font-weight: 600;
-  border: 1px solid #38bdf8;
-  background: rgba(56, 189, 248, 0.08);
-  color: #38bdf8;
+  border: 1px solid var(--brasa, #e8794a);
+  background: rgba(232, 121, 74, 0.08);
+  color: var(--brasa, #e8794a);
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .task-reopen-btn:hover:not(:disabled) {
-  background: rgba(56, 189, 248, 0.18);
-  color: #7dd3fc;
-  border-color: #7dd3fc;
+  background: rgba(232, 121, 74, 0.18);
+  color: var(--brasa-clara, #f6b28e);
+  border-color: var(--brasa-clara, #f6b28e);
 }
 
 .task-reopen-btn:disabled {
   border-color: #2a313d;
   background: transparent;
-  color: #64748b;
+  color: #74736f;
   opacity: 0.45;
   cursor: not-allowed;
 }
 
 /* Item 4: Aviso calmo para reconferir evidências desatualizadas (não alarme de travamento) */
 .resumo-reconferir h3 svg {
-  color: #38bdf8;
+  color: var(--brasa, #e8794a);
 }
 
 .resumo-aviso-reconferir {
@@ -99,14 +99,14 @@
 }
 
 .resumo-aviso-reconferir strong {
-  color: #7dd3fc;
+  color: var(--brasa-clara, #f6b28e);
   font-size: 13px;
   display: block;
   margin-bottom: 4px;
 }
 
 .resumo-aviso-reconferir p {
-  color: #cbd5e1;
+  color: #d7d3cd;
   font-size: 12px;
   line-height: 1.6;
   margin: 0;
@@ -116,7 +116,7 @@
 .resumo-tecnico-toggle {
   background: none;
   border: none;
-  color: #38bdf8;
+  color: var(--brasa, #e8794a);
   font-size: 11px;
   font-weight: 600;
   cursor: pointer;
@@ -127,7 +127,7 @@
 
 .resumo-tecnico-toggle:hover {
   text-decoration: underline;
-  color: #7dd3fc;
+  color: var(--brasa-clara, #f6b28e);
 }
 
 /* Estado "Tudo em dia" calmo e bonito quando nada está travado nem pendente */
@@ -155,7 +155,7 @@
 
 .resumo-tudo-em-dia-content p {
   font-size: 12px;
-  color: #cbd5e1;
+  color: #d7d3cd;
   margin: 0;
 }
 
@@ -165,7 +165,7 @@
   align-items: center;
   gap: 10px;
   padding: 8px 12px;
-  background: var(--surface-raised, #1f232b);
+  background: var(--surface-raised, #232221);
   border: 1px solid var(--line, #2c3444);
   border-radius: 7px;
   margin-bottom: 14px;
@@ -174,7 +174,7 @@
 .projeto-progresso-rotulo {
   font-size: 11px;
   font-weight: 600;
-  color: #e2e8f0;
+  color: #eae7e0;
   white-space: nowrap;
 }
 
@@ -189,7 +189,7 @@
 
 .projeto-progresso-preenchimento {
   height: 100%;
-  background: linear-gradient(90deg, #38bdf8, #34d399);
+  background: linear-gradient(90deg, var(--brasa, #e8794a), #9fbf86);
   border-radius: 3px;
   transition: width 0.3s ease;
 }
@@ -197,7 +197,7 @@
 .projeto-progresso-porcentagem {
   font-size: 11px;
   font-weight: 700;
-  color: #38bdf8;
+  color: var(--brasa, #e8794a);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -208,7 +208,7 @@
 }
 
 .task-criterion-chip.completed {
-  border-color: rgba(56, 189, 248, 0.4);
+  border-color: rgba(232, 121, 74, 0.4);
 }
 
 .criteria-progress-fill {

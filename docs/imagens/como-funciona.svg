@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 320" width="960" height="320" role="img" aria-labelledby="t d">
+  <title id="t">Como a Axon funciona</title>
+  <desc id="d">Na segunda, o Claude trabalha e registra na Axon. Na terça, o Cursor retoma de onde parou e registra de novo. Na quarta, o Claude retoma e publica. A memória do projeto segue num fio só.</desc>
+  <defs>
+    <linearGradient id="fundo" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#171718"/>
+      <stop offset="1" stop-color="#111112"/>
+    </linearGradient>
+    <radialGradient id="calor" cx="50%" cy="85%" r="60%">
+      <stop offset="0" stop-color="#e8794a" stop-opacity=".14"/>
+      <stop offset="1" stop-color="#e8794a" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="trilho" gradientUnits="userSpaceOnUse" x1="60" y1="0" x2="900" y2="0">
+      <stop offset="0" stop-color="#e8794a" stop-opacity=".15"/>
+      <stop offset=".5" stop-color="#e8794a" stop-opacity=".7"/>
+      <stop offset="1" stop-color="#f6b28e" stop-opacity=".95"/>
+    </linearGradient>
+    <filter id="brilho" x="-200%" y="-200%" width="500%" height="500%"><feGaussianBlur stdDeviation="4"/></filter>
+    <path id="caminho" d="M160,118 V244 H480 V118 V244 H800 V118"/>
+  </defs>
+  <style>
+    text { font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif; }
+    .mono { font-family: "Cascadia Code", "SFMono-Regular", Consolas, Menlo, monospace; }
+    .cartao rect { fill: #1c1c1e; stroke: rgba(255,255,255,.09); }
+    .dia { font-size: 11px; letter-spacing: .14em; fill: #8f8a83; }
+    .ia { font-size: 17px; font-weight: 700; fill: #f4f1ec; }
+    .feito { font-size: 13px; fill: #bdb8af; }
+    .verbo { font-size: 11px; letter-spacing: .12em; fill: #f6b28e; }
+    .acende { animation: acende 9s linear infinite; }
+    .c2 { animation-name: acende2; }
+    .c3 { animation-name: acende3; }
+    .n1 { animation-name: no1; }
+    .n2 { animation-name: no2; }
+    @keyframes acende  { 0%, 6% { stroke: rgba(232,121,74,.9); } 12%, 100% { stroke: rgba(255,255,255,.09); } }
+    @keyframes acende2 { 0%, 42% { stroke: rgba(255,255,255,.09); } 45%, 52% { stroke: rgba(232,121,74,.9); } 58%, 100% { stroke: rgba(255,255,255,.09); } }
+    @keyframes acende3 { 0%, 86% { stroke: rgba(255,255,255,.09); } 89%, 99% { stroke: rgba(232,121,74,.9); } 100% { stroke: rgba(255,255,255,.09); } }
+    @keyframes no1 { 0%, 8% { opacity: .15; } 10%, 100% { opacity: 1; } }
+    @keyframes no2 { 0%, 52% { opacity: .15; } 54%, 100% { opacity: 1; } }
+    @media (prefers-reduced-motion: reduce) { .acende, .n1, .n2 { animation: none; opacity: 1; } .pulso { display: none; } }
+  </style>
+
+  <rect width="960" height="320" rx="18" fill="url(#fundo)"/>
+  <rect width="960" height="320" rx="18" fill="url(#calor)"/>
+  <rect x=".5" y=".5" width="959" height="319" rx="17.5" fill="none" stroke="rgba(255,255,255,.07)"/>
+
+  <!-- O fio do projeto: a memória que fica na Axon -->
+  <line x1="60" y1="244" x2="900" y2="244" stroke="url(#trilho)" stroke-width="2.5" stroke-linecap="round"/>
+  <text x="60" y="284" class="mono" font-size="11" letter-spacing="2.4" fill="#e8794a">AXON</text>
+  <text x="104" y="284" font-size="12.5" fill="#8f8a83">a memória do projeto, no seu computador</text>
+
+  <!-- Ligações verticais -->
+  <g stroke="rgba(246,178,142,.35)" stroke-width="1.4" stroke-dasharray="3 5">
+    <line x1="160" y1="118" x2="160" y2="244"/>
+    <line x1="480" y1="118" x2="480" y2="244"/>
+    <line x1="800" y1="118" x2="800" y2="244"/>
+  </g>
+  <text x="170" y="188" class="verbo mono">REGISTRA ↓</text>
+  <text x="490" y="168" class="verbo mono">RETOMA ↑</text>
+  <text x="490" y="212" class="verbo mono">REGISTRA ↓</text>
+  <text x="810" y="188" class="verbo mono">RETOMA ↑</text>
+
+  <!-- Sessões -->
+  <g class="cartao"><rect class="acende" x="60" y="34" width="200" height="84" rx="12" stroke-width="1.5"/>
+    <text x="78" y="58" class="dia mono">SEGUNDA</text><text x="78" y="82" class="ia">Claude</text><text x="78" y="103" class="feito">faz o login e o carrinho</text></g>
+  <g class="cartao"><rect class="acende c2" x="380" y="34" width="200" height="84" rx="12" stroke-width="1.5"/>
+    <text x="398" y="58" class="dia mono">TERÇA</text><text x="398" y="82" class="ia">Cursor</text><text x="398" y="103" class="feito">continua do pagamento</text></g>
+  <g class="cartao"><rect class="acende c3" x="700" y="34" width="200" height="84" rx="12" stroke-width="1.5"/>
+    <text x="718" y="58" class="dia mono">QUARTA</text><text x="718" y="82" class="ia">Claude</text><text x="718" y="103" class="feito">sabe tudo e publica</text></g>
+
+  <!-- Nós gravados no fio -->
+  <g fill="#151516" stroke="#f6b28e" stroke-width="2">
+    <circle class="acende n1" cx="160" cy="244" r="6.5"/>
+    <circle class="acende n2" cx="480" cy="244" r="6.5"/>
+  </g>
+
+  <!-- O pulso que leva o contexto -->
+  <g class="pulso">
+    <circle r="9" fill="#e8794a" opacity=".55" filter="url(#brilho)">
+      <animateMotion dur="9s" repeatCount="indefinite" keyPoints="0;1;1" keyTimes="0;.889;1" calcMode="linear"><mpath href="#caminho"/></animateMotion>
+    </circle>
+    <circle r="4" fill="#f6b28e">
+      <animateMotion dur="9s" repeatCount="indefinite" keyPoints="0;1;1" keyTimes="0;.889;1" calcMode="linear"><mpath href="#caminho"/></animateMotion>
+    </circle>
+  </g>
+</svg>
