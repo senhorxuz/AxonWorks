@@ -4,7 +4,7 @@
    --surface-raised, --ink, --text-secondary, --line, --accent) e as classes
    globais .button/.eyebrow/.alert/.text-button já existentes — nada disso é
    redefinido aqui, só o layout novo. Contraste de texto de leitura sempre
-   verificado para 4,5:1 no mínimo; #64748b nunca é usado. */
+   verificado para 4,5:1 no mínimo; #74736f nunca é usado. */
 
 .resumo-ao-acordar,
 .fila-de-aprovacoes {
@@ -51,6 +51,71 @@
 }
 
 .resumo-momentum-chip svg { color: var(--accent); flex-shrink: 0; }
+
+/* Resumo ao acordar: cada seção é um bloco com forma própria, e os blocos dividem a largura por igual
+   (em qualquer tela). Cabeçalho, ritmo e "tudo em dia" ocupam a linha inteira. */
+/* Linha flexível que quebra (não grade): itens de linha inteira numa grade impedem que as colunas
+   vazias se recolham, e os blocos ficariam estreitos com sobra à direita. Na linha, os blocos
+   dividem a largura e esticam até a mesma altura. */
+.resumo-ao-acordar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 20px 16px;
+}
+
+.resumo-ao-acordar > * {
+  flex: 1 1 100%;
+}
+
+.resumo-ao-acordar > .resumo-secao {
+  flex: 1 1 280px;
+}
+
+.resumo-ao-acordar > .resumo-secao[aria-label="Sugestões para agora"] {
+  flex-basis: 100%;
+}
+
+.resumo-ao-acordar > .resumo-secao {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  margin: 0;
+  padding: 16px 18px 18px;
+  border: 1px solid rgba(255, 255, 255, 0.065);
+  border-radius: 12px;
+  background-color: #1a1a1c;
+}
+
+.resumo-ao-acordar > .resumo-secao > .button {
+  align-self: flex-start;
+  margin-top: auto;
+}
+
+/* "Esperando por você" é o que se procura primeiro: número grande e um calor de brasa. */
+.resumo-ao-acordar > .resumo-secao[aria-label="Esperando por você"] {
+  border-color: rgba(232, 121, 74, 0.28);
+  background:
+    radial-gradient(120% 140% at 100% 0%, rgba(232, 121, 74, 0.1), transparent 60%),
+    #1b1918;
+  background-color: #1b1918;
+}
+
+.resumo-numero {
+  display: block;
+  margin: 2px 0 2px;
+  font-size: 34px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: #f4f1ec;
+}
+
+.resumo-ao-acordar > .resumo-secao > p:not(.resumo-vazio) {
+  margin: 0 0 14px;
+}
 
 .resumo-secao h3 {
   display: flex;

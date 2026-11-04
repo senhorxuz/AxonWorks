@@ -1,0 +1,134 @@
+/*
+ * Tear — um trilho por projeto sobre a mesma régua de tempo, em caracteres.
+ * A arte é pintada num <canvas> (src/ascii/TearDosProjetos.tsx); aqui a moldura, a legenda, a fonte
+ * e os nomes (texto de verdade, alinhado às linhas da arte pela mesma altura de linha).
+ */
+
+.tear {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  margin: 4px 0 22px;
+  padding: 14px 20px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 16px;
+  /* Cor sólida por baixo do degradê: é dela que a régua de legibilidade lê o fundo. */
+  background-color: #141415;
+  background-image:
+    radial-gradient(28% 140% at 92% 30%, rgba(232, 121, 74, 0.09), transparent 70%),
+    radial-gradient(90% 120% at 10% 0%, rgba(255, 255, 255, 0.025), transparent 60%),
+    linear-gradient(180deg, #171719, #121213);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.045), 0 24px 54px -32px rgba(0, 0, 0, 0.85);
+}
+
+.tear-legenda {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.tear-titulo {
+  font: 600 11px/1 var(--fonte-mono, "Cascadia Code", Consolas, monospace);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #8f8c86;
+}
+
+.tear-titulo::before {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 10px;
+  border-radius: 50%;
+  background: var(--brasa, #e8794a);
+  box-shadow: 0 0 10px var(--brasa, #e8794a);
+  content: "";
+  vertical-align: 1px;
+}
+
+.tear-resumo {
+  font-size: 12.5px;
+  color: #aaa7a1;
+}
+
+.tear-palco {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 28ch) minmax(0, 1fr);
+  column-gap: 18px;
+  margin: 12px 0 0;
+  font-family: var(--fonte-mono, "Cascadia Code", Consolas, monospace);
+}
+
+.tear-projetos {
+  position: relative;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tear-projeto {
+  position: absolute;
+  left: 0;
+  right: 0;
+  display: grid;
+  grid-template-rows: var(--tear-linha) var(--tear-linha);
+}
+
+.tear-nome,
+.tear-quando,
+.tear-mais {
+  overflow: hidden;
+  line-height: var(--tear-linha);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tear-nome {
+  font-size: 12px;
+  font-weight: 600;
+  color: #dcd7ce;
+}
+
+.tear-quando,
+.tear-mais {
+  font-size: 11px;
+  color: #8f8b85;
+}
+
+/* O vivo: nome em brasa clara, o mesmo acento do trilho dele. */
+.tear-projeto-vivo .tear-nome {
+  color: var(--brasa-clara, #f6b28e);
+}
+
+.tear-projeto-parado .tear-nome {
+  color: #a9a49c;
+}
+
+.tear-mais {
+  position: absolute;
+  left: 0;
+  right: 0;
+}
+
+.tear-trilhos {
+  position: relative;
+}
+
+.tear-tela {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  /* A família da fonte vem daqui; o tamanho e as cores, de TearDosProjetos.tsx. */
+  font-family: var(--fonte-mono, "Cascadia Code", Consolas, monospace);
+}
+
+@media (max-width: 760px) {
+  .tear-palco {
+    grid-template-columns: minmax(0, 17ch) minmax(0, 1fr);
+    column-gap: 10px;
+  }
+}

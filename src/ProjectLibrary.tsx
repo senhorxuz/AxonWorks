@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { FioMiniatura } from './fio/FioDoProjeto';
+import { TearDosProjetos } from './ascii/TearDosProjetos';
 import { ArrowDownToLine, ArrowUpRight, Check, Folder, FolderPlus, LayoutGrid, List, Plus, Search, Star, Trash2, X } from 'lucide-react';
 import type { Project } from '../shared/types';
 import { DateLabel, firstMeaningfulParagraph } from './ui';
@@ -30,6 +32,7 @@ export function ProjectLibrary({ projects, loading, onCreate, onImport, onDelete
   });
   return <>
     <div className="page-heading library-heading"><div><h1>Projetos <span className="heading-count">{projects.length}</span></h1><p>Abra um projeto para continuar o trabalho.</p></div><div className="heading-actions"><button className="button secondary" onClick={onImport}><ArrowDownToLine size={15}/>Importar projeto</button><button className="button primary" onClick={onCreate}><Plus size={16}/>Novo projeto</button></div></div>
+    {!loading && projects.length > 0 && <TearDosProjetos projetos={projects}/>}
     <div className="library-toolbar">
       <div className="library-filters" role="group" aria-label="Filtrar projetos">
         <button aria-pressed={filter==='all'} onClick={() => setFilter('all')}>Todos<span>{projects.length}</span></button>
@@ -50,7 +53,7 @@ export function ProjectLibrary({ projects, loading, onCreate, onImport, onDelete
     </div> : visible.length === 0 ? <div className="library-empty compact"><Search size={28} strokeWidth={1.3}/><h2>Nenhum projeto encontrado</h2><p>Experimente outro nome ou remova os filtros.</p><button className="button secondary" onClick={()=>{setQuery('');setFilter('all');}}>Limpar filtros</button></div> : <div className={'library-projects '+(layout==='grid'?'as-grid':'as-list')}>
       {layout==='list' && <div className="library-columns" aria-hidden="true"><span>PROJETO</span><span>SALVO NESTE COMPUTADOR</span><span>ATUALIZADO</span><span/></div>}
       {visible.map((project,index)=><article className="library-project" key={project.id}>
-        <a href={'#project/'+project.id} className="project-open"><span className={'project-monogram tone-'+(index%3)}><Folder size={20} strokeWidth={1.4}/></span><div><h3>{project.name}</h3><p>{firstMeaningfulParagraph(project.objective)}</p><span className="project-location">{project.workspacePath || 'Sem pasta vinculada'}</span></div></a>
+        <a href={'#project/'+project.id} className="project-open"><span className={'project-monogram tem-fio tone-'+(index%3)}><FioMiniatura semente={project.id} versoes={project.revision}/></span><div><h3>{project.name}</h3><p>{firstMeaningfulParagraph(project.objective)}</p><span className="project-location">{project.workspacePath || 'Sem pasta vinculada'}</span></div></a>
         <div className="library-context"><span className={project.revision>0?'status-tag':'status-tag neutral'}>{project.revision>0?<><span className="tiny-dot"/>versão {project.revision}</>:'Sem checkpoint'}</span></div>
         <div className="library-updated"><DateLabel value={project.updatedAt}/></div>
         <div className="library-row-actions"><button className={'pin-button '+(pins.includes(project.id)?'is-pinned':'')} aria-label={(pins.includes(project.id)?'Desfavoritar ':'Favoritar ')+project.name} aria-pressed={pins.includes(project.id)} onClick={()=>togglePin(project)}><Star size={15} fill={pins.includes(project.id)?'currentColor':'none'}/></button><button type="button" className="icon-button library-delete" aria-label={'Excluir '+project.name} title={'Excluir '+project.name} onClick={()=>onDelete(project)}><Trash2 size={15}/></button><a className="icon-button open-project-button" href={'#project/'+project.id} aria-label={'Abrir '+project.name}><ArrowUpRight size={17}/></a></div>

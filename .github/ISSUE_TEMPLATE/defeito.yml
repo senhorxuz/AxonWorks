@@ -1,0 +1,84 @@
+name: Defeito
+description: Algo não funciona como deveria na Axon Works.
+title: "[Defeito] "
+labels: ["defeito"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Obrigado por avisar. Quanto mais claro o relato, mais rápido a gente acha o problema.
+
+        **Atenção:** não cole chaves, tokens, senhas nem dados pessoais. Se o texto tiver algum segredo, troque por um valor falso.
+
+        Achou uma **vulnerabilidade de segurança**? Não use este formulário. Use o reporte privado, em Security > Report a vulnerability.
+  - type: textarea
+    id: o-que-aconteceu
+    attributes:
+      label: O que aconteceu
+      description: Conte o que você viu. Se houver mensagem de erro, cole o texto (sem segredos).
+    validations:
+      required: true
+  - type: textarea
+    id: o-que-esperava
+    attributes:
+      label: O que era esperado
+      description: O que você achava que ia acontecer?
+    validations:
+      required: true
+  - type: textarea
+    id: passos
+    attributes:
+      label: Passos para reproduzir
+      description: Em lista, do começo ao fim, para outra pessoa conseguir repetir.
+      placeholder: |
+        1. Abrir...
+        2. Clicar em...
+        3. Ver o erro...
+    validations:
+      required: true
+  - type: input
+    id: versao-node
+    attributes:
+      label: Versão do Node
+      description: Rode `node --version` no terminal.
+      placeholder: v24.0.0
+    validations:
+      required: true
+  - type: dropdown
+    id: sistema
+    attributes:
+      label: Sistema operacional
+      options:
+        - Windows
+        - macOS
+        - Linux
+        - Outro
+    validations:
+      required: true
+  - type: dropdown
+    id: parte
+    attributes:
+      label: Parte da Axon
+      description: Onde o defeito aparece?
+      options:
+        - Tela
+        - MCP
+        - Ganchos do Claude Code
+        - Servidor / VPS
+        - Outro
+    validations:
+      required: true
+  - type: textarea
+    id: extras
+    attributes:
+      label: Algo mais que ajude
+      description: Capturas de tela, o que você já tentou, quando começou.
+    validations:
+      required: false
+  - type: checkboxes
+    id: confirmacao
+    attributes:
+      label: Confirmação
+      options:
+        - label: Não colei chaves, tokens, senhas nem dados pessoais neste relato.
+          required: true

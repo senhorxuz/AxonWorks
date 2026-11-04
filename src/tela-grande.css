@@ -28,26 +28,7 @@
     max-width: 640px;
   }
 
-  /* Resumo ao acordar: as seções crescem até preencher a linha, sem sobra à direita. */
-  .resumo-ao-acordar {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: flex-start;
-    column-gap: 32px;
-    row-gap: 20px;
-  }
-
-  .resumo-ao-acordar > * {
-    flex: 1 1 100%;
-  }
-
-  .resumo-ao-acordar > .resumo-secao {
-    flex: 1 1 340px;
-  }
-
-  .resumo-ao-acordar > .resumo-secao[aria-label="Sugestões para agora"] {
-    flex-basis: 100%;
-  }
+  /* Resumo ao acordar: os blocos (src/painel.css) já dividem a largura em qualquer tela. */
 
   .resumo-lista-proximo {
     grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
@@ -88,5 +69,78 @@
     column-gap: 64px;
     max-width: none;
     margin-bottom: 28px;
+  }
+}
+
+/*
+ * Monitores de 24" (1920 x 1080) e 27" (2560 x 1440).
+ *
+ * O 27" QHD tem pixels 18% menores que o 24" Full HD (109 contra 92 por polegada): sem ajuste,
+ * todo texto fica menor no monitor maior. A partir de 2400 px a página inteira é ampliada 15%,
+ * e o texto volta a ter, a olho, o tamanho do 24". Quem já usa 125% no Windows tem janela de
+ * 2048 px e não entra aqui. O que segue o ponteiro converte a medida em src/escala-da-tela.ts.
+ * O Chrome também amplia as unidades vh: toda altura de janela no CSS é escrita como
+ * calc(100vh / var(--ampliacao, 1)), senão a página ganharia rolagem sem conteúdo.
+ */
+@media (min-width: 2400px) {
+  :root {
+    --ampliacao: 1.15;
+  }
+
+  html {
+    zoom: var(--ampliacao);
+  }
+}
+
+@media (min-width: 1800px) {
+  /* Quadro: colunas um pouco mais estreitas para caberem 7 no 24" e todas no 27". */
+  .quadro-coluna {
+    flex-basis: 210px;
+  }
+
+  /* Cabeçalho da coluna mais justo, e título longo quebra em duas linhas em vez de virar reticências. */
+  .quadro .quadro-coluna .quadro-coluna-topo {
+    column-gap: 6px;
+    padding-right: 6px;
+    padding-left: 12px;
+  }
+
+  .quadro .quadro-coluna .quadro-coluna-adicionar {
+    width: 24px;
+    height: 24px;
+  }
+
+  .quadro .quadro-coluna .quadro-coluna-topo h3 {
+    line-height: 1.25;
+    white-space: normal;
+    text-wrap: balance;
+  }
+
+  /* Onde paramos: "O que foi feito" e "O que falta" lado a lado; o resto ocupa a largura. */
+  .carta {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 64px;
+    align-items: start;
+    max-width: 1680px;
+  }
+
+  .carta > * {
+    grid-column: 1 / -1;
+  }
+
+  .carta > .carta-bloco-feito {
+    grid-column: 1;
+  }
+
+  .carta > .carta-bloco-falta {
+    grid-column: 2;
+  }
+
+  /* A frase do estado é o primeiro que se lê: ganha corpo, mas não vira linha cansativa. */
+  .carta .carta-bloco .carta-frase {
+    max-width: 72ch;
+    font-size: 19px;
+    line-height: 1.45;
   }
 }

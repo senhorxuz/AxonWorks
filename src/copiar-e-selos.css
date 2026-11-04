@@ -1,6 +1,6 @@
 /* Partes 8 e 6 — Copiar para outra IA e selo de IA sumida.
    Estilos exclusivos destas telas. Apagáveis junto com elas.
-   Texto com font-size >= 12px e contraste >= 4.5:1. Sem uso de #64748b. */
+   Texto com font-size >= 12px e contraste >= 4.5:1. Sem uso de #74736f. */
 
 /* ==========================================================================
    Parte 8 — Copiar para outra IA
@@ -35,7 +35,7 @@
 .copiar-cabecalho p {
   margin: 0;
   font-size: 13px;
-  color: #cbd5e1;
+  color: #d7d3cd;
   line-height: 1.4;
 }
 
@@ -94,7 +94,7 @@
 .copiar-previa-bloco label {
   font-size: 13px;
   font-weight: 600;
-  color: #e2e8f0;
+  color: #eae7e0;
 }
 
 .copiar-previa-texto {

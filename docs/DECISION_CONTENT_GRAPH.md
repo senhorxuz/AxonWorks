@@ -18,7 +18,7 @@ O **Grafo de Decisões e Conteúdos do Axon** unifica a memória canônica em um
 
 ## 2. Modelo Canônico do Grafo (`shared/graph.ts`)
 
-O modelo tipado é formalizado em [`shared/graph.ts`](shared/graph.ts):
+O modelo tipado é formalizado em [`shared/graph.ts`](../shared/graph.ts):
 
 ### Tipos de Nós (`GraphNode`)
 - `decision`: Decisões canônicas versionadas com status (`proposed`, `accepted`, `superseded`, `revoked`), autoria e linhagem (`supersedesId` / `supersededById`).
@@ -132,7 +132,7 @@ Calcula o alcance e o risco de impacto caso uma entidade específica seja modifi
 
 ## 7. Ferramentas MCP (Model Context Protocol)
 
-As ferramentas estão registradas em [`server/mcp-tools.ts`](server/mcp-tools.ts) com `readOnlyHint: true`:
+As ferramentas estão registradas em [`server/mcp-tools.ts`](../server/mcp-tools.ts) com `readOnlyHint: true`:
 
 1. `get_project_graph`:
    - Argumentos: `{ projectId: string, nodeTypes?: string[], includeArchived?: boolean }`
@@ -147,7 +147,7 @@ As ferramentas estão registradas em [`server/mcp-tools.ts`](server/mcp-tools.ts
 
 ## 8. Verificação e Evidências Automatizadas
 
-Os testes dedicados em [`tests/graph-analysis.test.ts`](tests/graph-analysis.test.ts) validam:
+Os testes dedicados em [`tests/graph-analysis.test.ts`](../tests/graph-analysis.test.ts) validam:
 - Construção de grafo com 4 tipos de nós e 7 tipos de arestas com contagens estatísticas exatas.
 - Filtragem por tipos de nó e isolamento de arestas órfãs.
 - Detecção de contradições diretas com decisões aceitas.
