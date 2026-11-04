@@ -8,7 +8,7 @@ Ao final deste guia você terá:
 - Acesso em `https://seunome.duckdns.org` de qualquer aparelho, com **usuário e senha seus**. Sem aplicativo, sem VPN, sem intermediário.
 - Cadeado (HTTPS) pedido e renovado sozinho.
 - A Axon escutando **só dentro da VPS**. Quem conversa com a internet é o porteiro (Caddy), e quem passa pela porta é quem tem a sua senha.
-- As IAs (Claude Code, Gemini, Cursor) conectadas ao MCP pelo SSH.
+- As LLMs (Claude Code, Codex e outras) conectadas ao MCP pelo SSH.
 - Uma cópia do código atualizada a cada 2 minutos, para a conferência de arquivos comparar com o que está no GitHub.
 - Backup criptografado todo dia às 00:30 (horário de Brasília), guardando os últimos 14.
 - Atualização com um comando, que volta sozinha para a versão anterior se a nova não responder.
@@ -171,7 +171,7 @@ Na mão, trocando o endereço pelo seu:
 claude mcp add axon -- ssh -T -o BatchMode=yes -o StrictHostKeyChecking=accept-new axon@meu-axon.duckdns.org /srv/axon/app/deploy/mcp.sh
 ```
 
-**Gemini CLI**, **Cursor** e outras (arquivo de configuração MCP):
+**Codex** e outras LLMs (arquivo de configuração MCP):
 
 ```json
 {
