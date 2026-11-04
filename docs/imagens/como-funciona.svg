@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 320" width="960" height="320" role="img" aria-labelledby="t d">
   <title id="t">Como a Axon funciona</title>
-  <desc id="d">Na segunda, o Claude trabalha e registra na Axon. Na terça, o Cursor retoma de onde parou e registra de novo. Na quarta, o Claude retoma e publica. A memória do projeto segue num fio só.</desc>
+  <desc id="d">Na segunda, o Claude trabalha e registra na Axon. Na terça, o Codex retoma de onde parou e registra de novo. Na quarta, o Claude retoma e publica. A memória do projeto segue num fio só.</desc>
   <defs>
     <linearGradient id="fundo" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#171718"/>
@@ -63,7 +63,7 @@
   <g class="cartao"><rect class="acende" x="60" y="34" width="200" height="84" rx="12" stroke-width="1.5"/>
     <text x="78" y="58" class="dia mono">SEGUNDA</text><text x="78" y="82" class="ia">Claude</text><text x="78" y="103" class="feito">faz o login e o carrinho</text></g>
   <g class="cartao"><rect class="acende c2" x="380" y="34" width="200" height="84" rx="12" stroke-width="1.5"/>
-    <text x="398" y="58" class="dia mono">TERÇA</text><text x="398" y="82" class="ia">Cursor</text><text x="398" y="103" class="feito">continua do pagamento</text></g>
+    <text x="398" y="58" class="dia mono">TERÇA</text><text x="398" y="82" class="ia">Codex</text><text x="398" y="103" class="feito">continua do pagamento</text></g>
   <g class="cartao"><rect class="acende c3" x="700" y="34" width="200" height="84" rx="12" stroke-width="1.5"/>
     <text x="718" y="58" class="dia mono">QUARTA</text><text x="718" y="82" class="ia">Claude</text><text x="718" y="103" class="feito">sabe tudo e publica</text></g>
 
