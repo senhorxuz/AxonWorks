@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
-import { BookMarked, Plus, Search } from 'lucide-react';
+import { BookMarked, X } from 'lucide-react';
 import type { ContentDocument, ContentEntry, ContentKind, ContentSourceKind } from '../shared/library';
 import { api, errorText } from './api';
+import { previaDoConteudo, tomDoTipo } from './biblioteca/arte';
+import { ExLibris } from './biblioteca/ExLibris';
+import { HeroDaBiblioteca } from './biblioteca/HeroDaBiblioteca';
 import { useFeedback } from './Feedback';
 import { DateLabel, EmptyNote, Modal } from './ui';
 
@@ -28,6 +31,14 @@ export function LibraryPanel({ projectId, agent }: { projectId: string; agent: s
   const [busy, setBusy] = useState(false);
   const [creating, setCreating] = useState(false);
   const [revising, setRevising] = useState(false);
+
+  // Esc fecha o documento aberto e volta para a grade (menos quando uma janela de edição está aberta).
+  useEffect(() => {
+    if (!selected || creating || revising) return;
+    const aoTeclar = (evento: KeyboardEvent) => { if (evento.key === 'Escape') setSelected(null); };
+    window.addEventListener('keydown', aoTeclar);
+    return () => window.removeEventListener('keydown', aoTeclar);
+  }, [selected, creating, revising]);
 
   const load = useCallback(async (signal?: AbortSignal) => {
     const list = await api.content(projectId, false, signal);
@@ -88,35 +99,27 @@ export function LibraryPanel({ projectId, agent }: { projectId: string; agent: s
 
   return (
     <section className="library-panel" aria-label="Biblioteca de conteúdos">
-      <div className="section-heading">
-        <div>
-          <h2>Biblioteca</h2>
-          <p>Materiais versionados deste projeto. Editar cria uma revisão nova. Conteúdo de IA é relato, não diretriz.</p>
-        </div>
-        <button type="button" className="button primary" onClick={() => setCreating(true)} disabled={!agent}>
-          <Plus size={16}/>Novo conteúdo
-        </button>
-      </div>
+      <HeroDaBiblioteca
+        semente={projectId}
+        documentos={items}
+        rotulos={KIND_LABEL}
+        busca={query}
+        aoMudarBusca={setQuery}
+        aoBuscar={(event) => void search(event)}
+        ocupado={busy}
+        podeCriar={!!agent}
+        aoCriar={() => setCreating(true)}
+        aoAbrir={(id) => void openItem(id)}
+      />
       {error && <div className="alert" role="alert">{error}</div>}
-      <form className="library-search-bar" onSubmit={(event) => void search(event)}>
-        <label className="library-search">
-          <Search size={15}/>
-          <input
-            aria-label="Buscar na revisão vigente"
-            placeholder="Buscar na revisão vigente…"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-          />
-        </label>
-        <button className="button secondary" disabled={busy}>{query.trim() ? 'Buscar' : 'Mostrar todos'}</button>
-      </form>
       {items.length === 0 ? (
         <EmptyNote>
           <BookMarked size={22}/>
           <p>Nenhum conteúdo vigente.<br/><span>Guarde o que a próxima IA precisa ler sem reabrir o chat.</span></p>
         </EmptyNote>
       ) : (
-        <div className="library-layout">
+        <>
+        <div className={'library-layout ' + (selected ? 'lendo' : 'em-grade')}>
           <div className="library-list">
             {items.map((entry) => (
               <button
@@ -127,11 +130,16 @@ export function LibraryPanel({ projectId, agent }: { projectId: string; agent: s
               >
                 <strong>{entry.item.title}</strong>
                 <small>{KIND_LABEL[entry.item.kind]} · revisão {entry.revision.revision}</small>
+                {/* Na leitura, a lista é compacta: prévia e emblema só na grade. */}
+                {!selected && <ExLibris semente={entry.item.id} tamanho={46} tom={tomDoTipo(entry.item.kind)} />}
+                {!selected && <span className="library-item-previa">{previaDoConteudo(entry.revision.body)}</span>}
               </button>
             ))}
           </div>
           {selected && (
             <article className="library-document">
+              <ExLibris semente={selected.item.id} tamanho={150} tom={tomDoTipo(selected.item.kind)} />
+              <button type="button" className="icon-button library-document-fechar" aria-label="Fechar documento" title="Fechar (Esc)" onClick={() => setSelected(null)}><X size={16} /></button>
               <header>
                 <span className="eyebrow">{KIND_LABEL[selected.item.kind]} · {SOURCE_LABEL[selected.revision.sourceKind]}</span>
                 <h3>{selected.item.title}</h3>
@@ -148,6 +156,7 @@ export function LibraryPanel({ projectId, agent }: { projectId: string; agent: s
             </article>
           )}
         </div>
+        </>
       )}
       {creating && (
         <ContentFormDialog

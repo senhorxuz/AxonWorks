@@ -41,7 +41,8 @@ test('biblioteca guarda revisão vigente e busca só o texto atual', async ({ pa
   await expect(page.getByText('A Axon funciona como correio entre IAs.')).toBeVisible();
   await page.getByLabel('Buscar na revisão vigente').fill('correio');
   await page.getByRole('button', { name: 'Buscar', exact: true }).click();
-  await expect(page.getByRole('button', { name: /Contrato de continuidade/ })).toBeVisible();
+  // O resultado da busca é o cartão na lista (a estante também tem uma lombada com esse nome).
+  await expect(page.locator('.library-list').getByRole('button', { name: /Contrato de continuidade/ })).toBeVisible();
   await page.screenshot({ path: info.outputPath('library.png'), fullPage: true });
   expect(errors).toEqual([]);
 });

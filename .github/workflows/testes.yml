@@ -1,0 +1,60 @@
+name: Testes
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: testes-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CI: true
+
+jobs:
+  testes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Conferir tipos
+        run: npx tsc --noEmit
+
+      - name: Testes
+        run: npm test
+
+      - name: Montar a tela
+        run: npx vite build
+
+      - name: Montar os arquivos finais
+        run: node scripts/montar.mjs
+
+      - name: Instalar o navegador dos testes
+        run: npx playwright install --with-deps chromium
+
+      - name: Testes de ponta a ponta
+        run: npx playwright test
+
+      - name: Guardar o relatório em caso de falha
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: relatorio-playwright
+          path: |
+            output/playwright/report/
+            output/playwright/results/
+          retention-days: 7
+          if-no-files-found: ignore

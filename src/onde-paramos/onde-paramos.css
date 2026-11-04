@@ -11,16 +11,16 @@
 
 .carta {
   --c-tinta: #f1f5f9;
-  --c-texto: #cbd5e1;
-  --c-suave: #94a3b8;
+  --c-texto: #d7d3cd;
+  --c-suave: #a4a29c;
   --c-fio: rgba(255, 255, 255, 0.09);
   --c-cartao: #1b1d21;
   --c-cartao-sutil: #181a1e;
-  --c-precisa: #facc15;
+  --c-precisa: var(--brasa, #e8794a);
   --c-travado: #f87171;
-  --c-andamento: #22d3ee;
-  --c-fazer: #cbd5e1;
-  --c-ideias: #94a3b8;
+  --c-andamento: #d6a35e;
+  --c-fazer: #d7d3cd;
+  --c-ideias: #a4a29c;
   --c-sucesso: #86efac;
   --c-curva: cubic-bezier(0.23, 1, 0.32, 1);
   max-width: 860px;

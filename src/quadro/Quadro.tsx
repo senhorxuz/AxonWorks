@@ -4,6 +4,7 @@ import { AlignLeft, CheckSquare, Plus, RefreshCw, Search } from 'lucide-react';
 import { Flip } from 'gsap/Flip';
 import { BOARD_COLUMNS, BOARD_LABELS, BOARD_LIMITS, type BoardCard, type BoardColumnId } from '../../shared/board';
 import { ApiError, errorText } from '../api';
+import { escalaDoElemento, paraPixelsCss } from '../escala-da-tela';
 import { gsap } from '../motion';
 import { apiQuadro, nomeDoDono } from './api-quadro';
 import { CartaoDetalhe } from './CartaoDetalhe';
@@ -19,15 +20,17 @@ gsap.registerPlugin(Flip);
  */
 
 export const COR_DA_COLUNA: Record<BoardColumnId, string> = {
-  ideas: '#94a3b8',
-  pending: '#facc15',
-  in_progress: '#22d3ee',
-  unfinished: '#fb923c',
-  testing: '#c084fc',
-  awaiting_deploy: '#a3e635',
-  done: '#34d399',
-  blocked: '#f87171',
-  discarded: '#64748b',
+  // Escala com sentido: o que ainda não começou é névoa e areia; o que está vivo é brasa;
+  // vai esquentando para ouro e esfria em verde quando fica pronto. Vermelho só para o que travou.
+  ideas: '#8d929b',
+  pending: '#bdb4a3',
+  in_progress: '#e8794a',
+  unfinished: '#b77d52',
+  testing: '#d9b765',
+  awaiting_deploy: '#a8c38a',
+  done: '#6fb68c',
+  blocked: '#e5534b',
+  discarded: '#55585e',
 };
 
 const NOME_DA_COLUNA = Object.fromEntries(BOARD_COLUMNS.map(c => [c.id, c.name])) as Record<BoardColumnId, string>;
@@ -135,7 +138,7 @@ export function Quadro({ projectId, atualizadoEm }: { projectId: string; atualiz
     if (!elemento) return;
     const medir = () => {
       const topo = elemento.getBoundingClientRect().top + window.scrollY;
-      const altura = Math.max(420, Math.round(window.innerHeight - topo - 24));
+      const altura = Math.max(420, Math.round(paraPixelsCss(window.innerHeight - topo - 24, escalaDoElemento(elemento))));
       elemento.style.setProperty('--quadro-altura', `${altura}px`);
     };
     medir();
@@ -258,7 +261,8 @@ export function Quadro({ projectId, atualizadoEm }: { projectId: string; atualiz
       rolarPelasBordas();
     }
     if (fantasma.current) {
-      gsap.set(fantasma.current, { x: evento.clientX - s.deslocX, y: evento.clientY - s.deslocY });
+      const escala = escalaDoElemento(fantasma.current);
+      gsap.set(fantasma.current, { x: paraPixelsCss(evento.clientX - s.deslocX, escala), y: paraPixelsCss(evento.clientY - s.deslocY, escala) });
     }
     const alvo = alvoNoPonto(evento.clientX, evento.clientY, s.cardId);
     const atual = arrastoRef.current;
@@ -330,7 +334,8 @@ export function Quadro({ projectId, atualizadoEm }: { projectId: string; atualiz
     if (!arrasto || !s || !fantasma.current) return;
     if (fantasma.current.dataset.pronto) return;
     fantasma.current.dataset.pronto = '1';
-    gsap.set(fantasma.current, { x: s.x - s.deslocX, y: s.y - s.deslocY, width: s.largura });
+    const escala = escalaDoElemento(fantasma.current);
+    gsap.set(fantasma.current, { x: paraPixelsCss(s.x - s.deslocX, escala), y: paraPixelsCss(s.y - s.deslocY, escala), width: paraPixelsCss(s.largura, escala) });
     if (!reduzirMovimento()) {
       gsap.fromTo(fantasma.current.firstElementChild, { scale: 1, rotation: 0 }, { scale: 1.035, rotation: 1.6, duration: 0.22, ease: 'power3.out' });
     }

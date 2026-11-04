@@ -373,7 +373,7 @@ kbd,
 .verification-header,
 .verification-header span,
 .empty-note .text-button {
-  color: #94a3b8 !important;
+  color: #a4a29c !important;
 }
 
 /* Status tags com alto contraste em relação ao fundo */
@@ -384,13 +384,13 @@ kbd,
 
 /* Divisória do rodapé e datas */
 .footer-divider {
-  color: #94a3b8 !important;
+  color: #a4a29c !important;
   font-size: 11px !important;
 }
 .page-footer span,
 .page-footer div,
 .page-footer {
-  color: #94a3b8 !important;
+  color: #a4a29c !important;
   font-size: 11px !important;
 }
 
@@ -412,15 +412,15 @@ kbd,
 .evidence-artifact-reason,
 .setup-panel pre,
 .panel.setup-panel > pre {
-  color: #cbd5e1 !important;
+  color: #d7d3cd !important;
 }
 
 /* Aba Relações (GraphPanel) - Contraste pontual */
 .graph-subnav-btn {
-  color: #cbd5e1 !important;
+  color: #d7d3cd !important;
 }
 .filter-pill {
-  color: #cbd5e1 !important;
+  color: #d7d3cd !important;
 }
 .lane-header-left h3 {
   color: #f1f5f9 !important;
@@ -433,7 +433,7 @@ kbd,
 }
 .node-id-mono,
 .impacted-dist {
-  color: #94a3b8 !important;
+  color: #a4a29c !important;
 }
 .conn-label {
   color: #f1f5f9 !important;

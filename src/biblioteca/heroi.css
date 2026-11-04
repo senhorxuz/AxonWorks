@@ -1,0 +1,243 @@
+/*
+ * Hero da Biblioteca. Conteúdo à esquerda (título, descrição, busca, o que importa), livro aberto à direita.
+ * O texto do livro surge linha a linha uma vez e fica quieto: é moldura, não distração.
+ */
+
+.heroi {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 48px;
+  margin: 0 0 22px;
+  padding: 30px 40px 28px 36px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 20px;
+  background-color: #151516;
+  background-image:
+    radial-gradient(42% 120% at 88% 50%, rgba(232, 121, 74, 0.1), transparent 70%),
+    radial-gradient(70% 140% at 0% 0%, rgba(255, 255, 255, 0.03), transparent 60%),
+    linear-gradient(180deg, #18181a, #131314);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 28px 60px -36px rgba(0, 0, 0, 0.9);
+}
+
+.heroi-conteudo {
+  display: grid;
+  gap: 10px;
+  max-width: 760px;
+}
+
+.heroi-rotulo {
+  font: 600 11px/1 var(--fonte-mono, "Cascadia Code", Consolas, monospace);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #8f8c86;
+}
+
+.heroi-rotulo::before {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 10px;
+  border-radius: 50%;
+  background: var(--brasa, #e8794a);
+  box-shadow: 0 0 10px var(--brasa, #e8794a);
+  content: "";
+  vertical-align: 1px;
+}
+
+.heroi .heroi-titulo {
+  margin: 2px 0 0;
+  /* leitura.css força todo h2 a 20 px com !important; o título do hero é a exceção de propósito. */
+  font-size: 34px !important;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.025em;
+  color: #f4f1ec;
+}
+
+.heroi-descricao {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: #aaa6a0;
+}
+
+.heroi-busca {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.heroi-campo {
+  flex: 1 1 260px;
+  max-width: 420px;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+/* Um anel de foco só: o campo inteiro acende, o texto de dentro não ganha um segundo contorno. */
+.heroi .heroi-campo input:focus-visible {
+  outline: none;
+}
+
+.heroi .heroi-campo:focus-within {
+  border-color: var(--brasa, #e8794a);
+  box-shadow: 0 0 0 3px rgba(232, 121, 74, 0.18);
+}
+
+.heroi-busca .button.primary {
+  margin-left: auto;
+}
+
+.heroi-resumo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 18px;
+  margin-top: 8px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 12.5px;
+  color: #bdb8af;
+}
+
+.heroi-resumo strong {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #f2eee8;
+}
+
+.heroi-tipo {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.heroi-tipo i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+/* O número na mesma fonte e na mesma linha de base do rótulo, com algarismos de largura fixa. */
+.heroi-tipo b {
+  font-size: 12.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #ece8e1;
+}
+
+/* O atalho para o último documento guardado: o mais útil do hero. */
+.heroi-ultimo {
+  display: inline-flex;
+  align-items: center;
+  justify-self: start;
+  gap: 6px;
+  padding: 6px 10px 6px 0;
+  border: 0;
+  background: none;
+  font-size: 13px;
+  color: #b3aea5;
+  cursor: pointer;
+}
+
+.heroi-ultimo b {
+  font-weight: 600;
+  color: var(--brasa-clara, #f6b28e);
+}
+
+.heroi-ultimo svg {
+  color: var(--brasa-clara, #f6b28e);
+  transition: transform 320ms var(--mola, cubic-bezier(0.34, 1.56, 0.64, 1));
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .heroi-ultimo:hover b { text-decoration: underline; text-underline-offset: 3px; }
+  .heroi-ultimo:hover svg { transform: translateX(3px); }
+}
+
+/* O livro aberto */
+.heroi-livro {
+  width: 420px;
+  height: auto;
+  overflow: visible;
+}
+
+.heroi-livro-chao {
+  fill: #000;
+  opacity: 0.55;
+}
+
+.heroi-livro-capa {
+  fill: #191715;
+  stroke: rgba(230, 226, 217, 0.16);
+  stroke-width: 0.6;
+  stroke-linejoin: round;
+}
+
+.heroi-livro-bordas path {
+  fill: none;
+  stroke: rgba(230, 226, 217, 0.17);
+  stroke-width: 0.35;
+}
+
+.heroi-livro-pagina {
+  stroke: rgba(230, 226, 217, 0.22);
+  stroke-width: 0.5;
+  stroke-linejoin: round;
+}
+
+.heroi-livro-titulo,
+.heroi-livro-linha {
+  fill: none;
+  stroke-linecap: round;
+  opacity: 0;
+  animation: heroi-escreve 420ms ease-out calc(0.25s + var(--i) * 32ms) forwards;
+}
+
+.heroi-livro-titulo {
+  stroke: rgba(244, 241, 236, 0.62);
+  stroke-width: 2.2;
+}
+
+.heroi-livro-linha {
+  stroke: rgba(230, 226, 217, 0.3);
+  stroke-width: 0.95;
+}
+
+@keyframes heroi-escreve {
+  to { opacity: 1; }
+}
+
+.heroi-livro-selo {
+  fill: none;
+  stroke: rgba(232, 121, 74, 0.28);
+  stroke-width: 0.45;
+}
+
+.heroi-livro-guilloche {
+  fill: none;
+  stroke: var(--brasa, #e8794a);
+  stroke-linejoin: round;
+}
+
+.heroi-livro-guilloche-0 { stroke-opacity: 0.55; stroke-width: 0.3; }
+.heroi-livro-guilloche-1 { stroke-opacity: 0.35; stroke-width: 0.28; }
+.heroi-livro-guilloche-2 { stroke-opacity: 0.85; stroke-width: 0.34; }
+
+.heroi-livro-fita {
+  stroke: rgba(80, 30, 10, 0.55);
+  stroke-width: 0.4;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .heroi-livro-titulo,
+  .heroi-livro-linha {
+    opacity: 1;
+    animation: none;
+  }
+}
