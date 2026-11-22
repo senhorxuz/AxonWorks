@@ -1,5 +1,6 @@
 // Contrato compartilhado da "carta" (tela "Onde paramos") e da retomada injetada pelos ganchos.
 // Só tipos e constantes: nenhuma regra mora aqui.
+import type { ResumoDaEntrega } from './entrega.js'
 
 /** Agente que assina o rascunho gravado sozinho pelo gancho de fechamento. */
 export const AGENTE_AUTOMATICO = 'Claude (automático)'
@@ -70,6 +71,7 @@ export interface Carta {
   /** O resto, mês mais novo primeiro. */
   feitoPorMes: MesFeito[]
   falta: Record<GrupoFalta, ItemFalta[]>
+  entregas?: ResumoDaEntrega[]
   rascunhoAutomatico: RascunhoAutomaticoVisivel | null
   /** Os salvamentos de compactação mais recentes (até `SALVAMENTOS_NA_CARTA`), mais novo primeiro. */
   salvamentos: SalvamentoResumo[]

@@ -2,6 +2,7 @@
 // com um texto para a tela do dono e outro para a retomada do Claude).
 // Puro: sem relógio, sem banco, sem processo. Frases em afirmação, não em ordem.
 import type { EstadoDoGit } from '../ganchos/git.js'
+import type { CharterRevision } from '../../shared/continuity.js'
 
 /** D1: a retomada lista até tantos títulos; o git lê um a mais para saber que houve mais. */
 const TITULOS_DO_TRABALHO = 5
@@ -39,6 +40,20 @@ const FORMATO_DA_DATA = new Intl.DateTimeFormat('pt-BR', {
   month: '2-digit',
   year: 'numeric',
 })
+
+export type DiretrizDaCarta = { createdAt: string; sourceKind?: undefined } |
+  Pick<CharterRevision, 'createdAt' | 'createdBy' | 'sourceKind' | 'motivo' | 'vistoPeloDonoEm'>
+
+export function avisosDoObjetivoAtualizado(diretriz: DiretrizDaCarta | null | undefined) {
+  if (diretriz?.sourceKind !== 'agent_update' || diretriz.vistoPeloDonoEm !== undefined) return null
+  const data = FORMATO_DA_DATA.format(Date.parse(diretriz.createdAt))
+  const motivo = diretriz.motivo === undefined ? '' : `: ${diretriz.motivo}`
+  const aviso = `O objetivo foi atualizado por ${diretriz.createdBy} em ${data}${motivo}.`
+  return {
+    paraODono: `${aviso} Confira na aba Diretriz.`,
+    paraOClaude: `${aviso} A atualização está na aba Diretriz para conferência do dono.`,
+  }
+}
 
 /** D2: o mesmo aviso em dois textos. A tela fala com o dono; a retomada fala com o Claude. */
 export interface AvisosDaDiretrizVelha {

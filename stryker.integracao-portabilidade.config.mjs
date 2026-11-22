@@ -1,0 +1,31 @@
+import { slice } from './stryker.common.mjs'
+
+export default slice({
+  name: 'integracao-portabilidade',
+  mutate: [
+    'server/portability/lixeira.ts',
+    'server/portability/diretriz-legada.ts',
+    'server/store/diretriz-pacote.ts',
+    'server/store/lixeira-pacote.ts',
+    'server/portability/bundle.ts:210-212',
+    'server/portability/bundle.ts:343-346',
+    'server/portability/bundle.ts:377-380',
+    'server/portability/bundle.ts:405-407',
+    'server/portability/bundle.ts:420-420',
+    'server/portability/bundle.ts:796-796',
+    'server/portability/bundle.ts:1194-1195',
+    'server/portability/bundle.ts:1340-1340',
+    'server/portability/bundle.ts:1357-1357',
+    'server/portability/bundle.ts:1388-1388',
+    'server/portability/bundle.ts:1412-1412',
+    'server/portability/bundle.ts:1418-1418',
+    'server/store.ts:2996-2996',
+    'server/store.ts:3002-3002',
+    'server/store.ts:3110-3110',
+    'server/store.ts:3149-3149',
+    'server/store.ts:4581-4581',
+    'server/store.ts:4790-4790',
+    'server/store.ts:5547-5547',
+  ],
+  tests: ['tests/etapa2-portabilidade.test.ts'],
+})

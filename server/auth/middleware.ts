@@ -2,7 +2,8 @@ import { hostPermitido } from '../rede.js';
 import { lerCookie, NOME_COOKIE } from '../sessao.js';
 import type { Request, Response, NextFunction } from 'express';
 import type { WorkspaceStore } from '../store.js';
-import type { AuthContext, ProjectRole, TokenRole } from '../../shared/auth.js';
+import type { AuthContext, ProjectRole } from '../../shared/auth.js';
+import { NIVEL_DO_PAPEL } from './permissoes.js';
 
 declare global {
   namespace Express {
@@ -11,13 +12,6 @@ declare global {
     }
   }
 }
-
-const ROLE_HIERARCHY: Record<TokenRole, number> = {
-  owner: 4,
-  collaborator: 3,
-  agent: 2,
-  observer: 1,
-};
 
 export function createAuthMiddleware(store: WorkspaceStore, hostsPermitidos: readonly string[] = [], exigirLogin = false) {
   return (req: Request, res: Response, next: NextFunction) => {
@@ -135,7 +129,7 @@ export function requireProjectRole(store: WorkspaceStore, minRole: ProjectRole) 
     if (req.auth.accountId) {
       const memberRole = store.getMemberRole(projectId, req.auth.accountId);
       if (memberRole) {
-        if (ROLE_HIERARCHY[memberRole] >= ROLE_HIERARCHY[minRole]) {
+        if (NIVEL_DO_PAPEL[memberRole] >= NIVEL_DO_PAPEL[minRole]) {
           next();
           return;
         }
@@ -143,7 +137,7 @@ export function requireProjectRole(store: WorkspaceStore, minRole: ProjectRole) 
     }
 
     // Verifica a permissão do próprio token
-    if (ROLE_HIERARCHY[req.auth.role] >= ROLE_HIERARCHY[minRole]) {
+    if (NIVEL_DO_PAPEL[req.auth.role] >= NIVEL_DO_PAPEL[minRole]) {
       next();
       return;
     }

@@ -3,7 +3,7 @@ import { AnimatedTabs } from './AnimatedTabs';
 import { useFeedback } from './Feedback';
 import { Archive, ArrowDownToLine, ArrowRight, Check, Clock3, FileText, Flag, GitCommitHorizontal, ListTodo, AlertTriangle, CheckCircle2, Copy, Inbox, MailOpen, MessageSquare, NotebookPen, Plus, RefreshCw, Send, ShieldCheck, SlidersHorizontal, AlertCircle, CheckSquare, Square, FileOutput, HelpCircle, History, Shield } from 'lucide-react';
 import type { BacklogItem, BacklogPriority, ProjectDetail, Task, Checkpoint, EvidenceView, BlockerTimeline, DecisionTimeline } from '../shared/types';
-import type { CharterRevision, Decision, HandoffDelivery, InboxItem, MessageResolution, ProjectBlocker, ResumeBrief, WorkDraft } from '../shared/continuity';
+import type { Decision, HandoffDelivery, InboxItem, MessageResolution, ProjectBlocker, ResumeBrief, WorkDraft } from '../shared/continuity';
 import { ApiError, api, errorText, request } from './api';
 import { BotoesDeApagar } from './apagar/BotoesDeApagar';
 import { AcceptDecisionDialog, CheckpointDialog, DeleteBacklogItemDialog, DeliverHandoffDialog, FinalizeWorkDialog, MessageDialog, ProposeDecisionDialog, ReopenTaskDialog, ResolveMessageDialog, RevokeDecisionDialog, SupersedeDecisionDialog, TaskContractDialog, WorkDraftDialog, WorkIntentDialog, CrossCheckEvidenceDialog, BlockerTimelineDialog, DecisionTimelineDialog } from './dialogs';
@@ -21,6 +21,8 @@ import { CopiarParaOutraIA } from './CopiarParaOutraIA';
 import { SeloIASumida } from './SeloIASumida';
 import { celebrarCriterioCumprido } from './recompensas';
 import { OndeParamos } from './onde-paramos/OndeParamos';
+import { Regras } from './regras/Regras';
+import { Diretriz } from './diretriz/Diretriz';
 import { useCarta } from './onde-paramos/useCarta';
 import { abaInicial } from './onde-paramos/texto';
 import './comemoracoes.css';
@@ -254,15 +256,21 @@ export function ProjectWorkspace({ detail, agent, refresh, onExport }: { detail:
       return false;
     }
   }
+  const abasDeOrientacoes = new Map([
+    ['diretriz', <Diretriz projectId={detail.project.id} agent={agent} refresh={refresh}/>],
+    ['regras', <Regras projectId={detail.project.id}/>],
+  ]);
+
   return <>
     <div className="project-meta"><span><span className="tiny-dot"/>{textosModo.salvo}</span><span className="mono-label">versão {detail.project.revision}</span>{detail.project.workspacePath && <span className="workspace-path" title={detail.project.workspacePath}>{detail.project.workspacePath}</span>}<span className="meta-date">Atualizado <DateLabel value={detail.project.updatedAt}/></span></div>
-    <AnimatedTabs value={tab ?? ''} onChange={setTab} items={[{ id: 'carta', label: 'Onde paramos' }, { id: 'overview', label: 'Visão geral' }, { id: 'board', label: 'Quadro' }, { id: 'retrospective', label: 'Retrospectiva' }, { id: 'graph', label: 'Relações', count: graphIssuesCount }, { id: 'library', label: 'Biblioteca' }, { id: 'backlog', label: 'Backlog', count: activeBacklogCount }, { id: 'decisions', label: 'Decisões', count: activeDecisionsCount }, { id: 'checkpoints', label: 'Checkpoints', count: checkpoints.length }, { id: 'messages', label: 'Mensagens', count: detail.messages.length + unreadDeliveryCount }, { id: 'resume', label: 'Retomar' }]}/>
+    <AnimatedTabs value={tab ?? ''} onChange={setTab} items={[{ id: 'carta', label: 'Onde paramos' }, { id: 'overview', label: 'Visão geral' }, { id: 'diretriz', label: 'Diretriz' }, { id: 'board', label: 'Quadro' }, { id: 'regras', label: 'Regras' }, { id: 'retrospective', label: 'Retrospectiva' }, { id: 'graph', label: 'Relações', count: graphIssuesCount }, { id: 'library', label: 'Biblioteca' }, { id: 'backlog', label: 'Backlog', count: activeBacklogCount }, { id: 'decisions', label: 'Decisões', count: activeDecisionsCount }, { id: 'checkpoints', label: 'Checkpoints', count: checkpoints.length }, { id: 'messages', label: 'Mensagens', count: detail.messages.length + unreadDeliveryCount }, { id: 'resume', label: 'Retomar' }]}/>
     {error && <div role="alert" className="alert">{error}</div>}
-    <div className={'workspace-grid' + (tab === 'carta' || tab === 'library' || tab === 'graph' || tab === 'retrospective' || tab === 'board' ? ' is-wide' : '')} role="tabpanel" id="project-tabpanel" aria-labelledby={tab ? `tab-${tab}` : undefined}>
+    <div className={'workspace-grid' + (['carta', 'regras', 'library', 'graph', 'retrospective', 'board'].includes(tab ?? '') ? ' is-wide' : '')} role="tabpanel" id="project-tabpanel" aria-labelledby={tab ? `tab-${tab}` : undefined}>
       <div className="workspace-primary">
         {tab === null && <div className="loading" role="status"><RefreshCw size={18}/>Abrindo o projeto…</div>}
         {tab === 'carta' && <OndeParamos projectId={detail.project.id} estado={carta} aoConfirmarDecisao={refresh}/>}
-        {tab === 'board' && <Quadro projectId={detail.project.id} atualizadoEm={detail}/>}
+        {abasDeOrientacoes.get(tab ?? '')}
+        {tab === 'board' && <Quadro projectId={detail.project.id} atualizadoEm={detail} aoAtualizarEntrega={carta.recarregar}/>}
         {tab === 'retrospective' && <Retrospectiva detail={detail}/>}
         {tab === 'overview' && <>
           <ResumoAoAcordar projectId={detail.project.id} detail={detail} insights={insightsDoProjeto} onOpenApprovals={() => document.getElementById('fila-de-aprovacoes')?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' })}/>
@@ -292,7 +300,7 @@ export function ProjectWorkspace({ detail, agent, refresh, onExport }: { detail:
             </article>;
           })}</section>}
           <OperationalChangelog detail={detail} agent={agent} decisions={decisions} />
-          <CharterPanel projectId={detail.project.id} agent={agent} refresh={refresh}/>
+          <Diretriz projectId={detail.project.id} agent={agent} refresh={refresh}/>
           <BlockersPanel projectId={detail.project.id} agent={agent} refresh={refresh}/>
           <section className="panel"><div className="panel-heading"><h2>Memória do projeto</h2><span className="mono-label">O QUE IMPORTA AGORA</span></div><div className="memory-columns"><div><span className="memory-label"><Flag size={15}/>Decisões recentes</span>{latest?.decisions.length ? <ul>{latest.decisions.map((d, i) => <li key={i}>{d}</li>)}</ul> : <p className="subtle-text">Nenhuma decisão registrada no último checkpoint.</p>}</div><div><span className="memory-label"><Clock3 size={15}/>Pontos de atenção</span>{latest?.blockers.length ? <ul>{latest.blockers.map((b, i) => <li key={i}>{b}</li>)}</ul> : <p className="subtle-text">{latest ? 'Nenhum bloqueio declarado no último checkpoint.' : 'Bloqueios e incertezas ficam registrados aqui.'}</p>}</div></div></section>
           <section className="activity-section"><div className="panel-heading"><h2>Últimos checkpoints</h2><button className="text-button" onClick={() => setTab('checkpoints')}>Ver checkpoints<ArrowRight size={14}/></button></div>{checkpoints.length === 0 ? <EmptyNote><GitCommitHorizontal size={20}/><p>Nenhum checkpoint ainda.<br/><span>Salve um checkpoint para começar o histórico.</span></p></EmptyNote> : <div className="timeline">{checkpoints.slice(0, 3).map(cp => <div className="timeline-item" key={cp.id}><span className="timeline-dot"/><div><div className="timeline-meta"><strong>{cp.agent}</strong><span>salvou a versão {cp.revision}</span><DateLabel value={cp.createdAt}/></div><p>{cp.summary}</p></div></div>)}</div>}</section>
@@ -1398,53 +1406,6 @@ function DecisionsPanel({
       )}
     </section>
   );
-}
-
-function CharterPanel({ projectId, agent, refresh }: { projectId: string; agent: string; refresh: () => Promise<void> }) {
-  const notify = useFeedback();
-  const [charter, setCharter] = useState<CharterRevision | null>(null);
-  const [body, setBody] = useState('');
-  const [error, setError] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [editing, setEditing] = useState(false);
-  const load = useCallback(() => {
-    api.charter(projectId).then(item => {
-      setCharter(item);
-      setBody(item?.body ?? '');
-    }).catch(err => setError(errorText(err)));
-  }, [projectId]);
-  useEffect(() => { load(); }, [load]);
-  async function save(event: FormEvent) {
-    event.preventDefault();
-    if (!agent) { setError('Informe o nome do agente na barra lateral.'); return; }
-    setBusy(true); setError('');
-    try {
-      const next = await api.saveCharter(projectId, { actor: agent, body, expectedRevision: charter?.revision ?? 0 });
-      notify('Diretriz do projeto atualizada', `Versão ${next.revision}`);
-      setCharter(next);
-      setEditing(false);
-      await refresh();
-    } catch (err) { setError(errorText(err)); } finally { setBusy(false); }
-  }
-  return <section className="panel" aria-label="Diretriz do projeto">
-    <div className="panel-heading"><h2>Diretriz do projeto</h2><span className="mono-label">{charter ? `VERSÃO ${charter.revision}` : 'AUSENTE'}</span></div>
-    <p className="subtle-text">Diretriz humana vigente. Uma IA pode propor texto, mas a versão fica registrada.</p>
-    {error && <div className="alert" role="alert">{error}</div>}
-    {!editing ? (
-      <div className="charter-collapsed-view">
-        {charter?.body ? <p className="charter-preview-body">{charter.body}</p> : <p className="subtle-text">Nenhuma diretriz definida ainda.</p>}
-        <button type="button" className="button secondary" onClick={() => setEditing(true)}>Editar diretriz</button>
-      </div>
-    ) : (
-      <form className="form-stack" onSubmit={event => void save(event)}>
-        <label>Texto vigente da diretriz do projeto<textarea aria-label="Texto vigente da diretriz do projeto" value={body} onChange={event => setBody(event.target.value)} required maxLength={8000} rows={3} disabled={busy}/></label>
-        <div className="form-row-actions">
-          <button className="button secondary" disabled={busy || !body.trim() || !agent || body === (charter?.body ?? '')}>Salvar versão</button>
-          <button type="button" className="button ghost" onClick={() => { setEditing(false); setBody(charter?.body ?? ''); }}>Cancelar</button>
-        </div>
-      </form>
-    )}
-  </section>;
 }
 
 function BlockersPanel({ projectId, agent, refresh }: { projectId: string; agent: string; refresh: () => Promise<void> }) {

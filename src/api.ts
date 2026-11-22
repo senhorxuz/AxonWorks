@@ -62,6 +62,14 @@ import type {
   StaleContentReport,
 } from '../shared/graph';
 import type { Carta } from '../shared/carta';
+import type { EstadoDaEntrega } from '../shared/entrega';
+
+type PedidoDeAprovacao = { tipo: 'visual' } | { tipo: 'publicacao'; ambiente: string };
+
+function caminhoDaEntrega(projectId: string, cardId: string) {
+  return `/projects/${encodeURIComponent(projectId)}/entregas/${encodeURIComponent(cardId)}`;
+}
+
 export interface ResultadoDoApagamento { checkpointId: string; modo: 'trecho' | 'inteiro'; ocorrencias: number; marca: string }
 export class ApiError extends Error { constructor(message: string, public status: number, public code: string) { super(message); } }
 export async function request<T>(path: string, body?: unknown, signal?: AbortSignal, method?: 'GET' | 'POST' | 'DELETE'): Promise<T> {
@@ -92,6 +100,13 @@ export const api = {
   project: (id: string, signal?: AbortSignal) => request<ProjectDetail>(`/projects/${encodeURIComponent(id)}`, undefined, signal),
   handoff: (id: string) => request<Handoff>(`/projects/${encodeURIComponent(id)}/handoff`),
   carta: (id: string, signal?: AbortSignal) => request<Carta>(`/projects/${encodeURIComponent(id)}/carta`, undefined, signal),
+  entregas: (id: string, signal?: AbortSignal) => request<EstadoDaEntrega[]>(`/projects/${encodeURIComponent(id)}/entregas`, undefined, signal),
+  entrega: (id: string, cardId: string, signal?: AbortSignal) =>
+    request<EstadoDaEntrega | null>(caminhoDaEntrega(id, cardId), undefined, signal),
+  aprovarEntrega: (id: string, cardId: string, pedido: PedidoDeAprovacao) =>
+    request<EstadoDaEntrega>(`${caminhoDaEntrega(id, cardId)}/aprovar`, pedido),
+  desfazerAprovacaoDaEntrega: (id: string, cardId: string, aprovacaoId: string) =>
+    request<EstadoDaEntrega>(`${caminhoDaEntrega(id, cardId)}/aprovacoes/${encodeURIComponent(aprovacaoId)}/desfazer`, {}),
   resume: (id: string, agent: string, taskId?: string, focusMode?: ResumeFocusMode, signal?: AbortSignal) => {
     const query = new URLSearchParams({ agent });
     if (taskId) query.set('taskId', taskId);
@@ -159,6 +174,10 @@ export const api = {
     request<CharterRevision | null>(`/projects/${encodeURIComponent(id)}/charter`, undefined, signal),
   saveCharter: (id: string, input: { actor: string; body: string; expectedRevision: number }) =>
     request<CharterRevision>(`/projects/${encodeURIComponent(id)}/charter`, input),
+  conferirDiretriz: (id: string) =>
+    request<CharterRevision | null>(`/projects/${encodeURIComponent(id)}/charter/visto`, {}),
+  desfazerDiretriz: (id: string) =>
+    request<CharterRevision>(`/projects/${encodeURIComponent(id)}/charter/desfazer`, {}),
   blockers: (id: string, includeClosed = false, signal?: AbortSignal) =>
     request<ProjectBlocker[]>(`/projects/${encodeURIComponent(id)}/blockers${includeClosed ? '?includeClosed=true' : ''}`, undefined, signal),
   openBlocker: (id: string, input: { agent: string; title: string; body: string; taskId?: string }) =>

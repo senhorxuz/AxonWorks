@@ -1,6 +1,8 @@
 import type { PortableHandoffDelivery } from '../shared/portability.js'
 import type { AgentMessage, Checkpoint, Handoff, ProjectDetail, Task } from '../shared/types.js'
 import type { EvidenceView } from '../shared/evidence.js'
+import type { CharterRevision } from '../shared/continuity.js'
+import { anteporPontoDeConferencia, type ComPontoDeConferencia } from './store/ponto-de-conferencia.js'
 
 const CUT_NOTICE =
   'Handoff truncado por limite de caracteres; objetivo e próximo passo foram preservados com prioridade.'
@@ -13,13 +15,20 @@ export function maskSecrets(text: string): string {
     .replace(/\b(PASSWORD|passwd|pwd)\s*[=:]\s*\S+/gi, '$1=***')
 }
 
+export function marcaDaDiretriz(diretriz?: CharterRevision | null): string {
+  if (diretriz?.sourceKind !== 'agent_update') return ''
+  const agente = maskSecrets(diretriz.createdBy.replace(/\s+/g, ' '))
+  return ` (atualizada por ${agente}, nome declarado)`
+}
+
 export function renderHandoff(
   detail: ProjectDetail,
   options: {
     generatedAt: string
     now: Date
     maxChars: number
-    deliveries: PortableHandoffDelivery[]
+    deliveries: ComPontoDeConferencia<PortableHandoffDelivery>[]
+    charter?: CharterRevision | null
     /**
      * Evidências que deixaram de cobrir a versão atual dos arquivos declarados
      * (frescor recalculado na leitura). Opcional para compatibilidade com
@@ -40,7 +49,7 @@ export function renderHandoff(
   const safeNextStep = maskSecrets(rawNextStep)
 
   const cutNoticeSection = section('Aviso de corte', CUT_NOTICE)
-  const objPrefix = '## Objetivo\n\n'
+  const objPrefix = `## Objetivo${marcaDaDiretriz(options.charter)}\n\n`
   const nextPrefix = '## Próximo passo\n\n'
 
   const fullCore = [
@@ -341,7 +350,7 @@ function formatStructuredPassages(blocks: string[]): string {
 }
 
 function formatStructuredPassage(
-  delivery: PortableHandoffDelivery,
+  delivery: ComPontoDeConferencia<PortableHandoffDelivery>,
   detail: ProjectDetail,
 ): string {
   const checkpoint = detail.checkpoints.find((item) => item.id === delivery.checkpointId) ?? null
@@ -354,7 +363,7 @@ function formatStructuredPassage(
   if (checkpoint) meta.push(`revisão ${checkpoint.revision}`)
   if (task) meta.push(`tarefa ${task.title}`)
   const metaLabel = meta.length > 0 ? ` (${meta.join('; ')})` : ''
-  const orientation = delivery.message || checkpoint?.nextStep || ''
+  const orientation = anteporPontoDeConferencia(delivery.pontoDeConferencia, delivery.message || checkpoint?.nextStep || '')
   const head = orientation
     ? `- de ${delivery.from} para ${delivery.to}${metaLabel}: ${orientation}`
     : `- de ${delivery.from} para ${delivery.to}${metaLabel}`

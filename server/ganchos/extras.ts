@@ -6,6 +6,7 @@ import type { ExtrasRetomada } from '../carta/retomada-compacta.js'
 import type { WorkspaceStore } from '../store.js'
 import type { ProjectDetail, TaskStatus } from '../../shared/types.js'
 import type { EstadoDoGit } from './git.js'
+import { textoDaLicaoNaRetomada } from './marca-da-licao.js'
 
 /**
  * Identidade do Claude: todo agente cujo nome começa com "claude", sem diferenciar maiúsculas.
@@ -94,7 +95,7 @@ export function lerExtrasDaRetomada(
     licoes: store
       .listarLicoes(projectId)
       .reverse()
-      .map((licao) => ({ texto: licao.texto })),
+      .map((licao) => ({ texto: textoDaLicaoNaRetomada(licao) })),
     avisos: avisosDoGit(git),
   }
 }

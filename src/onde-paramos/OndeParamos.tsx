@@ -4,6 +4,7 @@ import type { Carta, GrupoFalta, ItemFalta, ItemFeito, RascunhoAutomaticoVisivel
 import { BotoesDeApagar, DescartarRascunhoAutomatico } from '../apagar/BotoesDeApagar';
 import { api, errorText } from '../api';
 import { useEntrada } from '../entrada';
+import { EntregasEmAndamento } from '../entregas/EntregasEmAndamento';
 import { useFeedback } from '../Feedback';
 import { diasDaCarta, pontasDaCarta } from '../fio/dados';
 import { FioDoProjeto } from '../fio/FioDoProjeto';
@@ -152,6 +153,8 @@ function CartaPronta(props: { projectId: string; carta: Carta; erro: string; rec
           <GrupoDaFalta key={grupo.id} grupo={grupo} confirmandoId={confirmandoId} aoConfirmar={confirmar} />
         ))}
       </section>
+
+      <EntregasEmAndamento entregas={carta.entregas} />
 
       {carta.salvamentos.length > 0 && <SalvamentosDeCompactacao projectId={projectId} salvamentos={carta.salvamentos} recarregar={recarregar} />}
 

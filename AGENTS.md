@@ -14,7 +14,7 @@ Leia `README.md`, `AI-GUIDE.md`, `docs/SPEC.md`, `docs/CONTRACT.md` e `docs/TEST
 
 ## A Axon guarda o próprio projeto
 
-Se houver MCP, o servidor está declarado em `.mcp.json`: um cliente compatível carrega as ferramentas sozinho. Antes de trabalhar, chame `get_resume_brief` com o seu nome declarado, em vez de reconstruir o contexto lendo `docs/`. Sem MCP, a API local responde em `127.0.0.1:4317` com o header `X-Workspace-Client: local` nas escritas.
+Se houver MCP, o servidor está declarado em `.mcp.json`: um cliente compatível carrega as ferramentas sozinho. Antes de trabalhar, chame `get_resume_brief` com o seu nome declarado, em vez de reconstruir o contexto lendo `docs/`. A leitura de entrada é `get_resume_brief` com `pasta` (a pasta da conversa) e `modo: 'curto'`: ela traz as regras do dono, as verificações, o estado, o próximo passo com a fonte e o que depende do dono; com `desde`, traz só o que mudou. O que mudou em cada versão está em `NOVIDADES.md`. Sem MCP, a API local responde em `127.0.0.1:4317` com o header `X-Workspace-Client: local` nas escritas.
 
 Ao sair, grave a evidência do que você realmente executou e aponte em `artifacts` os arquivos que aquele comando validou, com o SHA-256 deles. A Axon recalcula o frescor na leitura e avisa a próxima IA quando o resultado deixar de cobrir a versão atual. Ela não executa nada e nunca afirma que um teste passou: quem afirma é você, e isso continua sendo relato até outra identidade conferir.
 

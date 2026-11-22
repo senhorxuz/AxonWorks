@@ -180,7 +180,12 @@ O servidor MCP do AXON (`server/mcp.ts`) comunica-se via `stdio` sob o protocolo
 | `get_inbox` | Leitura | Consulta mensagens destinadas nominalmente ao agente ou broadcast. |
 | get_resume_brief | Leitura | Monta a retomada personalizada com foco, próximo passo, atenção e inbox. |
 | `acknowledge_message` | Escrita | Registra recibo de leitura idempotente para a mensagem. |
-| `export_project_bundle` | Leitura | Exporta pacote `ProjectBundle` canônico com segredos mascarados. |
+| `export_project_bundle` | Leitura | Exporta o `ProjectBundle` canônico com segredos mascarados, histórico da diretriz e lixeira na v3. |
+| `list_trash` | Leitura | Lista os registros na lixeira do projeto no perfil completo. |
+| `trash_record` | Escrita | Manda o registro para a lixeira a pedido do dono e guarda a frase dele. |
+| `restore_record` | Escrita | Restaura um registro da lixeira a pedido do dono. |
+| `purge_record` | Escrita | Apaga o item da lixeira quando o dono diz “apaga de vez” e a chamada traz a confirmação. |
+| `update_project_objective` | Escrita | Atualiza um fato vencido com motivo e revisão esperada, guardando a diretriz anterior. |
 | `import_project_bundle` | Escrita | Importa `ProjectBundle v3` de até 1 MB gerando novas identidades e isolando leases. |
 | `get_project_graph` | Leitura | Retorna nós e arestas da topologia unificada do projeto (decisões, biblioteca, tarefas, bloqueios). |
 | `detect_decision_conflicts` | Leitura | Detecta contradições diretas, decisões zumbi, ciclos de substituição e sobreposições temáticas. |

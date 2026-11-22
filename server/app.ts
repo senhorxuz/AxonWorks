@@ -13,7 +13,15 @@ import type { GraphNodeType } from '../shared/graph.js';
 import { computeInsights } from './insights/index.js';
 import { lerDadosDaCarta } from './carta/ler.js';
 import { montarCarta } from './carta/montar.js';
+import { agenteDaLeitura, limiteDaLeitura } from './carta/leitura-curta-entrada.js';
+import { lerLeituraCurta } from './carta/leitura-curta-ler.js';
 import { quemApaga } from './store/apagamento.js';
+import { verificarDonoDoObjetivo } from './store/objetivo.js';
+import { ligarRotasDasLicoes } from './http/licoes.js';
+import { validarDonoDaLixeira } from './store/lixeira.js';
+import { conferirEscopoDaEntrega, donoDaEntrega } from './store/entrega.js';
+import { exigirEscopoDoProjeto } from './auth/escopo.js';
+import { conferirPermissaoDoToken, exigirAdministrador } from './auth/permissoes.js';
 
 // Quando este processo subiu. Vai na resposta de saúde: o atalho da Área de Trabalho compara com a data do código montado
 // para saber se o servidor que está de pé roda código mais velho que o atual (scripts/abrir-axon-decisao.ts).
@@ -62,6 +70,12 @@ export function createApp(store: WorkspaceStore) {
   const cookieSeguro = modo === 'servidor';
   const freio = new FreioDeLogin();
   app.use('/api', createAuthMiddleware(store, hostsExtras, exigirLogin));
+  // Token restrito a um projeto não alcança outro projeto por nenhuma rota /api/projects/:id/* (server/auth/escopo.ts).
+  app.use('/api/projects/:id', exigirEscopoDoProjeto);
+  // Administração da Axon (server/auth/permissoes.ts): tokens, auditoria, backups (ler, criar, ensaiar e restaurar),
+  // lista de contas e revogar dispositivo de qualquer conta. Só dono, sem escopo de projeto e que não é agente.
+  app.use(['/api/auth/tokens', '/api/audit-logs', '/api/backups', '/api/auth/accounts'], exigirAdministrador);
+  app.post('/api/devices/:id/revoke', exigirAdministrador);
   app.get('/api/auth/status', (_req, res) => res.json({ temConta: store.listAccounts().length > 0, exigeLogin: exigirLogin }));
   app.get('/api/health', (_req, res) => res.json({ status: 'ok', mode: modo, version: '0.1.0', pid: process.pid, iniciadoEm: INICIADO_EM }));
   app.get('/api/connectors', (_req, res) => {
@@ -81,9 +95,26 @@ export function createApp(store: WorkspaceStore) {
       platform: process.platform,
     });
   });
-  app.get('/api/projects', (_req, res) => res.json(store.listProjects()));
+  app.get('/api/projects', (req, res) => res.json(store.listProjects(req.auth?.projectId)));
   app.post('/api/projects', (req, res) => res.status(201).json(store.createProject(req.body)));
   app.get('/api/projects/:id', (req, res) => res.json(store.getProject(req.params.id)));
+  ligarRotasDasLicoes(app, store);
+  app.get('/api/projects/:id/entregas', (req, res) => {
+    conferirEscopoDaEntrega(req.auth, req.params.id);
+    res.json(store.listDeliveries(req.params.id));
+  });
+  app.get('/api/projects/:id/entregas/:cardId', (req, res) => {
+    conferirEscopoDaEntrega(req.auth, req.params.id);
+    res.json(store.getDelivery(req.params.id, req.params.cardId));
+  });
+  app.post('/api/projects/:id/entregas/:cardId/aprovar', (req, res) => {
+    const dono = donoDaEntrega(req.auth, req.params.id);
+    res.json(store.recordOwnerApproval(req.params.id, req.params.cardId, req.body, dono));
+  });
+  app.post('/api/projects/:id/entregas/:cardId/aprovacoes/:aprovacaoId/desfazer', (req, res) => {
+    donoDaEntrega(req.auth, req.params.id);
+    res.json(store.undoOwnerApproval(req.params.id, req.params.cardId, req.params.aprovacaoId, 'tela'));
+  });
   app.post('/api/projects/:id/tasks', (req, res) => res.status(201).json(store.createTask(req.params.id, req.body)));
   app.post('/api/projects/:id/tasks/:taskId/claim', (req, res) => {
     const task = store.claimTask(req.params.id, req.params.taskId, req.body);
@@ -116,7 +147,7 @@ export function createApp(store: WorkspaceStore) {
   // Continuidade & Busca
   app.get('/api/search', (req, res) => {
     const q = typeof req.query.q === 'string' ? req.query.q : '';
-    res.json(store.searchProjects(q));
+    res.json(store.searchProjects(q, req.auth?.projectId));
   });
 
   app.get('/api/projects/:id/inbox', (req, res) => {
@@ -302,6 +333,16 @@ export function createApp(store: WorkspaceStore) {
     res.json(store.saveCharter(req.params.id, req.body));
   });
 
+  app.post('/api/projects/:id/charter/visto', (req, res) => {
+    verificarDonoDoObjetivo(req.auth, req.params.id);
+    res.json(store.marcarObjetivoVisto(req.params.id));
+  });
+
+  app.post('/api/projects/:id/charter/desfazer', (req, res) => {
+    verificarDonoDoObjetivo(req.auth, req.params.id);
+    res.json(store.desfazerAtualizacaoDoObjetivo(req.params.id));
+  });
+
   // Fila de aprovações (Parte 5). Propor/listar/retirar também existem no MCP
   // (server/mcp-tools.ts). Aprovar e recusar são decisão do dono e existem
   // SÓ aqui — nunca como ferramenta MCP, para que uma IA não possa aprovar a
@@ -383,6 +424,10 @@ export function createApp(store: WorkspaceStore) {
   });
 
   // Evidência verificável: relato, artefatos com frescor, conferência cruzada
+  app.get('/api/projects/:id/verificacoes/falhas', (req, res) => {
+    res.json(store.falhasDasVerificacoes(req.params.id));
+  });
+
   app.get('/api/projects/:id/evidence', (req, res) => {
     const taskId = typeof req.query.taskId === 'string' ? req.query.taskId : undefined;
     const checkpointId = typeof req.query.checkpointId === 'string' ? req.query.checkpointId : undefined;
@@ -433,6 +478,26 @@ export function createApp(store: WorkspaceStore) {
     res.status(201).json(store.addContentRelation(req.params.id, req.body));
   });
 
+  app.get('/api/projects/:id/lixeira', (req, res) => {
+    if (req.auth) validarDonoDaLixeira(req.auth);
+    res.json(store.listarLixeira(req.params.id));
+  });
+
+  app.post('/api/projects/:id/lixeira', (req, res) => {
+    validarDonoDaLixeira(req.auth);
+    res.status(201).json(store.excluir(req.params.id, { ...req.body, agent: 'Dono', origem: 'tela' }));
+  });
+
+  app.post('/api/projects/:id/lixeira/restaurar', (req, res) => {
+    validarDonoDaLixeira(req.auth);
+    res.json(store.restaurar(req.params.id, { ...req.body, agent: 'Dono' }));
+  });
+
+  app.post('/api/projects/:id/lixeira/apagar', (req, res) => {
+    validarDonoDaLixeira(req.auth);
+    res.json(store.apagarDeVez(req.params.id, { ...req.body, agent: 'Dono' }, 'tela'));
+  });
+
   app.delete('/api/projects/:id', (req, res) => {
     const confirmation = req.body && typeof req.body === 'object' ? req.body.confirmation : undefined;
     res.json(store.deleteProject(req.params.id, confirmation));
@@ -457,7 +522,7 @@ export function createApp(store: WorkspaceStore) {
     res.json(bundle);
   });
 
-  app.post('/api/import', (req, res) => {
+  app.post('/api/import', exigirAdministrador, (req, res) => {
     const bundleInput = req.body && typeof req.body === 'object' && 'bundle' in req.body ? req.body.bundle : req.body;
     const parsed = parseProjectBundle(bundleInput);
     const imported = store.importProjectBundleData(parsed);
@@ -555,11 +620,17 @@ export function createApp(store: WorkspaceStore) {
   // Carta "Onde paramos": só liga a regra (server/carta/) ao relógio real. Nenhuma lógica aqui; projeto
   // inexistente ou inválido vem do próprio store e cai no middleware de erros, como nas rotas vizinhas.
   app.get('/api/projects/:id/carta', (req, res) => {
-    res.json(montarCarta(lerDadosDaCarta(store, req.params.id), new Date()));
+    res.json(montarCarta(lerDadosDaCarta(store, req.params.id), new Date(), store.listDeliveries(req.params.id)));
+  });
+
+  // Leitura curta ("a leitura que basta"): só liga a regra (server/carta/) ao relógio real. `agent` (padrão
+  // Claude) diz para quem são as passagens não lidas; `maxChars` (2000 a 20000) muda o limite do texto.
+  app.get('/api/projects/:id/leitura-curta', (req, res) => {
+    res.json(lerLeituraCurta(store, req.params.id, agenteDaLeitura(req.query.agent), limiteDaLeitura(req.query.maxChars)));
   });
 
   // Backups & Disaster Recovery
-  app.post('/api/backups', async (req, res, next) => {
+  app.post('/api/backups', exigirAdministrador, async (req, res, next) => {
     try {
       const label = typeof req.body?.label === 'string' ? req.body.label : undefined;
       const manifest = await backupEngine.createBackup({ label });
@@ -604,10 +675,10 @@ export function createApp(store: WorkspaceStore) {
     }
   });
 
-  app.post('/api/backups/:id/restore', async (req, res, next) => {
+  app.post('/api/backups/:id/restore', exigirAdministrador, async (req, res, next) => {
     try {
       const confirm = req.body?.confirm === true;
-      const result = await backupEngine.restoreBackup(req.params.id, { confirm });
+      const result = await backupEngine.restoreBackup(req.params.id as string, { confirm });
       res.json(result);
     } catch (err) {
       next(err);
@@ -699,6 +770,7 @@ export function createApp(store: WorkspaceStore) {
   app.post('/api/auth/tokens', (req, res, next) => {
     try {
       const { name, tokenType, role, projectId, agentName, expiresInHours, prefix } = req.body ?? {};
+      conferirPermissaoDoToken(req.auth!, role, projectId);
       const result = store.createAuthToken({
         accountId: req.auth?.accountId,
         name,

@@ -93,6 +93,8 @@ Qualquer LLM com MCP usa a Axon pelas ferramentas. No Claude Code há ainda a li
 
 ## ✦ Começar em 3 minutos
 
+> **Não é programador?** Peça à sua IA: *"Leia o arquivo [PARA-A-SUA-IA.md](PARA-A-SUA-IA.md) deste repositório e siga ele para instalar a Axon e ligar aos meus projetos."* O arquivo ensina a IA a fazer tudo, passo a passo, perguntando a você antes de mudar qualquer configuração.
+
 **Você precisa de** Node.js 24 ou mais novo (Windows, macOS ou Linux).
 
 ```bash

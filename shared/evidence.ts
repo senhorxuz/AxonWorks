@@ -18,6 +18,14 @@
 
 export type EvidenceOutcome = 'passed' | 'failed' | 'not_run'
 
+export const RESULTADOS_ESPERADOS = ['passar', 'falhar'] as const
+
+export interface ContextoDaEvidencia {
+  esperado?: (typeof RESULTADOS_ESPERADOS)[number]
+  versao?: string
+  ambiente?: string
+}
+
 /** Toda evidência nasce como relato de agente. Este campo nunca muda. */
 export type EvidenceProvenance = 'agent_report'
 
@@ -83,7 +91,7 @@ export interface EvidenceVerification {
  * Evidência com identidade própria, ligada ao checkpoint que a originou.
  * O `evidence_json` do checkpoint permanece intocado como original imutável.
  */
-export interface EvidenceRecord {
+export interface EvidenceRecord extends ContextoDaEvidencia {
   id: string
   projectId: string
   checkpointId: string
@@ -135,9 +143,11 @@ export interface ListEvidenceOptions {
  * de idempotência: dois checkpoints que declaram o mesmo comando sobre
  * arquivos diferentes são checkpoints diferentes.
  */
-export interface EvidenceInput {
+export interface EvidenceInput extends ContextoDaEvidencia {
   command: string
   outcome: EvidenceOutcome
   details: string
   artifacts?: EvidenceArtifactInput[]
+  /** Lição ativa do tipo verificação no projeto deste checkpoint. */
+  verificacaoId?: string
 }

@@ -14,6 +14,29 @@ function sha256(content: string): string {
 
 const T0 = new Date('2026-09-15T08:00:00.000Z')
 
+it('remove mensagens e decisões na lixeira das ações, identidades e sinais', t => {
+  const store = new WorkspaceStore(':memory:', { now: () => T0 })
+  t.after(() => store.close())
+  const { id } = store.createProject({ name: 'Insights', objective: 'Acompanhar perguntas' })
+  const pergunta = store.postMessage(id, { from: 'Remetente oculto', to: 'Destinatário oculto', kind: 'question', body: 'Pergunta excluída' })
+  const visivel = store.postMessage(id, { from: 'Remetente visível', to: 'Destinatário visível', kind: 'review', body: 'Revisão visível' })
+  const decisao = store.proposeDecision(id, { agent: 'Autor oculto', title: 'Decisão excluída', body: 'Texto' })
+  store.acceptDecision(id, decisao.id, { actor: 'Revisor oculto', expectedVersion: decisao.version })
+  const agora = { now: new Date('2026-09-22T08:00:00.000Z') }
+  const tipos = [{ tipo: 'mensagem', id: pergunta.id }, { tipo: 'decisao', id: decisao.id }] as const
+  const antes = computeInsights(store, id, agora)
+  assert.ok(antes.agentActivity.some(atividade => atividade.agent === 'Autor oculto'))
+  assert.ok(antes.agentActivity.some(atividade => atividade.agent === 'Revisor oculto'))
+  assert.ok(antes.nextActions.some(acao => acao.sourceId === pergunta.id))
+  for (const alvo of tipos) store.excluir(id, { ...alvo, agent: 'Dono', origem: 'tela' })
+  const depois = computeInsights(store, id, agora)
+  assert.deepEqual(depois.nextActions.map(acao => acao.sourceId), [visivel.id])
+  assert.deepEqual(depois.agentActivity.map(atividade => atividade.agent), ['Destinatário visível', 'Remetente visível'])
+  assert.equal(depois.signals.staleQuestionsAndReviews.count, 1)
+  for (const alvo of tipos) store.restaurar(id, { ...alvo, agent: 'Dono' })
+  assert.deepEqual(computeInsights(store, id, agora), antes)
+})
+
 let cleanups: Array<() => void> = []
 
 afterEach(() => {

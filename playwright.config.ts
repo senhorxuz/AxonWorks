@@ -32,11 +32,12 @@ export default defineConfig({
   //
   // Alem de estavel, testar o build e o correto: e isso que e entregue.
   //
-  // O build e refeito a cada execucao. Rodar so `npm start` sobre um dist/
-  // existente faria a suite passar contra codigo velho. O `&&` garante que, se
-  // o build falhar, o servidor nao sobe e a suite quebra em vez de mentir.
+  // O build da tela é refeito a cada execução. Servir um dist/
+  // existente faria a suíte passar contra código velho. O `&&` garante que, se
+  // o build falhar, o servidor não sobe. O servidor lê os fontes com tsx em modo
+  // produção para servir arquivos estáticos sem regravar o dist-server do worktree.
   webServer: {
-    command: `npx vite build --outDir ${E2E_OUT}/dist --emptyOutDir && npm start`, url: `http://127.0.0.1:${E2E_PORT}/api/health`, timeout: 90000, reuseExistingServer: false,
+    command: `npx vite build --outDir ${E2E_OUT}/dist --emptyOutDir && npx tsx server/index.ts --production`, url: `http://127.0.0.1:${E2E_PORT}/api/health`, timeout: 90000, reuseExistingServer: false,
     env: { AXON_PORT: E2E_PORT, AXON_DIST_DIR: `${E2E_OUT}/dist`, AXON_DB_PATH: E2E_DB }
   }
 });

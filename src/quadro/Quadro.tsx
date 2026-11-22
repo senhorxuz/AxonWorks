@@ -3,7 +3,10 @@ import { createPortal } from 'react-dom';
 import { AlignLeft, CheckSquare, Plus, RefreshCw, Search } from 'lucide-react';
 import { Flip } from 'gsap/Flip';
 import { BOARD_COLUMNS, BOARD_LABELS, BOARD_LIMITS, type BoardCard, type BoardColumnId } from '../../shared/board';
+import type { EstadoDaEntrega } from '../../shared/entrega';
 import { ApiError, errorText } from '../api';
+import { SelosDaEntrega } from '../entregas/SelosDaEntrega';
+import { useEntregasDoQuadro } from '../entregas/useEntregasDoQuadro';
 import { escalaDoElemento, paraPixelsCss } from '../escala-da-tela';
 import { gsap } from '../motion';
 import { apiQuadro, nomeDoDono } from './api-quadro';
@@ -58,7 +61,11 @@ function reduzirMovimento() {
   return typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
-export function Quadro({ projectId, atualizadoEm }: { projectId: string; atualizadoEm: unknown }) {
+export function Quadro({ projectId, atualizadoEm, aoAtualizarEntrega }: {
+  projectId: string;
+  atualizadoEm: unknown;
+  aoAtualizarEntrega: () => void;
+}) {
   const [cards, setCards] = useState<BoardCard[] | undefined>(undefined);
   const [erro, setErro] = useState('');
   const [aviso, setAviso] = useState('');
@@ -70,6 +77,8 @@ export function Quadro({ projectId, atualizadoEm }: { projectId: string; atualiz
   const [comemorando, setComemorando] = useState<Set<string>>(new Set());
   const [anuncio, setAnuncio] = useState('');
   const [agora, setAgora] = useState(() => new Date());
+  const entregas = useEntregasDoQuadro(projectId);
+  const recarregarEntregas = entregas.recarregar;
 
   const trilho = useRef<HTMLDivElement>(null);
   const fantasma = useRef<HTMLDivElement>(null);
@@ -106,6 +115,7 @@ export function Quadro({ projectId, atualizadoEm }: { projectId: string; atualiz
   }, [comemorar]);
 
   const carregar = useCallback(async (signal?: AbortSignal) => {
+    recarregarEntregas();
     try {
       const quadro = await apiQuadro.quadro(projectId, signal);
       if (signal?.aborted) return;
@@ -115,7 +125,7 @@ export function Quadro({ projectId, atualizadoEm }: { projectId: string; atualiz
       if (signal?.aborted) return;
       setErro(errorText(err));
     }
-  }, [projectId, receber]);
+  }, [projectId, receber, recarregarEntregas]);
 
   // Troca de projeto: começa do zero, sem comemorar nada da primeira carga.
   useEffect(() => {
@@ -411,8 +421,7 @@ export function Quadro({ projectId, atualizadoEm }: { projectId: string; atualiz
         </div>
       </div>
 
-      {erro && <div className="alert" role="alert">{erro} <button type="button" className="text-button" onClick={() => void carregar()}>Tentar de novo</button></div>}
-      {aviso && <div className="quadro-aviso" role="status">{aviso}</div>}
+      <AvisosDoQuadro erro={erro} aviso={aviso} carregar={carregar} entregas={entregas} />
       {termo && <p className="quadro-dica-filtro">Com o filtro ligado, arrastar fica pausado. Limpe o filtro para mover cartões.</p>}
 
       {cards === undefined && !erro ? (
@@ -463,6 +472,7 @@ export function Quadro({ projectId, atualizadoEm }: { projectId: string; atualiz
                           {linhaAntes && <span className="quadro-insercao" aria-hidden="true" />}
                           <CartaoFace
                             cartao={cartao}
+                            entrega={entregas.porCartao.get(cartao.id)}
                             agora={agora}
                             oculto={!visivel(cartao)}
                             arrastando={arrasto?.cardId === cartao.id}
@@ -503,7 +513,7 @@ export function Quadro({ projectId, atualizadoEm }: { projectId: string; atualiz
       {cartaoArrastado && createPortal(
         <div ref={fantasma} className="quadro-fantasma" aria-hidden="true" style={{ '--cor-coluna': COR_DA_COLUNA[arrasto?.colunaAlvo ?? cartaoArrastado.column] } as CSSProperties}>
           <div className="quadro-fantasma-corpo">
-            <CartaoFace cartao={cartaoArrastado} agora={agora} fantasma />
+            <CartaoFace cartao={cartaoArrastado} entrega={entregas.porCartao.get(cartaoArrastado.id)} agora={agora} fantasma />
           </div>
         </div>,
         document.body,
@@ -526,14 +536,37 @@ export function Quadro({ projectId, atualizadoEm }: { projectId: string; atualiz
             setAnuncio('Cartão excluído');
           }}
           onConflito={() => tratarFalha(new ApiError('conflito', 409, 'version_conflict'))}
+          aoAtualizarEntrega={entrega => { entregas.receber(entrega); aoAtualizarEntrega(); }}
         />
       )}
     </section>
   );
 }
 
-function CartaoFace({ cartao, agora, oculto, arrastando, comemorando, fantasma, onPointerDown, onClick, onKeyDown }: {
+function AvisosDoQuadro({ erro, aviso, carregar, entregas }: {
+  erro: string;
+  aviso: string;
+  carregar: () => Promise<void>;
+  entregas: ReturnType<typeof useEntregasDoQuadro>;
+}) {
+  return (
+    <>
+      {erro && <div className="alert" role="alert">{erro} <button type="button" className="text-button" onClick={() => void carregar()}>Tentar de novo</button></div>}
+      {aviso && <div className="quadro-aviso" role="status">{aviso}</div>}
+      {entregas.carregando && <p className="entrega-quadro-nota" role="status">Carregando os estados das entregas…</p>}
+      {entregas.erro && (
+        <p className="entrega-quadro-nota" role="alert">
+          Não foi possível atualizar os selos das entregas.{' '}
+          <button type="button" className="text-button" onClick={entregas.recarregar}>Tentar novamente</button>
+        </p>
+      )}
+    </>
+  );
+}
+
+function CartaoFace({ cartao, entrega, agora, oculto, arrastando, comemorando, fantasma, onPointerDown, onClick, onKeyDown }: {
   cartao: BoardCard;
+  entrega?: EstadoDaEntrega;
   agora: Date;
   oculto?: boolean;
   arrastando?: boolean;
@@ -546,6 +579,7 @@ function CartaoFace({ cartao, agora, oculto, arrastando, comemorando, fantasma, 
   const feitos = cartao.checklist.filter(i => i.done).length;
   const total = cartao.checklist.length;
   const prioridade = cartao.priority === 'urgent' ? 'Urgente' : cartao.priority === 'high' ? 'Alta' : null;
+  const idDosSelos = entrega && !fantasma ? `entrega-selos-${cartao.id}` : undefined;
   const descricaoAcessivel = [
     NOME_DA_COLUNA[cartao.column],
     prioridade && `prioridade ${prioridade.toLowerCase()}`,
@@ -564,6 +598,7 @@ function CartaoFace({ cartao, agora, oculto, arrastando, comemorando, fantasma, 
       hidden={oculto}
       tabIndex={fantasma ? -1 : 0}
       aria-label={`${cartao.title}. ${descricaoAcessivel}. Alt e setas movem o cartão.`}
+      aria-describedby={idDosSelos}
       onPointerDown={onPointerDown}
       onClick={onClick}
       onKeyDown={onKeyDown}
@@ -576,6 +611,24 @@ function CartaoFace({ cartao, agora, oculto, arrastando, comemorando, fantasma, 
         </span>
       )}
       <span className="quadro-cartao-titulo">{cartao.title}</span>
+      <CartaoMeta cartao={cartao} prioridade={prioridade} feitos={feitos} total={total} />
+      {entrega && <SelosDaEntrega entrega={entrega} id={idDosSelos} />}
+      <span className="quadro-cartao-rodape">
+        <span className="quadro-avatar" style={{ '--cor-nome': corDoNome(cartao.updatedBy) } as CSSProperties} aria-hidden="true">{inicial(cartao.updatedBy)}</span>
+        <span className="quadro-cartao-autor">{cartao.updatedBy}, {tempoRelativo(cartao.updatedAt, agora)}</span>
+      </span>
+    </button>
+  );
+}
+
+function CartaoMeta({ cartao, prioridade, feitos, total }: {
+  cartao: BoardCard;
+  prioridade: string | null;
+  feitos: number;
+  total: number;
+}) {
+  return (
+    <>
       {(prioridade || cartao.description || total > 0) && (
         <span className="quadro-cartao-meta">
           {prioridade && <span className="quadro-prioridade" data-prioridade={cartao.priority}>{prioridade}</span>}
@@ -592,11 +645,7 @@ function CartaoFace({ cartao, agora, oculto, arrastando, comemorando, fantasma, 
           <span style={{ transform: `scaleX(${feitos / total})` }} />
         </span>
       )}
-      <span className="quadro-cartao-rodape">
-        <span className="quadro-avatar" style={{ '--cor-nome': corDoNome(cartao.updatedBy) } as CSSProperties} aria-hidden="true">{inicial(cartao.updatedBy)}</span>
-        <span className="quadro-cartao-autor">{cartao.updatedBy}, {tempoRelativo(cartao.updatedAt, agora)}</span>
-      </span>
-    </button>
+    </>
   );
 }
 

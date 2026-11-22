@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
 import { Check, Plus, Trash2, X } from 'lucide-react';
 import { BOARD_COLUMNS, BOARD_LABELS, BOARD_LIMITS, type BoardCard, type BoardCardEvent, type BoardColumnId, type BoardLabelId, type BoardPriority, type UpdateBoardCardInput } from '../../shared/board';
+import type { EstadoDaEntrega } from '../../shared/entrega';
 import { ApiError, errorText } from '../api';
+import { EntregaDoCartao } from '../entregas/EntregaDoCartao';
 import { gsap } from '../motion';
 import { apiQuadro, nomeDoDono } from './api-quadro';
 import { corDoNome, inicial, tempoRelativo } from './logica';
@@ -20,7 +22,7 @@ type Mudanca = Omit<UpdateBoardCardInput, 'actor' | 'expectedVersion'>;
  * Painel lateral do cartão. Cada campo salva sozinho ao sair dele (ou ao clicar),
  * em fila, sempre com a versão mais nova, para duas mudanças rápidas não brigarem.
  */
-export function CartaoDetalhe({ projectId, cartao, corDaColuna, onFechar, onAtualizado, onMover, onExcluido, onConflito }: {
+export function CartaoDetalhe({ projectId, cartao, corDaColuna, onFechar, onAtualizado, onMover, onExcluido, onConflito, aoAtualizarEntrega }: {
   projectId: string;
   cartao: BoardCard;
   corDaColuna: string;
@@ -29,6 +31,7 @@ export function CartaoDetalhe({ projectId, cartao, corDaColuna, onFechar, onAtua
   onMover: (coluna: BoardColumnId) => Promise<void> | void;
   onExcluido: () => void;
   onConflito: () => void;
+  aoAtualizarEntrega: (entrega: EstadoDaEntrega) => void;
 }) {
   const painel = useRef<HTMLDialogElement>(null);
   const retornoDeFoco = useRef<HTMLElement | null>(typeof document === 'undefined' ? null : document.activeElement as HTMLElement | null);
@@ -196,6 +199,8 @@ export function CartaoDetalhe({ projectId, cartao, corDaColuna, onFechar, onAtua
         <p className="quadro-painel-ajuda" data-erro={erroTitulo ? '' : undefined}>
           {erroTitulo || `Curto e fácil de entender. ${BOARD_LIMITS.titleMax - titulo.length} caracteres restantes.`}
         </p>
+
+        <EntregaDoCartao key={cartao.id} projectId={projectId} cardId={cartao.id} aoAtualizar={aoAtualizarEntrega} />
 
         <section className="quadro-painel-secao" aria-labelledby="quadro-painel-etiquetas">
           <h4 id="quadro-painel-etiquetas">Etiquetas</h4>

@@ -92,6 +92,11 @@ describe('registrarLicao (módulo)', () => {
       criadaEm: T1,
       aposentadaEm: null,
       motivoAposentadoria: null,
+      tipo: 'erro',
+      fraseDoDono: null,
+      momento: null,
+      linhaCurta: null,
+      substituiId: null,
     })
     assert.deepEqual(linhas(db), [
       {
@@ -400,6 +405,11 @@ describe('apagarLicoesDoProjeto e o esquema', () => {
         ['criada_em', 'TEXT', 1, 0],
         ['aposentada_em', 'TEXT', 0, 0],
         ['motivo_aposentadoria', 'TEXT', 0, 0],
+        ['tipo', 'TEXT', 1, 0],
+        ['frase_do_dono', 'TEXT', 0, 0],
+        ['momento', 'TEXT', 0, 0],
+        ['linha_curta', 'TEXT', 0, 0],
+        ['substitui_id', 'TEXT', 0, 0],
       ],
     )
     const chaves = db.prepare('PRAGMA foreign_key_list(licoes)').all() as Array<{ table: string; from: string; to: string }>
@@ -530,9 +540,9 @@ describe('lições pelo MCP', () => {
       const por = (nome: string) => ferramentas.find((f) => f.name === nome)
       for (const nome of ['record_lesson', 'list_lessons', 'retire_lesson']) assert.ok(por(nome), `falta ${nome}`)
       const campos = (nome: string) => Object.keys((por(nome)?.inputSchema.properties ?? {}) as object).sort()
-      assert.deepEqual(campos('record_lesson'), ['agent', 'global', 'projectId', 'texto'])
-      assert.deepEqual(campos('list_lessons'), ['incluirAposentadas', 'projectId'])
-      assert.deepEqual(campos('retire_lesson'), ['agent', 'lessonId', 'motivo'])
+      assert.deepEqual(campos('record_lesson'), ['agent', 'fraseDoDono', 'global', 'linhaCurta', 'momento', 'projectId', 'substitui', 'texto', 'tipo'])
+      assert.deepEqual(campos('list_lessons'), ['incluirAposentadas', 'momento', 'projectId', 'tipo'])
+      assert.deepEqual(campos('retire_lesson'), ['agent', 'lessonId', 'motivo', 'pedidoDoDono'])
       assert.deepEqual((por('record_lesson')?.inputSchema.required ?? []).slice().sort(), ['agent', 'texto'])
       assert.deepEqual((por('list_lessons')?.inputSchema.required ?? []).slice().sort(), ['projectId'])
       assert.deepEqual((por('retire_lesson')?.inputSchema.required ?? []).slice().sort(), ['agent', 'lessonId', 'motivo'])
@@ -607,13 +617,17 @@ describe('lições pelo MCP', () => {
 })
 
 describe('instruções do servidor MCP sobre lições', () => {
-  it('dizem como registrar, o que é global e que a retomada traz as lições, sem passar de 4.096 caracteres', () => {
+  // Texto reescrito em 19/11/2026: "global" agora é "coisa da máquina ou de ferramenta", e as lições chegam
+  // pela leitura de entrada (get_resume_brief no modo curto), que traz "os erros a não repetir".
+  it('dizem como registrar, o que é global e que a leitura de entrada traz as lições, sem passar de 3.900 caracteres', () => {
     const t = INSTRUCOES_DO_SERVIDOR
-    assert.ok(t.length <= 4096, `tem ${t.length} caracteres`)
+    assert.ok(t.length <= 3900, `tem ${t.length} caracteres`)
     assert.match(t, /record_lesson/)
     assert.match(t, /retire_lesson/)
+    assert.match(t, /evidência failed com verificacaoId/)
     assert.match(t, /global/)
-    assert.match(t, /ambiente e ferramenta/)
-    assert.match(t, /retomada/)
+    assert.match(t, /máquina ou de ferramenta/)
+    assert.match(t, /get_resume_brief/)
+    assert.match(t, /erros a não repetir/)
   })
 })

@@ -266,11 +266,11 @@ function renumberColumn(db: DatabaseSync, projectId: string, columnId: string, e
   }
 }
 
-export function getBoard(db: DatabaseSync, projectId: string): BoardSnapshot {
+export function getBoard(db: DatabaseSync, projectId: string, filtro = '1'): BoardSnapshot {
   const colOrderSql = BOARD_COLUMNS.map((c, i) => `WHEN '${c.id}' THEN ${i}`).join(' ')
   const sql = `
     SELECT ${BOARD_CARD_COLUMNS} FROM board_cards
-    WHERE project_id = ?
+    WHERE project_id = ? AND ${filtro}
     ORDER BY CASE column_id ${colOrderSql} ELSE 99 END, position ASC, id ASC
   `
   const rows = db.prepare(sql).all(projectId)

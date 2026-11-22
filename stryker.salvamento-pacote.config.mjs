@@ -6,11 +6,11 @@ import { slice } from './stryker.common.mjs'
 export default slice({
   name: 'salvamento-pacote',
   mutate: [
-    'server/portability/bundle.ts:100-105',
-    'server/portability/bundle.ts:122-123',
-    'server/portability/bundle.ts:391-392',
-    'server/portability/bundle.ts:1002-1016',
-    'server/portability/bundle.ts:1084-1084',
+    'server/portability/bundle.ts:101-106',
+    'server/portability/bundle.ts:123-124',
+    'server/portability/bundle.ts:394-395',
+    'server/portability/bundle.ts:1009-1023',
+    'server/portability/bundle.ts:1091-1091',
   ],
   tests: ['tests/salvamento.test.ts'],
 })

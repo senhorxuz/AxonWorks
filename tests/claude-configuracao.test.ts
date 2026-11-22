@@ -387,7 +387,7 @@ describe('citarArgumento', () => {
 describe('instruções do servidor MCP', () => {
   it('instruções do servidor cabem em 4096 caracteres e são afirmativas', () => {
     assert.ok(INSTRUCOES_DO_SERVIDOR.length > 500, 'o texto precisa dizer algo')
-    assert.ok(INSTRUCOES_DO_SERVIDOR.length <= 4096, `tem ${INSTRUCOES_DO_SERVIDOR.length} caracteres`)
+    assert.ok(INSTRUCOES_DO_SERVIDOR.length <= 3900, `tem ${INSTRUCOES_DO_SERVIDOR.length} caracteres`)
     assert.doesNotMatch(INSTRUCOES_DO_SERVIDOR, /você (deve|precisa|tem que)/i)
     assert.doesNotMatch(INSTRUCOES_DO_SERVIDOR, /\b(sempre|nunca)\b/i)
     for (const frase of INSTRUCOES_DO_SERVIDOR.split(/(?<=[.!?])\s+|\n+/)) {
@@ -404,6 +404,7 @@ describe('instruções do servidor MCP', () => {
     assert.match(t, /correio de continuidade/)
     assert.match(t, /save_checkpoint/)
     assert.match(t, /finalize_work/)
+    assert.match(t, /update_project_objective só para fato vencido, guardando o anterior/)
     assert.match(t, /humanSummary/)
     assert.match(t, /meses depois/)
     assert.match(t, /ligar-projeto/)

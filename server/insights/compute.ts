@@ -52,9 +52,14 @@ export function computeInsights(
 ): ProjectInsights {
   const now = options.now
   const bundle = store.exportProjectBundleData(projectId)
-  const detail = bundle.project
+  const mensagensExcluidas = new Set(bundle.lixeira?.filter(item => item.tipo === 'mensagem').map(item => item.id))
+  const decisoesExcluidas = new Set(bundle.lixeira?.filter(item => item.tipo === 'decisao').map(item => item.id))
+  const detail = {
+    ...bundle.project,
+    messages: bundle.project.messages.filter(message => !mensagensExcluidas.has(message.id)),
+  }
   const blockers = bundle.blockers ?? []
-  const decisions = bundle.decisions ?? []
+  const decisions = (bundle.decisions ?? []).filter(decision => !decisoesExcluidas.has(decision.id))
   const deliveries = bundle.deliveries
   const staleEvidence = store.listEvidence(projectId, { staleOnly: true })
 

@@ -14,8 +14,10 @@ import {
   type SalvamentoResumo,
 } from '../../shared/carta.js'
 import type { Decision, ProjectBlocker, WorkDraft } from '../../shared/continuity.js'
+import type { EstadoDaEntrega } from '../../shared/entrega.js'
 import type { BacklogItem, BacklogStage, Checkpoint, Project, Task, TaskStatus } from '../../shared/types.js'
-import { avisosDaDiretrizVelha } from './avisos.js'
+import { resumirEntregas } from '../store/entrega.js'
+import { avisosDaDiretrizVelha, avisosDoObjetivoAtualizado, type DiretrizDaCarta } from './avisos.js'
 import { proximoPronto } from './proximo-pronto.js'
 
 export interface DadosDaCarta {
@@ -30,7 +32,7 @@ export interface DadosDaCarta {
   rascunhoAutomatico: WorkDraft | null
   saude: { ultimoRegistroAutomatico: string | null; ultimoErro: string | null }
   /** A diretriz (charter) vigente; ausente ou `null` = sem diretriz, e nenhum aviso de diretriz velha (D2). */
-  diretriz?: { createdAt: string } | null
+  diretriz?: DiretrizDaCarta | null
 }
 
 const MS_POR_DIA = 86_400_000
@@ -305,17 +307,23 @@ function salvamentos(checkpoints: Checkpoint[]): SalvamentoResumo[] {
 
 // ---------------------------------------------------------------------------------------------
 
-/** D2: a tela leva o texto do dono; a retomada, o do Claude. */
+/** A tela leva o texto do dono, e a retomada leva o do Claude. */
 function avisos(dados: DadosDaCarta, agora: Date): Pick<Carta, 'avisos' | 'avisosDaRetomada'> {
-  const diretrizVelha = avisosDaDiretrizVelha(dados.diretriz, dados.checkpoints, agora)
-  if (diretrizVelha === null) return { avisos: [], avisosDaRetomada: [] }
-  return { avisos: [diretrizVelha.paraODono], avisosDaRetomada: [diretrizVelha.paraOClaude] }
+  const avisos = [
+    avisosDoObjetivoAtualizado(dados.diretriz),
+    avisosDaDiretrizVelha(dados.diretriz, dados.checkpoints, agora),
+  ].filter((aviso) => aviso !== null)
+  return {
+    avisos: avisos.map((aviso) => aviso.paraODono),
+    avisosDaRetomada: avisos.map((aviso) => aviso.paraOClaude),
+  }
 }
 
-export function montarCarta(dados: DadosDaCarta, agora: Date): Carta {
+export function montarCarta(dados: DadosDaCarta, agora: Date, estadosDasEntregas: EstadoDaEntrega[] = []): Carta {
   const ultima = ultimaAtividade(dados)
   const feito = repartirFeito(coletarFeito(dados), ultima)
   const ultimoRegistro = checkpointMaisRecente(dados.checkpoints)
+  const entregas = resumirEntregas(estadosDasEntregas, dados.cards)
   return {
     projeto: { id: dados.project.id, nome: dados.project.name, objetivo: dados.project.objective },
     ultimaAtividade: ultima,
@@ -324,6 +332,7 @@ export function montarCarta(dados: DadosDaCarta, agora: Date): Carta {
     feitoRecente: feito.recente,
     feitoPorMes: agruparPorMes(feito.resto),
     falta: montarFalta(dados),
+    ...(entregas.length > 0 ? { entregas } : {}),
     rascunhoAutomatico: rascunhoVisivel(dados),
     salvamentos: salvamentos(dados.checkpoints),
     ultimoRegistroEhSalvamento: ultimoRegistro?.kind === 'compactacao',

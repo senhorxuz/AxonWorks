@@ -213,7 +213,7 @@ describe('search_memory pelo MCP', () => {
   })
 
   it('as instruções do servidor citam a busca e continuam em até 4.096 caracteres', () => {
-    assert.match(INSTRUCOES_DO_SERVIDOR, /search_memory/)
-    assert.ok(INSTRUCOES_DO_SERVIDOR.length <= 4096, `${INSTRUCOES_DO_SERVIDOR.length}`)
+    assert.match(INSTRUCOES_DO_SERVIDOR, /search_memory busca registros por palavras/)
+    assert.ok(INSTRUCOES_DO_SERVIDOR.length <= 3900, `${INSTRUCOES_DO_SERVIDOR.length}`)
   })
 })

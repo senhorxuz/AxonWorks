@@ -28,6 +28,15 @@ export function runMigrations(
       updated_at TEXT NOT NULL,
       revision INTEGER NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS lixeira_historico (
+      project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+      tipo TEXT NOT NULL,
+      item_id TEXT NOT NULL,
+      excluido_em TEXT NOT NULL,
+      restaurado_em TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_lixeira_historico_leitura
+      ON lixeira_historico(project_id, restaurado_em);
     CREATE TABLE IF NOT EXISTS tasks (
       id TEXT PRIMARY KEY,
       project_id TEXT NOT NULL REFERENCES projects(id),
@@ -478,11 +487,24 @@ export function runMigrations(
   // human_summary: só ALTER TABLE; os registros antigos ficam 'normal' pelo DEFAULT, sem UPDATE.
   ensureColumn('checkpoints', 'kind', "TEXT NOT NULL DEFAULT 'normal'")
   ensureColumn('checkpoints', 'extras_json', 'TEXT')
+  ensureColumn('charter_revisions', 'visto_pelo_dono_em', 'TEXT')
+  ensureColumn('handoff_deliveries', 'ponto_de_conferencia_json', 'TEXT')
+  ensureColumn('evidence_records', 'verificacao_id', 'TEXT')
+  ensureColumn('evidence_records', 'esperado', 'TEXT')
+  ensureColumn('evidence_records', 'versao', 'TEXT')
+  ensureColumn('evidence_records', 'ambiente', 'TEXT')
   // Parte 5 — fila de aprovações: tabela nova isolada em server/store/approvals.ts.
   // Apagar a Parte 5 remove essa chamada e o import acima.
   ensureApprovalsSchema(db)
   // Parte 14 — quadro do projeto: tabelas isoladas em server/store/board.ts.
   ensureBoardSchema(db)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS entregas (
+      card_id TEXT PRIMARY KEY NOT NULL REFERENCES board_cards(id) ON DELETE CASCADE,
+      estado_json TEXT NOT NULL,
+      atualizado_em TEXT NOT NULL
+    );
+  `)
   // Continuidade sem esforço — saúde dos ganchos do Claude Code: tabela isolada em server/store/integracao.ts.
   ensureIntegracaoSchema(db)
   // Lote 2 — lições que o Claude não repete: tabela isolada em server/store/licoes.ts.

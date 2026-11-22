@@ -1,3 +1,6 @@
+import type { BoardCard } from './board.js'
+import type { Licao } from './licoes.js'
+import type { ItemNaLixeira } from './lixeira.js'
 import type { BacklogItem, ProjectDetail } from './types.js'
 import type {
   CharterRevision,
@@ -14,6 +17,8 @@ export interface ProjectBundleV1 {
   version: 1
   exportedAt: string
   project: ProjectDetail
+  /** O que a v1 declaradamente não leva. Ausente em pacotes v1 antigos. */
+  omissions?: BundleOmission[]
 }
 
 export interface PortableHandoffDelivery {
@@ -65,6 +70,14 @@ export interface BundleOmission {
   reason: string
 }
 
+type MarcaPortavel = Omit<ItemNaLixeira, 'titulo' | 'tipo'>
+
+export type RegistroPortavelNaLixeira = MarcaPortavel & (
+  | { tipo: 'cartao'; registro: Omit<BoardCard, 'id' | 'projectId'> }
+  | { tipo: 'licao'; registro: Omit<Licao, 'id' | 'projectId'> }
+  | { tipo: 'backlog' | 'biblioteca' | 'decisao' | 'mensagem' }
+)
+
 export interface ProjectBundleV3 {
   format: 'axon-project'
   version: 3
@@ -75,6 +88,7 @@ export interface ProjectBundleV3 {
   deliveryReceipts: PortableHandoffReceipt[]
   messageResolutions: MessageResolution[]
   charterRevisions: CharterRevision[]
+  lixeira?: RegistroPortavelNaLixeira[]
   decisions: Decision[]
   blockers: ProjectBlocker[]
   library: PortableLibrary
@@ -93,6 +107,7 @@ export interface ProjectBundleData {
   deliveryReceipts: PortableHandoffReceipt[]
   messageResolutions?: MessageResolution[]
   charterRevisions?: CharterRevision[]
+  lixeira?: RegistroPortavelNaLixeira[]
   decisions?: Decision[]
   blockers?: ProjectBlocker[]
   library?: PortableLibrary

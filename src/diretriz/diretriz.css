@@ -1,0 +1,17 @@
+.diretriz-aviso {
+  display: grid;
+  gap: 12px;
+  margin: 0 0 18px;
+  padding: 14px 16px;
+  border: 1px solid #6d493c;
+  border-left: 3px solid #e29b7c;
+  border-radius: 8px;
+  background: #2b211e;
+  color: #f5dfd3;
+  overflow-wrap: anywhere;
+}
+
+.diretriz-aviso p { margin: 0; }
+.diretriz-aviso .form-row-actions { flex-wrap: wrap; }
+.diretriz-status { margin-block: 0 12px; }
+.diretriz-status:empty { margin: 0; }

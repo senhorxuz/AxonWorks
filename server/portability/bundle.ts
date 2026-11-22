@@ -28,7 +28,9 @@ import type {
   Task,
 } from '../../shared/types.js'
 import { PortabilityError } from './errors.js'
+import { diretrizParaPacoteLegado, OMISSAO_DA_DIRETRIZ_LEGADA } from './diretriz-legada.js'
 import { maskSecrets } from './security.js'
+import { lixeiraSchema, omitirLixeiraDaV2, sanitizarLixeira, validarLixeiraDoPacote } from './lixeira.js'
 
 /** Limite de tamanho serializado: 1 MB para suportar biblioteca, histórico de charter e contratos */
 export const MAX_BUNDLE_SERIALIZED_BYTES = 1024 * 1024
@@ -205,7 +207,9 @@ const charterRevisionSchema = z.strictObject({
   body: z.string().max(20000),
   createdBy: agentNameSchema,
   createdAt: isoDateSchema,
-  sourceKind: z.enum(['human_directive', 'agent_proposal']),
+  sourceKind: z.enum(['human_directive', 'agent_proposal', 'agent_update']),
+  motivo: z.string().min(1).max(500).optional(),
+  vistoPeloDonoEm: isoDateSchema.optional(),
   supersedesId: uuidSchema.nullable().optional().default(null),
 })
 
@@ -323,17 +327,23 @@ const workDraftSchema = z.strictObject({
   updatedAt: isoDateSchema,
 })
 
+const bundleOmissionSchema = z.object({
+  entity: z.string().min(1).max(80),
+  reason: z.string().min(1).max(400),
+})
+
 export const projectBundleV1Schema = z.object({
   format: z.literal('axon-project'),
   version: z.literal(1),
   exportedAt: isoDateSchema,
   project: projectDetailSchema,
+  omissions: z.array(bundleOmissionSchema).max(50).optional(),
 })
 
-const bundleOmissionSchema = z.object({
-  entity: z.string().min(1).max(80),
-  reason: z.string().min(1).max(400),
-})
+export const BUNDLE_V1_OMISSIONS: ReadonlyArray<{ entity: string; reason: string }> = [
+  OMISSAO_DA_DIRETRIZ_LEGADA,
+  { entity: 'lixeira', reason: 'A v1 omite as mensagens excluídas e todas as decisões. Os registros com suas marcas de exclusão viajam na v3.' },
+]
 
 export const projectBundleV2Schema = z.object({
   format: z.literal('axon-project'),
@@ -364,8 +374,10 @@ export const BUNDLE_V3_OMISSIONS: ReadonlyArray<{ entity: string; reason: string
   { entity: "blocker_events", reason: "A linha do tempo de transicoes de bloqueio nao viaja; a copia recebe apenas o estado atual." },
   { entity: "decision_events", reason: "A linha do tempo de transicoes de decisao nao viaja; a copia recebe apenas o estado atual." },
   { entity: "approval_requests", reason: "A fila de aprovacoes (propostas pendentes, decididas e retiradas) e decisao do dono do projeto de origem e nao viaja neste formato." },
-  { entity: "board_cards", reason: "O quadro de cartões do projeto ainda não viaja neste formato." },
-  { entity: "board_card_events", reason: "O quadro de cartões do projeto ainda não viaja neste formato." },
+  { entity: "board_cards", reason: "Só os cartões que estão na lixeira viajam neste formato." },
+  { entity: "board_card_events", reason: "O histórico de eventos dos cartões ainda não viaja neste formato." },
+  { entity: 'entregas', reason: 'O estado das entregas dos cartões, incluindo aprovações, testes, código e publicações, fica no projeto original.' },
+  { entity: 'deliveries[].pontoDeConferencia', reason: 'As passagens viajam sem o ponto de conferência, que fica no projeto original.' },
 ]
 
 /**
@@ -380,7 +392,7 @@ export const BUNDLE_V3_OMISSIONS: ReadonlyArray<{ entity: string; reason: string
  * nenhum, usa-se o nome da tabela (evidence_records).
  */
 export const BUNDLE_V2_OMISSIONS: ReadonlyArray<{ entity: string; reason: string }> = [
-  { entity: "charterRevisions", reason: "O historico do charter so viaja na v3. A copia recebe apenas o objetivo atual do projeto." },
+  OMISSAO_DA_DIRETRIZ_LEGADA,
   { entity: "decisions", reason: "Decisoes canonicas e suas cadeias de substituicao so viajam na v3." },
   { entity: "blockers", reason: "Bloqueios canonicos e o historico de resolucao so viajam na v3." },
   { entity: "library", reason: "A Biblioteca de conteudos, com revisoes e relacoes, so viaja na v3." },
@@ -390,7 +402,9 @@ export const BUNDLE_V2_OMISSIONS: ReadonlyArray<{ entity: string; reason: string
   { entity: "checkpoints[].humanSummary", reason: "A frase simples de cada registro, escrita para o dono do projeto, so viaja na v3." },
   { entity: "checkpoints[].kind", reason: "O tipo do registro (salvamento de compactacao ou comum) so viaja na v3; na v2 todo registro chega como comum." },
   { entity: "checkpoints[].extras", reason: "Os pedidos do dono, pendencias, perguntas abertas e arquivos mexidos do salvamento de compactacao so viajam na v3." },
-  ...BUNDLE_V3_OMISSIONS,
+  ...BUNDLE_V3_OMISSIONS.filter(o => o.entity !== 'board_cards'),
+  { entity: 'board_cards', reason: 'O quadro de cartões não viaja na v2.' },
+  { entity: 'lixeira', reason: 'Os itens excluídos só viajam na v3. A v2 omite também as resoluções vinculadas a mensagens excluídas.' },
 ]
 
 export const projectBundleV3Schema = z.object({
@@ -403,6 +417,7 @@ export const projectBundleV3Schema = z.object({
   deliveryReceipts: z.array(portableReceiptSchema).max(1000),
   messageResolutions: z.array(messageResolutionSchema).max(1000).optional().default([]),
   charterRevisions: z.array(charterRevisionSchema).max(500).optional().default([]),
+  lixeira: lixeiraSchema.optional(),
   decisions: z.array(decisionSchema).max(500).optional().default([]),
   blockers: z.array(blockerSchema).max(500).optional().default([]),
   library: librarySchema.optional().default({ items: [], revisions: [], relations: [] }),
@@ -778,6 +793,7 @@ function assertAcyclicDecisionSupersession(decisions: Decision[]): void {
 }
 
 function validateV3Integrity(bundle: ProjectBundleV3): void {
+  validarLixeiraDoPacote(bundle)
   validateV2Integrity({
     project: bundle.project,
     backlogItems: bundle.backlogItems,
@@ -1175,6 +1191,8 @@ function sanitizeCharterRevisions(items: CharterRevision[] | undefined): Charter
     createdAt: item.createdAt,
     sourceKind: item.sourceKind,
     supersedesId: item.supersedesId ?? null,
+    ...(item.motivo === undefined ? {} : { motivo: maskSecrets(item.motivo) }),
+    ...(item.vistoPeloDonoEm === undefined ? {} : { vistoPeloDonoEm: item.vistoPeloDonoEm }),
   }))
 }
 
@@ -1319,6 +1337,7 @@ export function createProjectBundle(detail: ProjectDetail): ProjectBundleV1 {
     version: 1,
     exportedAt: new Date().toISOString(),
     project: parseResult.data,
+    omissions: BUNDLE_V1_OMISSIONS.map(o => ({ ...o })),
   }
 
   assertSerializedSize(bundle)
@@ -1333,13 +1352,13 @@ export function createProjectBundleV2(data: ProjectBundleData): ProjectBundleV2 
   if (!data || typeof data !== 'object' || !data.project || typeof data.project !== 'object') {
     throw new PortabilityError(400, 'invalid_project_detail', 'Dados do projeto ausentes ou inválidos.')
   }
-
+  const ativos = omitirLixeiraDaV2(data)
   const payload = {
-    project: sanitizeProjectDetail(data.project),
-    backlogItems: sanitizeBacklogItems(data.backlogItems),
+    project: sanitizeProjectDetail(diretrizParaPacoteLegado(ativos.project, data.charterRevisions)),
+    backlogItems: sanitizeBacklogItems(ativos.backlogItems),
     deliveries: sanitizeDeliveries(data.deliveries),
     deliveryReceipts: sanitizeReceipts(data.deliveryReceipts),
-    messageResolutions: sanitizeMessageResolutions(data.messageResolutions),
+    messageResolutions: sanitizeMessageResolutions(ativos.messageResolutions),
   }
 
   const parseResult = z
@@ -1390,6 +1409,7 @@ export function createProjectBundleV3(data: ProjectBundleData): ProjectBundleV3 
     deliveryReceipts: sanitizeReceipts(data.deliveryReceipts),
     messageResolutions: sanitizeMessageResolutions(data.messageResolutions),
     charterRevisions: sanitizeCharterRevisions(data.charterRevisions),
+    ...(data.lixeira === undefined ? {} : { lixeira: sanitizarLixeira(data.lixeira) }),
     decisions: sanitizeDecisions(data.decisions),
     blockers: sanitizeBlockers(data.blockers),
     library: sanitizeLibrary(data.library),

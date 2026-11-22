@@ -292,7 +292,7 @@ export interface ListDecisionsOptions {
   includeHistory?: boolean
 }
 
-export type CharterSourceKind = 'human_directive' | 'agent_proposal'
+export type CharterSourceKind = 'human_directive' | 'agent_proposal' | 'agent_update'
 
 export interface CharterRevision {
   id: string
@@ -303,6 +303,8 @@ export interface CharterRevision {
   createdAt: string
   sourceKind: CharterSourceKind
   supersedesId: string | null
+  motivo?: string
+  vistoPeloDonoEm?: string
 }
 
 export interface SaveCharterInput {
@@ -310,6 +312,13 @@ export interface SaveCharterInput {
   body: string
   expectedRevision: number
   sourceKind?: CharterSourceKind
+}
+
+export interface UpdateProjectObjectiveInput {
+  objetivo: string
+  agent: string
+  motivo: string
+  expectedRevision: number
 }
 
 export type BlockerStatus = 'open' | 'mitigated' | 'resolved' | 'accepted_risk'

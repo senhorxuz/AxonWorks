@@ -33,6 +33,25 @@ describe('Etapa 2 — Backup e Restauração Automática com Teste Periódico de
     }
   });
 
+  test('restaura a marca e o registro da lixeira no snapshot do banco inteiro', async () => {
+    const { dbPath, backupDir } = createTempEnv();
+    const store = new WorkspaceStore(dbPath);
+    cleanups.push(() => store.close());
+    const { id } = store.createProject({ name: 'Projeto', objective: 'Guardar o histórico' });
+    const mensagem = store.postMessage(id, { from: 'Dono', to: 'Codex', kind: 'note', body: 'Mensagem excluída' });
+    const alvo = { tipo: 'mensagem', id: mensagem.id, agent: 'Dono' };
+    const marca = store.excluir(id, { ...alvo, origem: 'tela' });
+    const engine = new BackupEngine(store, { backupDir });
+    const backup = await engine.createBackup();
+    store.restaurar(id, alvo);
+    assert.deepEqual(store.getProject(id).messages, [mensagem]);
+    await engine.restoreBackup(backup.backupId, { confirm: true });
+    assert.deepEqual(store.getProject(id).messages, []);
+    assert.deepEqual(store.listarLixeira(id), [marca]);
+    store.restaurar(id, alvo);
+    assert.deepEqual(store.getProject(id).messages, [mensagem]);
+  });
+
   test('cria backup consistente via SQLite VACUUM INTO com integridade verificada e manifesto SHA-256', async () => {
     const { dbPath, backupDir } = createTempEnv();
     const store = new WorkspaceStore(dbPath);
@@ -276,14 +295,14 @@ describe('Etapa 2 — Backup e Restauração Automática com Teste Periódico de
     assert.equal(manifest.projectCount, 1);
 
     // 2. GET /api/backups
-    const listRes = await fetch(`${base}/api/backups`, { headers: { Origin: base } });
+    const listRes = await fetch(`${base}/api/backups`, { headers: { Origin: base, 'X-Workspace-Client': 'local' } });
     assert.equal(listRes.status, 200);
     const list = await listRes.json();
     assert.equal(list.length, 1);
     assert.equal(list[0].backupId, manifest.backupId);
 
     // 3. GET /api/backups/:id
-    const getRes = await fetch(`${base}/api/backups/${manifest.backupId}`, { headers: { Origin: base } });
+    const getRes = await fetch(`${base}/api/backups/${manifest.backupId}`, { headers: { Origin: base, 'X-Workspace-Client': 'local' } });
     assert.equal(getRes.status, 200);
     const fetched = await getRes.json();
     assert.equal(fetched.backupId, manifest.backupId);
@@ -299,7 +318,7 @@ describe('Etapa 2 — Backup e Restauração Automática com Teste Periódico de
     assert.equal(drill.status, 'passed');
 
     // 5. GET /api/backups/drills
-    const listDrillsRes = await fetch(`${base}/api/backups/drills`, { headers: { Origin: base } });
+    const listDrillsRes = await fetch(`${base}/api/backups/drills`, { headers: { Origin: base, 'X-Workspace-Client': 'local' } });
     assert.equal(listDrillsRes.status, 200);
     const drills = await listDrillsRes.json();
     assert.equal(drills.length, 1);

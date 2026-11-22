@@ -25,6 +25,8 @@ export type ContextSourceType =
   | 'board_card'
   /** Item do backlog (ideia ou pronto) que ainda não virou tarefa. */
   | 'backlog_item'
+  /** Regra ou verificação do dono, guardada como lição do projeto. */
+  | 'lesson'
 
 export interface ContextSourceReference {
   sourceId: string
@@ -49,9 +51,15 @@ export interface ContextItem {
   declaredValidity?: string | null
   reason: string
   meta?: Record<string, unknown>
+  /** Entrou na forma curta porque o inteiro não coube no orçamento. */
+  shortened?: true
 }
 
 export type ContextSectionKind =
+  /** O que o dono disse que vale neste projeto (lições do tipo regra). */
+  | 'regras_do_dono'
+  /** O que o dono pediu para conferir antes de subir, de dizer pronto ou de commit. */
+  | 'verificacoes'
   | 'charter'
   | 'focus_task'
   | 'checkpoint'

@@ -9,6 +9,7 @@
  * recente; empate total: o gravado primeiro), com `LIMIT`, para não ler 10 mil linhas quando o termo é comum.
  */
 import type { DatabaseSync } from 'node:sqlite'
+import { naoEstaNaLixeira } from '../store/lixeira.js'
 import {
   expressaoFts,
   formasDoTermo,
@@ -33,6 +34,7 @@ export function buscarNaMemoria(db: DatabaseSync, projectId: string, input: unkn
        FROM memoria_fts CROSS JOIN memoria_itens i ON i.id = memoria_fts.rowid
        WHERE memoria_fts MATCH ? AND (i.project_id = ? OR i.project_id IS NULL)
          AND i.tipo IN (${busca.tipos.map(() => '?').join(', ')})
+         AND ${naoEstaNaLixeira('i.tipo', 'i.fonte_id')}
        ORDER BY pontuacao DESC, i.data DESC, i.id
        LIMIT ?`,
     )

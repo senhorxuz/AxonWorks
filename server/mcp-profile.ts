@@ -35,6 +35,17 @@ export const ESSENTIAL_MCP_TOOLS: ReadonlySet<string> = new Set([
   'create_board_card',
   'update_board_card',
   'move_board_card',
+  // Lições e leituras que as instruções e a leitura curta citam (abrem regras, verificações, resultados e passagens)
+  'list_lessons',
+  'record_lesson',
+  'retire_lesson',
+  'get_evidence',
+  'get_handoff_deliveries',
+  'update_project_objective',
+  // Acompanhar a entrega e registrar a aprovação dita pelo dono no chat.
+  'get_delivery',
+  'record_owner_approval',
+  'update_delivery',
   // Sair
   'save_checkpoint',
   'finalize_work',

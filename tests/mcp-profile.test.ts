@@ -20,9 +20,12 @@ const ESSENCIAL = [
   'propose_approval', 'propose_decision', 'get_project_insights',
   'search_content', 'list_evidence', 'cross_check_evidence',
   'get_board', 'create_board_card', 'update_board_card', 'move_board_card',
+  // Lições e leituras que as instruções e a leitura curta citam
+  'list_lessons', 'record_lesson', 'retire_lesson', 'get_evidence', 'get_handoff_deliveries',
+  'update_project_objective', 'get_delivery', 'record_owner_approval', 'update_delivery',
 ].sort()
 
-// Pedido do dono: nenhuma tool pode sumir. Esta lista protege as 89 tools do perfil completo.
+// Pedido do dono: nenhuma tool pode sumir. Esta lista protege as 98 tools do perfil completo.
 // Ao criar uma tool nova, acrescente o nome aqui; nunca apague um nome para o teste passar.
 const TODAS = (
   'list_projects create_project get_project get_handoff create_task update_task_contract claim_task release_task ' +
@@ -39,10 +42,12 @@ const TODAS = (
   'list_audit_logs get_project_graph detect_decision_conflicts detect_stale_content analyze_graph_impact ' +
   'get_project_insights get_board create_board_card update_board_card move_board_card get_board_card_events ' +
   'get_where_we_stopped record_lesson list_lessons retire_lesson save_compaction_snapshot search_memory ' +
-  'redact_checkpoint_excerpt redact_checkpoint'
+  'redact_checkpoint_excerpt redact_checkpoint trash_record restore_record purge_record list_trash update_project_objective ' +
+  'get_delivery record_owner_approval undo_owner_approval update_delivery'
 ).split(' ').sort()
 
 const raiz = path.resolve(import.meta.dirname, '..')
+const tsx = import.meta.resolve('tsx')
 
 async function nomesDasTools(opcoes?: Parameters<typeof createMcpServer>[1]) {
   const store = new WorkspaceStore(':memory:')
@@ -70,8 +75,8 @@ describe('perfil do MCP', () => {
     }
   })
 
-  test('perfil completo mantém todas as 89 tools, sem perder nenhuma', async () => {
-    assert.equal(TODAS.length, 89)
+  test('perfil completo mantém todas as 98 tools, sem perder nenhuma', async () => {
+    assert.equal(TODAS.length, 98)
     assert.deepEqual(await nomesDasTools({ profile: 'full' }), TODAS)
     for (const nome of ESSENCIAL) assert.ok(TODAS.includes(nome), `o essencial cita ${nome}, que não existe`)
   })
@@ -96,7 +101,7 @@ describe('perfil do MCP', () => {
       if (caso.perfil) env.AXON_MCP_PROFILE = caso.perfil
       const transport = new StdioClientTransport({
         command: process.execPath,
-        args: ['--import', './node_modules/tsx/dist/loader.mjs', 'server/mcp.ts'],
+        args: ['--import', tsx, 'server/mcp.ts'],
         cwd: raiz,
         env,
         stderr: 'ignore',
@@ -116,7 +121,7 @@ describe('perfil do MCP', () => {
   test('o processo real recusa um perfil inválido em vez de subir com um padrão silencioso', () => {
     const pasta = mkdtempSync(path.join(tmpdir(), 'axon-perfil-mcp-'))
     try {
-      const saida = spawnSync(process.execPath, ['--import', './node_modules/tsx/dist/loader.mjs', 'server/mcp.ts'], {
+      const saida = spawnSync(process.execPath, ['--import', tsx, 'server/mcp.ts'], {
         cwd: raiz,
         env: { ...process.env, AXON_DB_PATH: path.join(pasta, 'perfil.sqlite'), AXON_MCP_PROFILE: 'completo' },
         input: '',
