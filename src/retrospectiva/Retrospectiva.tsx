@@ -358,7 +358,7 @@ function QuemEntregou({ dados }: { dados: Dados }) {
       <ul className="retro-pessoas-lista">
         {dados.porAgente.map(agente => (
           <li key={agente.agente} className="retro-pessoa">
-            <span className="retro-pessoa-nome">{agente.agente}</span>
+            <span className="retro-pessoa-nome" title={agente.agente}>{agente.agente}</span>
             <span className="retro-pessoa-trilho" aria-hidden="true">
               <span className="retro-pessoa-checkpoints" style={{ width: `${(agente.checkpoints / maximo) * 100}%` }} />
               <span className="retro-pessoa-entregas" style={{ width: `${(agente.entregas / maximo) * 100}%` }} />

@@ -62,6 +62,7 @@ import type {
   StaleContentReport,
 } from '../shared/graph';
 import type { Carta } from '../shared/carta';
+import { FalhaDeRede, textoDoErroDeRede } from './carga/falhas';
 import type { EstadoDaEntrega } from '../shared/entrega';
 
 type PedidoDeAprovacao = { tipo: 'visual' } | { tipo: 'publicacao'; ambiente: string };
@@ -75,14 +76,22 @@ export class ApiError extends Error { constructor(message: string, public status
 export async function request<T>(path: string, body?: unknown, signal?: AbortSignal, method?: 'GET' | 'POST' | 'DELETE'): Promise<T> {
   const verb = method ?? (body === undefined ? 'GET' : 'POST');
   const writing = verb !== 'GET';
-  const response = await fetch(`/api${path}`, { method: verb, headers: writing ? { 'Content-Type': 'application/json', 'X-Workspace-Client': 'local' } : {}, body: body === undefined ? undefined : JSON.stringify(body), signal });
-  const data = await response.json();
+  let response: Response;
+  try {
+    response = await fetch(`/api${path}`, { method: verb, headers: writing ? { 'Content-Type': 'application/json', 'X-Workspace-Client': 'local' } : {}, body: body === undefined ? undefined : JSON.stringify(body), signal });
+  } catch (falha) {
+    // Pedido cancelado de propósito segue como está; o resto é "a Axon não respondeu".
+    if (signal?.aborted) throw falha;
+    throw new FalhaDeRede(falha);
+  }
+  // Resposta que não é JSON (o servidor caiu atrás de um proxy) também é a Axon sem responder.
+  const data = await response.json().catch((falha: unknown) => { throw new FalhaDeRede(falha); });
   if (!response.ok) {
     // Sessão vencida no meio do uso: a porta reaparece em vez de a tela quebrar.
     if (response.status === 401 && path !== '/auth/me' && path !== '/auth/login') {
       window.dispatchEvent(new Event('axon:sessao-expirada'));
     }
-    throw new ApiError(data.error?.message ?? 'Não foi possível salvar. Tente novamente.', response.status, data.error?.code ?? 'unknown');
+    throw new ApiError(data.error?.message ?? (writing ? 'Não foi possível salvar. Tente novamente.' : 'Não consegui carregar. Tente novamente.'), response.status, data.error?.code ?? 'unknown');
   }
   return data as T;
 }
@@ -170,9 +179,11 @@ export const api = {
     request<Decision>(`/projects/${encodeURIComponent(id)}/decisions/${encodeURIComponent(decisionId)}/revoke`, input),
   supersedeDecision: (id: string, decisionId: string, input: SupersedeDecisionInput) =>
     request<Decision>(`/projects/${encodeURIComponent(id)}/decisions/${encodeURIComponent(decisionId)}/supersede`, input),
+  charterHistory: (id: string, signal?: AbortSignal) =>
+    request<CharterRevision[]>(`/projects/${encodeURIComponent(id)}/charter/history`, undefined, signal),
   charter: (id: string, signal?: AbortSignal) =>
     request<CharterRevision | null>(`/projects/${encodeURIComponent(id)}/charter`, undefined, signal),
-  saveCharter: (id: string, input: { actor: string; body: string; expectedRevision: number }) =>
+  saveCharter: (id: string, input: { actor: string; body: string; expectedRevision: number; origem?: 'human_directive' | 'agent_report' }) =>
     request<CharterRevision>(`/projects/${encodeURIComponent(id)}/charter`, input),
   conferirDiretriz: (id: string) =>
     request<CharterRevision | null>(`/projects/${encodeURIComponent(id)}/charter/visto`, {}),
@@ -306,6 +317,9 @@ export const api = {
     ),
 };
 export function errorText(error: unknown) {
+  // O fetch nem chegou à Axon: o dono lê isso em português, nunca "Failed to fetch".
+  const deRede = textoDoErroDeRede(error);
+  if (deRede) return deRede;
   // A tela é mais nova que o servidor aberto: a rota ainda não existe lá. O dono precisa saber o que fazer.
   if (error instanceof ApiError && error.code === 'route_not_found') return 'Esta parte da Axon é mais nova que o servidor que está aberto. Feche a Axon e abra de novo para carregar a versão atual.';
   return error instanceof Error ? error.message : 'Não foi possível concluir a operação.';

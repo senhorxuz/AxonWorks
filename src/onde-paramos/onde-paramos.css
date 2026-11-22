@@ -527,7 +527,7 @@
 
 .carta .carta-manchete {
   grid-column: 1 / -1;
-  max-width: 30em;
+  max-width: 44em;
   margin: 8px 0 0;
   /* O !important vence a regra geral que fixa todo parágrafo em 12 px (a mesma razão do título). */
   font-size: 30px !important;
@@ -846,14 +846,9 @@
 
 /* Destaque de chegada: todo clique que leva a outro ponto da tela acende o destino por um instante. */
 
-.carta .carta-chegou { animation: carta-achado 2.2s var(--c-curva) both; }
+/* O brilho (@keyframes axon-achado) é o comum da Axon, em src/chegada/chegada.css; aqui ficam a força desta tela e as partes de dentro da carta. */
 
-@keyframes carta-achado {
-  0% { box-shadow: 0 0 0 0 rgba(232, 121, 74, 0), inset 0 0 0 1px rgba(232, 121, 74, 0); background-color: rgba(232, 121, 74, 0); }
-  12% { box-shadow: 0 0 0 6px rgba(232, 121, 74, 0.18), inset 0 0 0 1px rgba(232, 121, 74, 0.9); background-color: rgba(232, 121, 74, 0.16); }
-  45% { box-shadow: 0 0 0 0 rgba(232, 121, 74, 0), inset 0 0 0 1px rgba(232, 121, 74, 0.6); background-color: rgba(232, 121, 74, 0.08); }
-  100% { box-shadow: 0 0 0 0 rgba(232, 121, 74, 0), inset 0 0 0 1px rgba(232, 121, 74, 0); background-color: rgba(232, 121, 74, 0); }
-}
+.carta .carta-chegou { animation: axon-achado 2.2s var(--c-curva) both; }
 
 .carta .feito-linha.carta-chegou .feito-marca { animation: carta-marca-achada 2.2s var(--c-curva) both; }
 

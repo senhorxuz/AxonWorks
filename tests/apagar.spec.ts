@@ -59,6 +59,8 @@ test('apaga um trecho na aba Checkpoints: mostra quantas vezes aparece antes de 
   await page.getByRole('tab', { name: /^Checkpoints/ }).click();
   const cartao = page.locator('article.checkpoint-card').filter({ hasText: 'O login usa' });
   await expect(cartao).toContainText(SEGREDO);
+  // Fechado, o registro cabe em poucas linhas: as ações abrem com um clique.
+  await cartao.getByRole('button', { name: /^Ver detalhes/ }).click();
   await cartao.getByRole('button', { name: 'Apagar trecho', exact: true }).click();
   const caixa = page.getByRole('dialog', { name: 'Apagar trecho', exact: true });
   await expect(caixa.getByLabel('Texto exato que você quer apagar')).toBeFocused();

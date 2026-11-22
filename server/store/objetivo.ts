@@ -41,7 +41,12 @@ export function entradaDaDiretriz(input: SaveCharterInput) {
   if (rec.sourceKind === 'agent_proposal' || rec.sourceKind === 'agent_update') {
     throw new DomainError(409, 'human_approval_required', 'Uma proposta de agente não pode alterar o charter vigente sem aceite humano.')
   }
-  return { actor, body, expectedRevision }
+  if (rec.origem !== undefined && rec.origem !== 'human_directive' && rec.origem !== 'agent_report') {
+    throw new DomainError(400, 'invalid_input', 'Campo origem inválido.')
+  }
+  // Uma IA usando a tela não grava diretriz humana: vira a atualização de agente que o dono confere.
+  const sourceKind = rec.origem === 'agent_report' ? 'agent_update' : 'human_directive'
+  return { actor, body, expectedRevision, sourceKind } as const
 }
 
 type RevisaoNova = Pick<CharterRevision, 'body' | 'createdBy' | 'createdAt'> & {

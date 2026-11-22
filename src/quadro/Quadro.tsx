@@ -1,3 +1,6 @@
+import { chaveDaChegada } from '../chegada/chegada';
+import { irPara } from '../chegada/irPara';
+import { chaveDaColuna, chaveDoQueEsperaODono } from './chegada-do-dono';
 import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { AlignLeft, CheckSquare, Plus, RefreshCw, Search } from 'lucide-react';
@@ -10,6 +13,7 @@ import { useEntregasDoQuadro } from '../entregas/useEntregasDoQuadro';
 import { escalaDoElemento, paraPixelsCss } from '../escala-da-tela';
 import { gsap } from '../motion';
 import { apiQuadro, nomeDoDono } from './api-quadro';
+import { SetasDoTrilho } from './SetasDoTrilho';
 import { CartaoDetalhe } from './CartaoDetalhe';
 import { aplicarMovimentoLocal, cardsDaColuna, colunaRecolhida, corDoNome, indiceDeInsercao, inicial, proximoVizinho, resumoDoQuadro, tempoRelativo } from './logica';
 import './quadro.css';
@@ -61,10 +65,15 @@ function reduzirMovimento() {
   return typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
-export function Quadro({ projectId, atualizadoEm, aoAtualizarEntrega }: {
+export function Quadro({ projectId, atualizadoEm, aoAtualizarEntrega, aoMudarCartoes, chegadaDoDono = false, aoAtenderChegadaDoDono }: {
   projectId: string;
   atualizadoEm: unknown;
   aoAtualizarEntrega: () => void;
+  /** Um cartão foi criado, movido, editado ou excluído: quem mostra a contagem "depende de você" recarrega. */
+  aoMudarCartoes?: () => void;
+  /** "Ver no Quadro", da Visão geral: acende o primeiro cartão que depende do dono (ou a coluna Pendente). */
+  chegadaDoDono?: boolean;
+  aoAtenderChegadaDoDono?: () => void;
 }) {
   const [cards, setCards] = useState<BoardCard[] | undefined>(undefined);
   const [erro, setErro] = useState('');
@@ -87,6 +96,12 @@ export function Quadro({ projectId, atualizadoEm, aoAtualizarEntrega }: {
   const ignorarClique = useRef(false);
   const estadoFlip = useRef<Flip.FlipState | null>(null);
   const focoPendente = useRef<string | null>(null);
+  // O cartão movido pelo painel só aparece à vista quando o painel fecha: a chegada espera por isso.
+  const chegadaAoFechar = useRef<string | null>(null);
+  const cardsRef = useRef(cards);
+  cardsRef.current = cards;
+  const abertoRef = useRef(aberto);
+  abertoRef.current = aberto;
   const colunasAnteriores = useRef<Map<string, BoardColumnId> | null>(null);
   const autoRolagem = useRef<number | null>(null);
 
@@ -140,6 +155,13 @@ export function Quadro({ projectId, atualizadoEm, aoAtualizarEntrega }: {
     return () => controller.abort();
   }, [carregar, atualizadoEm]);
 
+  const haQuadro = cards !== undefined;
+  useEffect(() => {
+    if (!chegadaDoDono || !haQuadro) return;
+    aoAtenderChegadaDoDono?.();
+    irPara({ chave: chaveDoQueEsperaODono(cardsRef.current ?? []) });
+  }, [chegadaDoDono, haQuadro]);
+
   // Altura: o trilho desce até o fim da janela, e cada coluna rola por dentro.
   // Remede quando a janela muda ou quando algo acima do quadro cresce (ex.: diretriz expandida).
   const temQuadro = cards !== undefined;
@@ -180,7 +202,7 @@ export function Quadro({ projectId, atualizadoEm, aoAtualizarEntrega }: {
   }, [carregar, mostrarAviso]);
 
   // Movimento: antecipa na tela (com Flip), confirma no servidor e só então comemora.
-  const mover = useCallback(async (cardId: string, coluna: BoardColumnId, beforeCardId: string | null, aviso?: string) => {
+  const mover = useCallback(async (cardId: string, coluna: BoardColumnId, beforeCardId: string | null, aviso?: string, chegada?: 'agora' | 'ao-fechar') => {
     if (!cards) return;
     const cartao = cards.find(c => c.id === cardId);
     if (!cartao) return;
@@ -195,11 +217,15 @@ export function Quadro({ projectId, atualizadoEm, aoAtualizarEntrega }: {
       setCards(atual => atual?.map(c => (c.id === salvo.id ? salvo : c)));
       colunasAnteriores.current?.set(salvo.id, salvo.column);
       setAgora(new Date());
+      aoMudarCartoes?.();
       if (salvo.column === 'done' && antes !== 'done') comemorar([salvo.id]);
+      if (chegada === 'ao-fechar' && abertoRef.current === salvo.id) chegadaAoFechar.current = salvo.id;
+      // Espera a animação de troca de lugar acabar: o destino só vale depois de parar.
+      else if (chegada) window.setTimeout(() => irPara({ chave: chaveDaChegada('cartao', salvo.id), semFoco: true }), reduzirMovimento() ? 0 : 500);
     } catch (err) {
       tratarFalha(err);
     }
-  }, [cards, projectId, comemorar, tratarFalha]);
+  }, [cards, projectId, comemorar, tratarFalha, aoMudarCartoes]);
 
   useLayoutEffect(() => {
     if (estadoFlip.current && trilho.current) {
@@ -361,13 +387,13 @@ export function Quadro({ projectId, atualizadoEm, aoAtualizarEntrega }: {
       if (!destino) return;
       evento.preventDefault();
       focoPendente.current = cartao.id;
-      void mover(cartao.id, destino, null, `Movido para ${NOME_DA_COLUNA[destino]}`);
+      void mover(cartao.id, destino, null, `Movido para ${NOME_DA_COLUNA[destino]}`, 'agora');
     } else if (evento.key === 'ArrowUp' || evento.key === 'ArrowDown') {
       const vizinho = proximoVizinho(cardsDaColuna(cards, cartao.column), cartao.id, evento.key === 'ArrowUp' ? 'acima' : 'abaixo');
       if (!vizinho) return;
       evento.preventDefault();
       focoPendente.current = cartao.id;
-      void mover(cartao.id, cartao.column, vizinho.beforeCardId, evento.key === 'ArrowUp' ? 'Movido para cima' : 'Movido para baixo');
+      void mover(cartao.id, cartao.column, vizinho.beforeCardId, evento.key === 'ArrowUp' ? 'Movido para cima' : 'Movido para baixo', 'agora');
     }
   };
 
@@ -382,6 +408,10 @@ export function Quadro({ projectId, atualizadoEm, aoAtualizarEntrega }: {
       setCards(atual => [...(atual ?? []), novo]);
       setAgora(new Date());
       setAnuncio(`Cartão criado em ${NOME_DA_COLUNA[coluna]}`);
+      aoMudarCartoes?.();
+      // Um filtro ligado esconderia o cartão novo; o foco fica no campo de título para o dono seguir escrevendo.
+      if (filtro.trim()) setFiltro('');
+      irPara({ chave: chaveDaChegada('cartao', novo.id), semFoco: true });
       return true;
     } catch (err) {
       mostrarAviso(errorText(err));
@@ -416,7 +446,7 @@ export function Quadro({ projectId, atualizadoEm, aoAtualizarEntrega }: {
             <RefreshCw size={15} strokeWidth={1.6} />
           </button>
           <button type="button" className="button primary" onClick={() => setCompondoEm('pending')}>
-            <Plus size={15} />Novo cartão
+            <Plus size={15} />Novo cartão em Pendente
           </button>
         </div>
       </div>
@@ -437,6 +467,7 @@ export function Quadro({ projectId, atualizadoEm, aoAtualizarEntrega }: {
                 <button
                   key={coluna.id}
                   type="button"
+                  data-chegada={chaveDaColuna(coluna.id)}
                   className="quadro-coluna-faixa"
                   style={estilo}
                   onClick={() => setExpandidas(prev => new Set([...prev, coluna.id]))}
@@ -451,11 +482,11 @@ export function Quadro({ projectId, atualizadoEm, aoAtualizarEntrega }: {
             const ehAlvo = arrasto?.colunaAlvo === coluna.id;
             const semArrastado = daColuna.filter(c => c.id !== arrasto?.cardId);
             return (
-              <section key={coluna.id} className="quadro-coluna" data-coluna={coluna.id} data-alvo={ehAlvo ? '' : undefined} style={estilo} aria-labelledby={`quadro-coluna-${coluna.id}`}>
+              <section key={coluna.id} className="quadro-coluna" data-coluna={coluna.id} data-chegada={chaveDaColuna(coluna.id)} data-alvo={ehAlvo ? '' : undefined} style={estilo} aria-labelledby={`quadro-coluna-${coluna.id}`}>
                 <div className="quadro-coluna-nucleo">
                   <header className="quadro-coluna-topo">
                     <span className="quadro-coluna-ponto" aria-hidden="true" />
-                    <h3 id={`quadro-coluna-${coluna.id}`}>{coluna.name}</h3>
+                    <h3 id={`quadro-coluna-${coluna.id}`} title={coluna.name}>{coluna.name}</h3>
                     <span className="quadro-coluna-contagem" aria-label={`${daColuna.length} ${daColuna.length === 1 ? 'cartão' : 'cartões'}`}>{daColuna.length}</span>
                     <button type="button" className="icon-button quadro-coluna-adicionar" aria-label={`Adicionar cartão em ${coluna.name}`} onClick={() => setCompondoEm(coluna.id)}>
                       <Plus size={15} strokeWidth={1.6} />
@@ -508,6 +539,7 @@ export function Quadro({ projectId, atualizadoEm, aoAtualizarEntrega }: {
         </div>
       )}
 
+      <SetasDoTrilho trilho={trilho} ativo={cards !== undefined} />
       <p className="quadro-anuncio" aria-live="polite">{anuncio}</p>
 
       {cartaoArrastado && createPortal(
@@ -524,16 +556,23 @@ export function Quadro({ projectId, atualizadoEm, aoAtualizarEntrega }: {
           projectId={projectId}
           cartao={cartaoAberto}
           corDaColuna={COR_DA_COLUNA[cartaoAberto.column]}
-          onFechar={() => setAberto(null)}
+          onFechar={() => {
+            setAberto(null);
+            const chegou = chegadaAoFechar.current;
+            chegadaAoFechar.current = null;
+            if (chegou) window.setTimeout(() => irPara({ chave: chaveDaChegada('cartao', chegou) }), 0);
+          }}
           onAtualizado={salvo => {
             setCards(atual => atual?.map(c => (c.id === salvo.id ? salvo : c)));
             setAgora(new Date());
+            aoMudarCartoes?.();
           }}
-          onMover={(coluna) => mover(cartaoAberto.id, coluna, null, `Movido para ${NOME_DA_COLUNA[coluna]}`)}
+          onMover={(coluna) => mover(cartaoAberto.id, coluna, null, `Movido para ${NOME_DA_COLUNA[coluna]}`, 'ao-fechar')}
           onExcluido={() => {
             setCards(atual => atual?.filter(c => c.id !== cartaoAberto.id));
             setAberto(null);
             setAnuncio('Cartão excluído');
+            aoMudarCartoes?.();
           }}
           onConflito={() => tratarFalha(new ApiError('conflito', 409, 'version_conflict'))}
           aoAtualizarEntrega={entrega => { entregas.receber(entrega); aoAtualizarEntrega(); }}
@@ -591,6 +630,7 @@ function CartaoFace({ cartao, entrega, agora, oculto, arrastando, comemorando, f
       type="button"
       className="quadro-cartao"
       data-card-id={fantasma ? undefined : cartao.id}
+      data-chegada={fantasma ? undefined : chaveDaChegada('cartao', cartao.id)}
       data-flip-id={fantasma ? undefined : cartao.id}
       data-arrastando={arrastando ? '' : undefined}
       data-comemoracao={comemorando ? 'completo' : undefined}

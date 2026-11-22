@@ -21,6 +21,7 @@ import {
   X,
   Zap,
 } from 'lucide-react';
+import { destinoDoNo, type DestinoDoNo } from './chegada/chegada';
 import type {
   DecisionConflict,
   DecisionConflictReport,
@@ -55,12 +56,14 @@ const EDGE_KIND_LABEL: Record<string, string> = {
 export interface GraphPanelProps {
   projectId: string;
   agent: string;
-  onNavigateTab?: (tab: string) => void;
+  onNavigateTab?: (tab: string, destino?: DestinoDoNo) => void;
   onIssuesCountChange?: (count: number) => void;
 }
 
 export function GraphPanel({ projectId, agent, onNavigateTab, onIssuesCountChange }: GraphPanelProps) {
   const notify = useFeedback();
+  const irParaDecisao = (id: string | undefined) => { const destino = id ? destinoDoNo('decision', id) : null; if (onNavigateTab && destino) onNavigateTab(destino.aba, destino); };
+  const irParaDocumento = (id: string) => { const destino = destinoDoNo('content', id); if (onNavigateTab && destino) onNavigateTab(destino.aba, destino); };
   const [activeSubView, setActiveSubView] = useState<'visual' | 'conflicts' | 'stale'>('visual');
   const [typeFilter, setTypeFilter] = useState<'all' | GraphNodeType>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -192,11 +195,11 @@ export function GraphPanel({ projectId, agent, onNavigateTab, onIssuesCountChang
         <div className="graph-header-title">
           <div className="eyebrow">
             <Network size={14} />
-            <span>TOPOLOGIA & INTELIGÊNCIA RELACIONAL</span>
+            <span>COMO AS COISAS SE LIGAM</span>
           </div>
-          <h2>Grafo de Linhagem, Decisões & Dependências</h2>
+          <h2>Como as coisas se ligam</h2>
           <p className="subtle-text">
-            Mapeamento vivo de causas, efeitos e integridade semântica entre decisões canônicas, biblioteca, detalhes de tarefas e bloqueios.
+            O que depende de quê entre decisões, documentos, tarefas e bloqueios, e onde algo se contradiz ou ficou velho.
           </p>
         </div>
         <div className="graph-header-actions">
@@ -205,7 +208,7 @@ export function GraphPanel({ projectId, agent, onNavigateTab, onIssuesCountChang
             className="button secondary"
             onClick={() => void loadData()}
             disabled={loading}
-            title="Recarregar grafo e diagnósticos"
+            title="Recarregar o mapa e as verificações"
           >
             <RefreshCw size={14} className={loading ? 'spin' : ''} />
             <span>Atualizar</span>
@@ -218,7 +221,7 @@ export function GraphPanel({ projectId, agent, onNavigateTab, onIssuesCountChang
         <div className="graph-kpi-card">
           <div className="graph-kpi-label">
             <Layers size={15} />
-            <span>Total de Nós</span>
+            <span>Itens</span>
           </div>
           <div className="graph-kpi-val">{graph?.stats.totalNodes ?? 0}</div>
           <div className="graph-kpi-breakdown">
@@ -235,11 +238,11 @@ export function GraphPanel({ projectId, agent, onNavigateTab, onIssuesCountChang
         <div className="graph-kpi-card">
           <div className="graph-kpi-label">
             <Share2 size={15} />
-            <span>Relações Ativas</span>
+            <span>Ligações entre itens</span>
           </div>
           <div className="graph-kpi-val">{graph?.stats.totalEdges ?? 0}</div>
           <div className="graph-kpi-breakdown">
-            <span>Conexões estruturais, dependências e linhagem</span>
+            <span>Quem depende de quem</span>
           </div>
         </div>
 
@@ -251,7 +254,7 @@ export function GraphPanel({ projectId, agent, onNavigateTab, onIssuesCountChang
         >
           <div className="graph-kpi-label">
             <ShieldAlert size={15} className={totalConflictsCount > 0 ? 'alert-icon' : ''} />
-            <span>Conflitos de Decisão</span>
+            <span>Decisões em conflito</span>
           </div>
           <div className="graph-kpi-val">
             {totalConflictsCount}
@@ -278,7 +281,7 @@ export function GraphPanel({ projectId, agent, onNavigateTab, onIssuesCountChang
         >
           <div className="graph-kpi-label">
             <AlertTriangle size={15} className={totalStaleCount > 0 ? 'warning-icon' : ''} />
-            <span>Conteúdos Desatualizados</span>
+            <span>Documentos desatualizados</span>
           </div>
           <div className="graph-kpi-val">
             {totalStaleCount}
@@ -305,7 +308,7 @@ export function GraphPanel({ projectId, agent, onNavigateTab, onIssuesCountChang
             onClick={() => setActiveSubView('visual')}
           >
             <Network size={14} />
-            <span>Mapa Topológico</span>
+            <span>Mapa</span>
           </button>
           <button
             type="button"
@@ -313,7 +316,7 @@ export function GraphPanel({ projectId, agent, onNavigateTab, onIssuesCountChang
             onClick={() => setActiveSubView('conflicts')}
           >
             <ShieldAlert size={14} />
-            <span>Inteligência de Conflitos</span>
+            <span>Conflitos</span>
             {totalConflictsCount > 0 && (
               <span className="subnav-badge alert">{totalConflictsCount}</span>
             )}
@@ -324,7 +327,7 @@ export function GraphPanel({ projectId, agent, onNavigateTab, onIssuesCountChang
             onClick={() => setActiveSubView('stale')}
           >
             <AlertCircle size={14} />
-            <span>Frescor de Biblioteca</span>
+            <span>Documentos em dia</span>
             {totalStaleCount > 0 && (
               <span className="subnav-badge warning">{totalStaleCount}</span>
             )}
@@ -376,7 +379,7 @@ export function GraphPanel({ projectId, agent, onNavigateTab, onIssuesCountChang
               <Search size={13} />
               <input
                 type="text"
-                placeholder="Filtrar nós por título..."
+                placeholder="Filtrar itens por título..."
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
               />
@@ -415,7 +418,7 @@ export function GraphPanel({ projectId, agent, onNavigateTab, onIssuesCountChang
             {loading && !graph ? (
               <div className="loading" role="status">
                 <RefreshCw size={17} />
-                <span>Construindo grafo de conhecimento e dependências…</span>
+                <span>Montando o mapa de ligações…</span>
               </div>
             ) : filteredNodes.length === 0 ? (
               <EmptyNote>
@@ -423,14 +426,14 @@ export function GraphPanel({ projectId, agent, onNavigateTab, onIssuesCountChang
                 <p>
                   Nenhum nó encontrado para os filtros selecionados.
                   <br />
-                  <span>Altere os filtros acima para visualizar os elementos do grafo.</span>
+                  <span>Mude os filtros acima para ver os itens.</span>
                 </p>
               </EmptyNote>
             ) : (
               <div className="graph-lanes-grid">
                 {/* Lane 1: Decisões */}
                 <GraphLane
-                  title="Decisões Canônicas"
+                  title="Decisões"
                   icon={<Flag size={15} />}
                   type="decision"
                   count={filteredNodes.filter(n => n.type === 'decision').length}
@@ -443,7 +446,7 @@ export function GraphPanel({ projectId, agent, onNavigateTab, onIssuesCountChang
 
                 {/* Lane 2: Biblioteca */}
                 <GraphLane
-                  title="Biblioteca & Documentos"
+                  title="Biblioteca"
                   icon={<FileText size={15} />}
                   type="content"
                   count={filteredNodes.filter(n => n.type === 'content').length}
@@ -456,7 +459,7 @@ export function GraphPanel({ projectId, agent, onNavigateTab, onIssuesCountChang
 
                 {/* Lane 3: Tarefas & Contratos */}
                 <GraphLane
-                  title="Tarefas & Detalhes"
+                  title="Tarefas"
                   icon={<ListTodo size={15} />}
                   type="task"
                   count={filteredNodes.filter(n => n.type === 'task').length}
@@ -469,7 +472,7 @@ export function GraphPanel({ projectId, agent, onNavigateTab, onIssuesCountChang
 
                 {/* Lane 4: Bloqueios */}
                 <GraphLane
-                  title="Bloqueios & Incertezas"
+                  title="Bloqueios"
                   icon={<AlertTriangle size={15} />}
                   type="blocker"
                   count={filteredNodes.filter(n => n.type === 'blocker').length}
@@ -523,20 +526,20 @@ export function GraphPanel({ projectId, agent, onNavigateTab, onIssuesCountChang
                 {/* Immediate connections summary */}
                 <div className="inspector-connections">
                   <span className="inspector-section-label">
-                    <Share2 size={13} /> Conexões Imediatas
+                    <Share2 size={13} /> Ligações diretas
                   </span>
                   <div className="connections-pills">
                     <span className="conn-pill incoming">
-                      {selectedNodeEdges.incoming.length} Precedente(s)
+                      {selectedNodeEdges.incoming.length} de que depende
                     </span>
                     <span className="conn-pill outgoing">
-                      {selectedNodeEdges.outgoing.length} Sucessor(es)
+                      {selectedNodeEdges.outgoing.length} que dependem dele
                     </span>
                   </div>
 
                   {selectedNodeEdges.incoming.length > 0 && (
                     <div className="conn-list">
-                      <small>Entradas (Precedentes):</small>
+                      <small>Do que isto depende:</small>
                       {selectedNodeEdges.incoming.map(edge => {
                         const source = graph?.nodes.find(n => n.id === edge.fromNodeId);
                         return (
@@ -554,7 +557,7 @@ export function GraphPanel({ projectId, agent, onNavigateTab, onIssuesCountChang
 
                   {selectedNodeEdges.outgoing.length > 0 && (
                     <div className="conn-list">
-                      <small>Saídas (Impacto direto):</small>
+                      <small>O que depende disto:</small>
                       {selectedNodeEdges.outgoing.map(edge => {
                         const target = graph?.nodes.find(n => n.id === edge.toNodeId);
                         return (
@@ -575,7 +578,7 @@ export function GraphPanel({ projectId, agent, onNavigateTab, onIssuesCountChang
                 <div className="inspector-impact-section">
                   <div className="impact-header-row">
                     <span className="inspector-section-label">
-                      <Zap size={14} /> Análise de Alcance e Impacto
+                      <Zap size={14} /> O que mudaria se este item mudasse
                     </span>
                     {impactReport && (
                       <span className={`risk-badge risk-${impactReport.riskLevel}`}>
@@ -587,7 +590,7 @@ export function GraphPanel({ projectId, agent, onNavigateTab, onIssuesCountChang
                   {impactLoading ? (
                     <div className="impact-loading">
                       <RefreshCw size={14} className="spin" />
-                      <span>Propagando alcance topológico…</span>
+                      <span>Calculando o que seria afetado…</span>
                     </div>
                   ) : impactError ? (
                     <p className="impact-error">{impactError}</p>
@@ -608,17 +611,17 @@ export function GraphPanel({ projectId, agent, onNavigateTab, onIssuesCountChang
                         </div>
                         <div className="impact-chip">
                           <strong>{impactReport.impactSummary.contentImpacted}</strong>
-                          <span>Docs</span>
+                          <span>Documentos</span>
                         </div>
                       </div>
 
                       {impactReport.impactedEntities.length === 0 ? (
                         <p className="impact-empty-note">
-                          Nenhum nó a jusante foi afetado por este elemento. A alteração possui raio de impacto isolado.
+                          Nada mais depende deste item: mudar aqui não afeta outros itens.
                         </p>
                       ) : (
                         <div className="impacted-entities-list">
-                          <small>Cadeia de propagação por distância topológica:</small>
+                          <small>O que seria afetado, do mais perto ao mais longe:</small>
                           {impactReport.impactedEntities.map(ent => (
                             <div key={ent.id} className={`impacted-card sev-${ent.severity}`}>
                               <div className="impacted-card-head">
@@ -650,10 +653,8 @@ export function GraphPanel({ projectId, agent, onNavigateTab, onIssuesCountChang
                       type="button"
                       className="button secondary"
                       onClick={() => {
-                        if (selectedNode.type === 'decision') onNavigateTab('decisions');
-                        else if (selectedNode.type === 'content') onNavigateTab('library');
-                        else if (selectedNode.type === 'task') onNavigateTab('overview');
-                        else if (selectedNode.type === 'blocker') onNavigateTab('overview');
+                        const destino = destinoDoNo(selectedNode.type, selectedNode.id);
+                        if (destino) onNavigateTab(destino.aba, destino);
                       }}
                     >
                       <ExternalLink size={13} />
@@ -665,8 +666,8 @@ export function GraphPanel({ projectId, agent, onNavigateTab, onIssuesCountChang
             ) : (
               <div className="inspector-empty">
                 <Network size={28} />
-                <h3>Nenhum nó selecionado</h3>
-                <p>Clique em qualquer decisão, documento, tarefa ou bloqueio para inspecionar conexões e simular o impacto a jusante.</p>
+                <h3>Nenhum item selecionado</h3>
+                <p>Clique em qualquer decisão, documento, tarefa ou bloqueio para ver o que se liga a ele e o que mudaria se ele mudasse.</p>
               </div>
             )}
           </aside>
@@ -678,7 +679,7 @@ export function GraphPanel({ projectId, agent, onNavigateTab, onIssuesCountChang
         <div className="graph-subview-panel">
           <div className="panel-heading">
             <div>
-              <h3>Diagnósticos de Conflito em Decisões</h3>
+              <h3>Decisões que se contradizem</h3>
               <p>
                 Detecção determinística de contradições diretas, sobreposições de diretivas vigentes, decisões zumbis e referências cíclicas.
               </p>
@@ -694,7 +695,7 @@ export function GraphPanel({ projectId, agent, onNavigateTab, onIssuesCountChang
               <p>
                 Nenhum conflito encontrado!
                 <br />
-                <span>Todas as decisões aceitas estão em consonância mútua e suas linhagens estão estritamente acíclicas.</span>
+                <span>As decisões vigentes não se contradizem.</span>
               </p>
             </EmptyNote>
           ) : (
@@ -719,7 +720,7 @@ export function GraphPanel({ projectId, agent, onNavigateTab, onIssuesCountChang
                   <p className="conflict-explanation">{conf.explanation}</p>
 
                   <div className="conflict-recommendation-box">
-                    <strong>Recomendação de Mitigação:</strong>
+                    <strong>O que fazer:</strong>
                     <p>{conf.recommendation}</p>
                   </div>
 
@@ -731,7 +732,7 @@ export function GraphPanel({ projectId, agent, onNavigateTab, onIssuesCountChang
                       <button
                         type="button"
                         className="text-button"
-                        onClick={() => onNavigateTab('decisions')}
+                        onClick={() => irParaDecisao(conf.decisionIds[0])}
                       >
                         Ir para Decisões <ArrowRight size={13} />
                       </button>
@@ -749,7 +750,7 @@ export function GraphPanel({ projectId, agent, onNavigateTab, onIssuesCountChang
         <div className="graph-subview-panel">
           <div className="panel-heading">
             <div>
-              <h3>Auditoria de Frescor de Conteúdo da Biblioteca</h3>
+              <h3>Documentos que podem estar velhos</h3>
               <p>
                 Documentos e especificações cuja validade foi comprometida por decisões revogadas, versões substituídas ou contradições explícitas.
               </p>
@@ -796,7 +797,7 @@ export function GraphPanel({ projectId, agent, onNavigateTab, onIssuesCountChang
                   <p className="stale-explanation">{item.explanation}</p>
 
                   <div className="stale-action-box">
-                    <strong>Ação Sugerida:</strong>
+                    <strong>O que fazer:</strong>
                     <p>{item.suggestedAction}</p>
                   </div>
 
@@ -811,7 +812,7 @@ export function GraphPanel({ projectId, agent, onNavigateTab, onIssuesCountChang
                       <button
                         type="button"
                         className="button secondary"
-                        onClick={() => onNavigateTab('library')}
+                        onClick={() => irParaDocumento(item.itemId)}
                       >
                         <ExternalLink size={12} />
                         <span>Abrir na Biblioteca</span>
@@ -865,7 +866,7 @@ function GraphLane({
 
       <div className="graph-lane-body">
         {nodes.length === 0 ? (
-          <div className="lane-empty">Nenhum nó</div>
+          <div className="lane-empty">Nenhum item</div>
         ) : (
           nodes.map(node => {
             const isSelected = node.id === selectedNodeId;
@@ -876,6 +877,7 @@ function GraphLane({
               <button
                 key={node.id}
                 type="button"
+                title={`Código interno: ${node.id}`}
                 className={`graph-node-card node-type-${node.type} ${isSelected ? 'is-selected' : ''} ${hasConflict ? 'has-conflict' : ''} ${isStale ? 'has-stale' : ''}`}
                 onClick={() => onSelectNode(node)}
               >
@@ -901,7 +903,6 @@ function GraphLane({
                 <div className="node-card-title">{node.label}</div>
 
                 <div className="node-card-footer">
-                  <span className="node-id-mono">{node.id.slice(0, 8)}</span>
                   <DateLabel value={node.createdAt} />
                 </div>
               </button>

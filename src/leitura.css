@@ -106,7 +106,6 @@
 .node-kind-badge,
 .node-status-indicator,
 .node-card-footer,
-.node-id-mono,
 .node-type-badge,
 .node-meta-grid span,
 .node-meta-grid strong,
@@ -431,7 +430,6 @@ kbd,
 .inspector-title {
   color: #f8fafc !important;
 }
-.node-id-mono,
 .impacted-dist {
   color: #a4a29c !important;
 }

@@ -1,6 +1,6 @@
 import { useRef } from 'react';
 import { gsap, useGSAP } from './motion';
-export function AnimatedTabs({ value, onChange, items }: { value: string; onChange: (id: string) => void; items: { id: string; label: string; count?: number }[] }) {
+export function AnimatedTabs({ value, onChange, items }: { value: string; onChange: (id: string) => void; items: { id: string; label: string; count?: number; pede?: boolean }[] }) {
   const root = useRef<HTMLDivElement>(null);
   const first = useRef(true);
   useGSAP((_context, contextSafe) => {
@@ -24,7 +24,7 @@ export function AnimatedTabs({ value, onChange, items }: { value: string; onChan
       else if (event.key === 'End') target = items.length - 1;
       else return;
       event.preventDefault(); onChange(items[target].id); root.current?.querySelectorAll<HTMLButtonElement>('[role=tab]')[target].focus();
-    }}>{item.label}{item.count !== undefined && <span>{item.count}</span>}</button>)}
+    }}>{item.label}{item.count !== undefined && <span className={item.pede ? 'tab-pede' : undefined}>{item.count}</span>}</button>)}
     <span className="tab-indicator" aria-hidden="true" style={{ width: 1 }}/>
   </div>;
 }

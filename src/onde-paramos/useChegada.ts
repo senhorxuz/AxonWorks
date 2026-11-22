@@ -1,11 +1,10 @@
 import { useCallback, useEffect, useState, type RefObject } from 'react';
 import type { GrupoFalta } from '../../shared/carta';
-import { duracaoDaChegada, rolagemParaUmTerco } from './chegada';
+import { duracaoDaChegada, rolagemParaUmTerco } from '../chegada/chegada';
+import { movimentoReduzido } from '../chegada/irPara';
 
 /** Para onde um clique leva: uma linha de "O que foi feito" ou um grupo de "O que falta". */
 export type Destino = { tipo: 'coisa'; chave: string } | { tipo: 'grupo'; grupo: GrupoFalta };
-
-const movimentoReduzido = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 function elementoDoDestino(raiz: HTMLElement, destino: Destino): HTMLElement | null {
   const seletor = destino.tipo === 'coisa' ? `[data-linha="${CSS.escape(destino.chave)}"]` : `.carta-grupo[data-grupo="${destino.grupo}"]`;

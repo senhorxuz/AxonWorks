@@ -71,7 +71,7 @@ export function mensagemDaEscrita(codigo = ''): string {
 const novaRegra = { titulo: 'Nova regra', campo: 'Texto da regra', botao: 'Salvar regra', sucesso: 'Regra salva.' }
 const novaVerificacao = { titulo: 'Nova verificação', campo: 'O que precisa ser conferido', botao: 'Salvar verificação', sucesso: 'Verificação salva.' }
 const nomes = { erro: 'erro', regra: 'regra', verificacao: 'verificação' }
-const mensagensDeRetirada = { erro: 'Erro aposentado.', regra: 'Regra desfeita.', verificacao: 'Verificação desfeita.' }
+const mensagensDeRetirada = { erro: 'Erro aposentado.', regra: 'Regra aposentada.', verificacao: 'Verificação aposentada.' }
 
 export function rotulosDaEdicao(acao: AcaoSobreLicao) {
   if (acao.tipo === 'criar') return acao.categoria === 'regra' ? novaRegra : novaVerificacao
@@ -80,6 +80,23 @@ export function rotulosDaEdicao(acao: AcaoSobreLicao) {
     const campo = tipo === 'regra' ? novaRegra.campo : novaVerificacao.campo
     return { titulo: `Corrigir ${nomes[tipo]}`, campo, botao: 'Salvar correção', sucesso: 'Correção salva.' }
   }
-  const titulo = tipo === 'erro' ? 'Aposentar erro' : `Desfazer ${nomes[tipo]}`
+  const titulo = `Aposentar ${nomes[tipo]}`
   return { titulo, campo: 'Motivo', botao: titulo, sucesso: mensagensDeRetirada[tipo] }
+}
+
+function palavrasDe(texto: string): string[] {
+  return texto.match(/[\p{L}\p{N}]+/gu) ?? []
+}
+
+/** Mesma palavra sem contar maiúscula nem acento ("Página" = "pagina"). */
+const mesmaPalavra = new Intl.Collator('pt-BR', { sensitivity: 'base' })
+
+/**
+ * A frase do dono repete o título da orientação quando TODAS as palavras dela já estão no título (igual, só mais
+ * curta, ou as mesmas palavras em outra ordem): mostrar de novo é ruído. Qualquer palavra nova vale mostrar, em
+ * especial uma negação ("não", "nunca", "jamais") que o título não tem: ela vira o sentido da regra do avesso.
+ */
+export function fraseRepetida(titulo: string, frase: string): boolean {
+  const doTitulo = palavrasDe(titulo)
+  return palavrasDe(frase).every(palavra => doTitulo.some(outra => mesmaPalavra.compare(palavra, outra) === 0))
 }

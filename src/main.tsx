@@ -14,6 +14,8 @@ import './recompensas.css';
 import './tato.css';
 import './brasa.css';
 import './tela-grande.css';
+import './chegada/chegada.css';
+import './ux-dono.css';
 // O servidor que o atalho liga se desliga sozinho sem uso; com a aba à vista, a página avisa a cada 5 minutos.
 // Se a batida não acha o servidor (ele se desligou com a aba escondida), a faixa diz isso até uma batida dar certo.
 const avisoDeDesligamento = criarAvisoDeDesligamento();

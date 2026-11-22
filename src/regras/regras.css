@@ -11,7 +11,6 @@
 
 .regras {
   container-type: inline-size;
-  max-width: 1280px;
   padding: 4px 0 56px;
 }
 
@@ -215,6 +214,21 @@
 .regras-estado [role="alert"], .regras-aviso { color: var(--regras-alerta); }
 .regras-retorno { color: #b7edc5; }
 .regras-retorno:empty { margin: 0; padding: 0; }
+
+.regras-aviso-lixeira {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  background: #252427;
+  border: 1px solid var(--regras-fio);
+  border-radius: 7px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.regras-aviso-lixeira-texto { flex: 1 1 220px; min-width: 0; overflow-wrap: anywhere; color: var(--regras-tinta); }
 .regras-retorno:focus { outline: 2px solid var(--tato-foco); outline-offset: 3px; }
 
 .regras-dialogo {
@@ -249,3 +263,33 @@
 .regras-dialogo textarea { resize: vertical; }
 .regras-dialogo .regras-aviso { margin: 0; }
 .regras-form-acoes { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+
+/* "Em todos os projetos": cabeçalho que recolhe, contagem e busca. */
+.regras-grupo-alternar {
+  display: flex; align-items: center; gap: 8px; width: 100%; padding: 2px 0;
+  color: inherit; font: inherit; text-align: left;
+}
+.regras-grupo-alternar svg { transition: transform 0.15s; flex-shrink: 0; }
+.regras-grupo-alternar[aria-expanded="true"] svg { transform: rotate(180deg); }
+@media (prefers-reduced-motion: reduce) { .regras-grupo-alternar svg { transition: none; } }
+.regras-grupo-contagem {
+  margin-left: auto; font-size: 12px; font-weight: 600; color: var(--regras-tinta);
+  font-variant-numeric: tabular-nums; border: 1px solid var(--regras-fio); border-radius: 4px; padding: 1px 7px;
+}
+.regras-busca { display: grid; gap: 4px; margin: 8px 0 6px; font-size: 12px; color: var(--regras-tinta); }
+.regras-busca input {
+  min-height: 36px; padding: 7px 10px; font-size: 13px; color: inherit; background: transparent;
+  border: 1px solid var(--regras-fio); border-radius: 6px;
+}
+.regras-busca input:focus-visible { outline: 2px solid var(--brasa, #e8794a); outline-offset: 1px; }
+
+/* "Mandar para a lixeira" é um ícone com dica: as ações com texto (Corrigir, Aposentar) ficam em primeiro plano. */
+.regras-acao-icone {
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  padding: 0;
+  color: var(--regras-suave);
+}
+.regras-acao-icone:hover:not(:disabled) { color: var(--regras-alerta); }
+.regras-acao-icone:disabled { opacity: 0.5; cursor: not-allowed; }

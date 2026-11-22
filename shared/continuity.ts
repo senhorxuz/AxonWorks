@@ -312,6 +312,8 @@ export interface SaveCharterInput {
   body: string
   expectedRevision: number
   sourceKind?: CharterSourceKind
+  /** Quem usa a tela: uma IA (nome na barra lateral) grava `agent_report`, que vira atualização de agente a conferir; sem isso, diretriz humana. */
+  origem?: 'human_directive' | 'agent_report'
 }
 
 export interface UpdateProjectObjectiveInput {

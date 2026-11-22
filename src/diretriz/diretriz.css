@@ -1,17 +1,179 @@
-.diretriz-aviso {
-  display: grid;
-  gap: 12px;
-  margin: 0 0 18px;
-  padding: 14px 16px;
-  border: 1px solid #6d493c;
-  border-left: 3px solid #e29b7c;
-  border-radius: 8px;
-  background: #2b211e;
-  color: #f5dfd3;
-  overflow-wrap: anywhere;
+/*
+ * A aba "Diretriz": uma folha de documento (objetivo em manchete, selo com um anel por versão, índice, artigos
+ * e a linha do tempo das versões). Tudo sob .dz-folha, com classes dz-*, para não esbarrar em outras telas.
+ * Texto sempre claro sobre o fundo escuro; a brasa só onde carrega informação (vigente, destino, foco).
+ * Alguns tamanhos usam !important com seletor mais específico porque src/leitura.css força h2 e h3 no app inteiro.
+ */
+
+.dz-folha {
+  --dz-brasa: var(--brasa, #e8794a);
+  --dz-brasa-clara: var(--brasa-clara, #f6b28e);
+  --dz-tinta: #e6e2d9;
+  --dz-apagado: #8f8c86;
+  --dz-curva: cubic-bezier(0.23, 1, 0.32, 1);
+  --dz-mono: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+  position: relative;
+  isolation: isolate;
+  overflow: clip;
+  container: dz / inline-size;
+  max-width: 1680px;
+  margin: 0 auto;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 20px;
+  background: radial-gradient(70% 60% at 100% 0%, rgba(232, 121, 74, 0.08), transparent 60%), linear-gradient(180deg, #18181a, #131314);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.045), 0 30px 70px -40px rgba(0, 0, 0, 0.9);
+  color: var(--dz-tinta);
 }
 
-.diretriz-aviso p { margin: 0; }
-.diretriz-aviso .form-row-actions { flex-wrap: wrap; }
-.diretriz-status { margin-block: 0 12px; }
-.diretriz-status:empty { margin: 0; }
+/* Margem de documento: uma linha fina a 14 px da borda, como papel timbrado. */
+.dz-folha::before { content: ""; position: absolute; inset: 14px; border: 1px solid rgba(255, 255, 255, 0.035); border-radius: 12px; pointer-events: none; }
+
+.dz-alerta { margin: 20px 56px 0; }
+.dz-status { margin: 0; padding: 0 56px; font-size: 13px; color: #b3afa7; }
+.dz-status:empty { display: none; }
+.dz-status:not(:empty) { padding-top: 14px; }
+.dz-espera { display: grid; justify-items: start; gap: 16px; padding: 28px 56px 36px; }
+
+.dz-rotulo { display: flex; align-items: center; gap: 10px; margin: 0; font: 600 11px/1 var(--dz-mono); letter-spacing: 0.18em; text-transform: uppercase; color: var(--dz-apagado); }
+.dz-rotulo::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--dz-brasa); box-shadow: 0 0 10px var(--dz-brasa); }
+
+/* ------------------------------------------------------------ o alto: manchete e selo */
+.dz-cabeca { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 48px; padding: 44px 56px 36px; border-bottom: 1px solid rgba(255, 255, 255, 0.06); }
+.dz-cabeca.sem-selo { grid-template-columns: minmax(0, 1fr); }
+.dz-objetivo-titulo { margin: 22px 0 0; font-size: 13px; font-weight: 650; color: #b9b5ad; }
+.dz-lide { max-width: 34em; margin: 10px 0 0; font-size: 27px; line-height: 1.32; font-weight: 600; letter-spacing: -0.02em; color: #f3efe7; text-wrap: pretty; }
+.dz-lide-resto { max-width: 52em; margin: 14px 0 0; font-size: 15px; line-height: 1.65; color: #b3afa7; text-wrap: pretty; }
+.dz-lide-vazio { margin: 22px 0 0; font-size: 15px; color: #b3afa7; }
+
+.dz-acoes { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 28px; }
+.dz-botao { min-height: 36px; padding: 8px 16px; border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 9px; background: rgba(255, 255, 255, 0.03); font: inherit; font-size: 13px; font-weight: 600; color: #e6e2d9; cursor: pointer; transition: border-color 0.16s, background 0.16s; }
+.dz-botao:not(.principal):hover:not(:disabled) { border-color: rgba(255, 255, 255, 0.26); background: rgba(255, 255, 255, 0.06); }
+.dz-botao.principal { border-color: transparent; background-color: #e8794a; background-image: linear-gradient(180deg, #ef8a5c, #e0703f); color: #1c0e07; box-shadow: 0 8px 22px -10px rgba(232, 121, 74, 0.8); }
+.dz-botao:disabled { opacity: 0.55; cursor: not-allowed; }
+.dz-botao:focus-visible, .dz-versao:focus-visible, .dz-indice a:focus-visible { outline: 2px solid var(--dz-brasa); outline-offset: 2px; }
+
+/* O selo: um anel por versão, de dentro para fora; o anel vigente em brasa. */
+.dz-selo-caixa { display: grid; justify-items: center; align-content: start; gap: 14px; }
+.dz-selo { width: 220px; height: 220px; overflow: visible; }
+.dz-anel { fill: none; stroke: #e6e2d9; stroke-width: 0.55; opacity: 0.5; transition: opacity 0.2s, stroke 0.2s; }
+.dz-anel.vigente { stroke: var(--dz-brasa); opacity: 0.95; stroke-width: 0.7; filter: drop-shadow(0 0 3px rgba(232, 121, 74, 0.55)); }
+.dz-anel.foco { opacity: 0.9; stroke: #fff; }
+.dz-centro-n { font: 600 30px/1 var(--fonte-ui, "Manrope Variable", "Segoe UI", system-ui, sans-serif); fill: #f3efe7; text-anchor: middle; dominant-baseline: central; letter-spacing: -0.02em; }
+.dz-centro-r { font: 600 11px/1 var(--dz-mono); fill: var(--dz-apagado); text-anchor: middle; letter-spacing: 0.14em; }
+.dz-selo-legenda { max-width: 260px; margin: 0; font-size: 12.5px; line-height: 1.55; color: var(--dz-apagado); text-align: center; }
+.dz-selo-legenda b { color: #d6d2ca; font-weight: 600; }
+.dz-estado { display: inline-flex; align-items: center; gap: 7px; padding: 5px 11px; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 999px; font-size: 12px; color: #c9c5bd; }
+.dz-estado::before { content: "✓"; font: 12px/1 var(--dz-mono); color: var(--dz-brasa-clara); }
+.dz-estado.pendente { border-color: rgba(232, 121, 74, 0.45); color: var(--dz-brasa-clara); }
+.dz-estado.pendente::before { content: "●"; color: var(--dz-brasa); }
+
+/* Faixas: uma IA atualizou; ou "você está vendo uma versão antiga". */
+.dz-faixa { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin: 22px 56px 0; padding: 12px 16px; border-left: 2px solid #d6a35e; border-radius: 0 10px 10px 0; background: rgba(214, 163, 94, 0.08); font-size: 13.5px; line-height: 1.55; color: #e6d6b8; overflow-wrap: anywhere; }
+.dz-faixa-ia { border-left-color: var(--dz-brasa); background: rgba(232, 121, 74, 0.08); color: #f3d8c7; }
+
+/* ------------------------------------------------------------ o corpo: índice e artigos */
+.dz-corpo { display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 48px; padding: 36px 56px 48px; }
+.dz-indice { position: sticky; top: 24px; align-self: start; }
+.dz-folha .dz-indice h3, .dz-folha .dz-versoes h3 { margin: 0 0 12px; font: 600 11px/1 var(--dz-mono) !important; letter-spacing: 0.16em; text-transform: uppercase; color: var(--dz-apagado); }
+.dz-indice ol { margin: 0; padding: 0; list-style: none; }
+.dz-indice a { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 6px; padding: 7px 8px; border-radius: 8px; font-size: 13px; line-height: 1.4; color: #b3afa7; text-decoration: none; cursor: pointer; }
+.dz-indice-num { font: 400 11px/1.7 var(--dz-mono); color: var(--dz-apagado); }
+.dz-indice a:hover, .dz-indice a.ativo { background: rgba(255, 255, 255, 0.04); color: #fff; }
+.dz-indice a.ativo .dz-indice-num { color: var(--dz-brasa); }
+
+.dz-artigos { columns: 2; column-gap: 22px; }
+.dz-artigos > .dz-artigo { break-inside: avoid; margin-bottom: 22px; }
+.dz-artigo { position: relative; padding: 24px 26px 22px; border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 14px; background: rgba(255, 255, 255, 0.015); scroll-margin-top: 24px; }
+.dz-artigo:focus-visible { outline: 2px solid var(--dz-brasa); outline-offset: 2px; }
+.dz-artigo-num { position: absolute; top: 22px; right: 24px; font: 400 11px/1 var(--dz-mono); color: var(--dz-apagado); letter-spacing: 0.1em; }
+.dz-folha .dz-artigo h3 { margin: 0 56px 14px 0; font-size: 16px !important; font-weight: 650; letter-spacing: -0.01em; color: #f0ece4; }
+.dz-artigo ul { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.dz-artigo li { display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: 8px; font-size: 14px; line-height: 1.6; color: #c9c5bd; text-wrap: pretty; overflow-wrap: anywhere; }
+.dz-artigo li::before { content: var(--dz-marca, "—"); font: 13px/1.75 var(--dz-mono); color: var(--dz-cor-marca, #8f8c86); text-align: center; }
+.dz-artigo[data-tom="nunca"] { --dz-marca: "✕"; --dz-cor-marca: #e0645f; }
+.dz-artigo[data-tom="pronto"] { --dz-marca: "✓"; --dz-cor-marca: var(--dz-brasa-clara); }
+.dz-artigo[data-tom="risco"] { --dz-marca: "△"; --dz-cor-marca: #d6a35e; }
+.dz-artigo[data-tom="como"] { --dz-marca: "→"; --dz-cor-marca: #a8a49c; }
+.dz-artigo p { margin: 0; font-size: 14px; line-height: 1.65; color: #c9c5bd; white-space: pre-line; overflow-wrap: anywhere; }
+
+/* ------------------------------------------------------------ versões */
+.dz-versoes { padding: 26px 56px 34px; border-top: 1px solid rgba(255, 255, 255, 0.06); }
+.dz-linha-do-tempo { position: relative; display: flex; overflow-x: auto; padding: 4px 4px 8px; }
+.dz-versao { position: relative; display: grid; align-content: start; gap: 4px; min-width: 230px; min-height: 0; padding: 0 22px 0 0; border: 0; border-radius: 6px; background: none; box-shadow: none; text-align: left; font: inherit; color: inherit; cursor: pointer; }
+.dz-versao::before { content: ""; position: absolute; left: 7px; right: 0; top: 7px; height: 1px; background: rgba(255, 255, 255, 0.12); }
+.dz-versao:last-child::before { display: none; }
+.dz-ponto { position: relative; z-index: 1; width: 15px; height: 15px; border: 1px solid rgba(255, 255, 255, 0.3); border-radius: 50%; background: #151516; }
+.dz-versao.vigente .dz-ponto { border-color: var(--dz-brasa); background: var(--dz-brasa); box-shadow: 0 0 12px rgba(232, 121, 74, 0.7); }
+.dz-versao.vendo .dz-ponto { border-color: #fff; }
+.dz-versao b { margin-top: 8px; font-size: 13px; font-weight: 650; color: #e6e2d9; }
+.dz-versao span { font-size: 12px; color: var(--dz-apagado); }
+.dz-versao:hover b { color: #fff; }
+
+/* ------------------------------------------------------------ editar */
+.dz-editor { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 28px; padding: 32px 56px 40px; }
+.dz-editor label { display: flex; flex-direction: column; gap: 8px; font-size: 13px; font-weight: 650; color: #d6d2ca; }
+.dz-editor textarea { display: block; width: 100%; min-height: 560px; padding: 18px; border: 1px solid rgba(255, 255, 255, 0.18); border-radius: 12px; background: #101011; font: 14px/1.7 var(--dz-mono); color: #e6e2d9; resize: vertical; }
+.dz-editor textarea:focus { outline: 2px solid var(--dz-brasa); outline-offset: 1px; }
+.dz-dica { font-size: 12.5px; font-weight: 400; color: var(--dz-apagado); }
+.dz-ao-vivo { display: grid; align-content: start; gap: 14px; min-width: 0; padding: 18px; border: 1px dashed rgba(255, 255, 255, 0.1); border-radius: 12px; }
+.dz-ao-vivo .dz-artigos { columns: 1; }
+.dz-editor .dz-acoes { grid-column: 1 / -1; margin-top: 0; }
+
+/* O destaque de chegada é o comum (src/chegada/chegada.css). */
+@media (prefers-reduced-motion: reduce) {
+  .dz-botao, .dz-anel { transition: none; }
+}
+
+/* ------------------------------------------------------------ folha estreita
+   Mede a largura da própria folha, não a da janela (descontada a barra lateral, 859 px de folha são cerca de 1100 px de janela). */
+@container dz (max-width: 859px) {
+  .dz-cabeca { grid-template-columns: minmax(0, 1fr); gap: 36px; padding: 36px 32px 32px; }
+  .dz-corpo { grid-template-columns: minmax(0, 1fr); padding: 28px 32px 36px; }
+  .dz-indice { display: none; }
+  .dz-artigos { columns: 1; }
+  .dz-versoes { padding: 24px 32px 30px; }
+  .dz-editor { grid-template-columns: minmax(0, 1fr); padding: 28px 32px 36px; }
+  .dz-editor textarea { min-height: 360px; }
+  .dz-faixa, .dz-alerta { margin-inline: 32px; }
+  .dz-status { padding-inline: 32px; }
+  .dz-espera { padding-inline: 32px; }
+}
+
+@container dz (max-width: 560px) {
+  .dz-cabeca { padding: 28px 20px 28px; }
+  .dz-corpo { padding: 24px 16px 28px; }
+  .dz-artigo { padding: 20px 18px 18px; }
+  .dz-versoes, .dz-editor { padding-inline: 20px; }
+  .dz-faixa, .dz-alerta { margin-inline: 16px; }
+  .dz-status, .dz-espera { padding-inline: 20px; }
+}
+
+/* src/leitura.css fixa todo p e li em 12 px com !important: aqui os tamanhos da folha voltam. */
+.dz-folha .dz-rotulo { font-size: 12px !important; line-height: 1; }
+.dz-folha .dz-objetivo-titulo { font-size: 13px !important; line-height: 1.5; }
+.dz-folha .dz-lide { font-size: 27px !important; line-height: 1.32; }
+.dz-folha .dz-lide-resto, .dz-folha .dz-lide-vazio { font-size: 15px !important; line-height: 1.65; }
+.dz-folha .dz-selo-legenda { font-size: 12.5px !important; line-height: 1.55; }
+.dz-folha .dz-status { font-size: 13px !important; }
+.dz-folha .dz-faixa { font-size: 13.5px !important; line-height: 1.55; }
+.dz-folha .dz-artigo li { font-size: 14px !important; line-height: 1.6; }
+.dz-folha .dz-artigo p { font-size: 14px !important; line-height: 1.65; }
+
+@container dz (max-width: 560px) {
+  .dz-folha .dz-lide { font-size: 23px !important; }
+}
+
+/* ------------------------------------------------------------ resumo na Visão geral
+   Fora da folha: não herda as variáveis dela, então traz as próprias. */
+.dz-resumo { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 20px 24px; border: 1px solid #565452; border-radius: 14px; background: #2e3034; color: #e6e2d9; }
+.dz-resumo-texto { display: grid; gap: 6px; min-width: 0; }
+.dz-resumo-rotulo { display: flex; align-items: center; gap: 10px; margin: 0; font: 600 12px/1 "Cascadia Code", "SFMono-Regular", Consolas, monospace; letter-spacing: 0.18em; text-transform: uppercase; color: #bab7b1; }
+.dz-resumo-rotulo::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--brasa, #e8794a); }
+.dz-resumo-frase { margin: 4px 0 0; font-size: 17px; line-height: 1.4; font-weight: 600; color: #f3efe7; overflow-wrap: anywhere; }
+.dz-resumo-versao { margin: 0; font-size: 13px; color: #bab7b1; }
+.dz-resumo-aviso { margin: 0; font-size: 13px; font-weight: 600; color: var(--brasa-clara, #f6b28e); }
+.dz-resumo-abrir { justify-self: start; margin-top: 4px; }
+.dz-selo.compacto { flex: none; width: 64px; height: 64px; }
+.dz-selo.compacto .dz-anel { stroke-width: 1.4; }
+.dz-selo.compacto .dz-anel.vigente { stroke: var(--brasa, #e8794a); stroke-width: 1.6; filter: none; }
+@media (max-width: 520px) { .dz-resumo { padding: 16px; } }

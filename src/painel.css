@@ -331,3 +331,15 @@
   .fila-comparacao { grid-template-columns: 1fr; }
   .resumo-item-pronto-top { flex-direction: column; align-items: flex-start; gap: 4px; }
 }
+
+/* "Esperando por você": a quebra por tipo e os botões que levam a cada lugar onde se responde. */
+.resumo-ao-acordar > .resumo-secao > p.resumo-detalhe {
+  margin: 0 0 14px;
+  font-size: 12px;
+  color: #a7a49f;
+}
+.resumo-esperando-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}

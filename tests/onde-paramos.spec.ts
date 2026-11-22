@@ -179,8 +179,11 @@ test('confirmar decisão proposta pela carta muda o estado de verdade', async ({
   const aceita = lista.find((d: { id: string }) => d.id === decisao.id);
   expect(aceita.status).toBe('accepted');
   expect(aceita.acceptedBy).toBe('Dono');
-  // E o resto da tela acompanha: a aba Decisões já conta a decisão vigente.
-  await expect(page.getByRole('tab', { name: /^Decisões/ })).toContainText('1');
+  // E o resto da tela acompanha: nada mais espera o dono, então a aba Decisões perde o número em brasa,
+  // e a decisão aceita está em "Vigentes".
+  await expect(page.getByRole('tab', { name: /^Decisões/ }).locator('span')).toHaveCount(0);
+  await page.getByRole('tab', { name: /^Decisões/ }).click();
+  await expect(page.getByRole('region', { name: 'Vigentes' }).getByText('Usar Postgres')).toBeVisible();
 });
 
 test('decisão que já mudou por outro lado: avisa, atualiza e não aceita duas vezes', async ({ page, request }) => {

@@ -1,6 +1,7 @@
 import { useId, useLayoutEffect, useRef, type FormEvent } from 'react';
 import type { ItemNaLixeira } from '../../shared/lixeira';
 import { dataDaLicao } from './texto';
+import { prenderTab } from '../foco/armadilha';
 import type { useLixeira } from './useLixeira';
 
 type EstadoDaLixeira = ReturnType<typeof useLixeira>;
@@ -53,7 +54,7 @@ export function ConfirmarApagamento({ item, ocupada, erro, cancelar, confirmar }
   return <dialog className="regras-dialogo" ref={dialogo} aria-labelledby={`${id}-titulo`} aria-describedby={`${id}-descricao`} onCancel={evento => {
     evento.preventDefault();
     if (!ocupada) cancelar();
-  }}>
+  }} onKeyDown={evento => prenderTab(evento, dialogo.current)}>
     <form onSubmit={enviar}>
       <h2 id={`${id}-titulo`}>Apagar de vez</h2>
       <p className="regras-dialogo-contexto">{item.titulo}</p>

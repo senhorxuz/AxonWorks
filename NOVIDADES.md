@@ -1,5 +1,11 @@
 # Novidades da Axon
 
+## 22 de novembro de 2026 · Uma Axon que mostra onde você está
+
+**Todo clique acende o destino.** Em qualquer tela, o lugar onde você chega brilha por um instante e recebe o foco. **Erros dizem o que houve**: servidor fora do ar, projeto que não abriu e falha de leitura aparecem com um botão "Tentar novamente", sem fingir que a lista está vazia. A aba **Decisões** mostra à frente o que espera por você, e **Checkpoints** ficou enxuto. O dono não precisa mais digitar nome: a Axon assina como "Dono do projeto". As cores seguem o grafite com a brasa como único acento (Quadro e Relações incluídos), e a **Biblioteca** lê Markdown. A **Diretriz** virou uma folha com manchete, selo por versão, índice e linha do tempo; na **Visão geral** ela aparece como um resumo com o link "Abrir a diretriz". Também: formulários da Visão geral abrem um por vez, as Regras não repetem sua frase, o Tear e a barra lateral levam ao projeto, "Excluir projeto" lista tudo o que será apagado, e há um link "Pular para o conteúdo" no primeiro Tab.
+
+**O que é seu continua seu; o que é da IA fica como relato.** Na Biblioteca, no Backlog e na Diretriz, a assinatura segue uma regra só: com o nome de uma IA na barra, o texto sai assinado por ela e marcado como relato, mesmo quando ela revisa um documento seu; sem nome, sai como seu. Uma IA que salva a Diretriz pela tela grava uma "atualização de IA", que você confere e desfaz. **Textos longos abrem na hora**: um documento de 200 mil caracteres, que podia travar a tela, agora aparece em milissegundos. "Ver decisões" e "Ver no Quadro", em **Esperando por você**, levam ao lugar certo e o acendem; a contagem se atualiza quando um cartão muda; e uma nova tarefa deixa o cursor no campo para você digitar a próxima.
+
 ## 22 de novembro de 2026 · Onde paramos, mais fácil de ler
 
 **A frase do estado agora é a manchete.** A primeira coisa que você lê em **Onde paramos** é a frase simples do estado do projeto, no alto, em letras grandes.
@@ -13,6 +19,10 @@
 **Todo clique que leva a outro lugar mostra onde você chegou.** O destino acende por um instante e recebe o foco. Para quem prefere sem movimento, ele ganha um contorno em vez da animação.
 
 **"Daqui em diante".** Abaixo do fio, um botão por grupo de pendência leva você ao grupo certo em **O que falta**.
+
+## 22 de novembro de 2026 · Todo clique mostra onde você chegou
+
+**O destaque de chegada agora vale na Axon inteira.** Em **Relações**, "Abrir na aba de origem" abre o item certo (a decisão, o documento, a tarefa ou o bloqueio) e o acende. Em **Visão geral**, "Ver propostas" acende o bloco e põe o foco no botão de aprovar. No **Quadro**, o cartão novo e o cartão movido rolam até a vista e acendem. Em **Regras**, a regra nova acende; mandar uma regra para a lixeira mostra um aviso de 6 segundos com **Desfazer** e **Ver na lixeira**, e o botão que antes se chamava "Desfazer" agora é **Aposentar regra**. Tarefas novas (do Backlog ou da Visão geral) acendem, e o aviso verde não cobre mais o campo. Na **Biblioteca**, o documento aberto aparece à vista. Pelo **Ctrl K**, o nome do projeto e o item da barra lateral acendem.
 
 ## Novembro de 2026 · Etapas 3 e 4
 

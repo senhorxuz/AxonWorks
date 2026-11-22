@@ -1,0 +1,20 @@
+/*
+ * Destaque de chegada, o mesmo em toda a Axon: todo clique que leva a outro ponto da tela acende o destino.
+ * A cor é a brasa, o único acento; sem depender de variáveis de nenhuma tela.
+ */
+
+.axon-chegou,
+[data-chegou] { animation: axon-achado 2.2s cubic-bezier(0.23, 1, 0.32, 1) both; }
+
+@keyframes axon-achado {
+  0% { box-shadow: 0 0 0 0 rgba(232, 121, 74, 0), inset 0 0 0 1px rgba(232, 121, 74, 0); background-color: rgba(232, 121, 74, 0); }
+  12% { box-shadow: 0 0 0 6px rgba(232, 121, 74, 0.18), inset 0 0 0 1px rgba(232, 121, 74, 0.9); background-color: rgba(232, 121, 74, 0.16); }
+  45% { box-shadow: 0 0 0 0 rgba(232, 121, 74, 0), inset 0 0 0 1px rgba(232, 121, 74, 0.6); background-color: rgba(232, 121, 74, 0.08); }
+  100% { box-shadow: 0 0 0 0 rgba(232, 121, 74, 0), inset 0 0 0 1px rgba(232, 121, 74, 0); background-color: rgba(232, 121, 74, 0); }
+}
+
+/* Com movimento reduzido, o destino continua marcado: um contorno parado, sem animação. */
+@media (prefers-reduced-motion: reduce) {
+  .axon-chegou,
+  [data-chegou] { animation: none; outline: 2px solid #e8794a; outline-offset: 2px; }
+}

@@ -1,3 +1,4 @@
+import { CLASSE_DA_CHEGADA } from '../chegada/irPara';
 import type { KeyboardEvent, ReactNode } from 'react';
 import type { DiaDoFeito, LinhaDoFeito, ListaDoFeito, MesDoFeito } from './dias';
 import { lide } from './lide';
@@ -78,7 +79,7 @@ function Dia({ dia, agora, manchete, controle }: { dia: DiaDoFeito; agora: strin
 }
 
 function classesDaLinha(linha: LinhaDoFeito, controle: ControleDoFeito, extra: string): string {
-  return ['feito-linha', `feito-${linha.tipo}`, extra, controle.chaveAcesa === linha.chave ? 'feito-ligada' : '', controle.chegou === linha.chave ? 'carta-chegou' : ''].filter(Boolean).join(' ');
+  return ['feito-linha', `feito-${linha.tipo}`, extra, controle.chaveAcesa === linha.chave ? 'feito-ligada' : '', controle.chegou === linha.chave ? `carta-chegou ${CLASSE_DA_CHEGADA}` : ''].filter(Boolean).join(' ');
 }
 
 function Texto({ texto }: { texto: string }) {

@@ -19,7 +19,8 @@ import './painel.css';
  * ficar vazia, a seção continua visível enquanto a confirmação existir.
  */
 
-const CHAVE_NOME_DONO = 'axon-nome-do-dono';
+import { nomeDoDono as nomeDoDonoSalvo } from './quadro/api-quadro';
+import { CHAVE_NOME_DONO } from './identidade/identidade';
 
 export interface ConfirmacaoDecisao {
   id: string;
@@ -53,12 +54,8 @@ export function FilaDeAprovacoes(props: {
   const [itens, setItens] = useState<ItemFila[] | undefined>(undefined);
   const [charter, setCharter] = useState<CharterRevision | null | undefined>(undefined);
   const [erro, setErro] = useState('');
-  const [nomeDono, setNomeDono] = useState(() => {
-    try { return localStorage.getItem(CHAVE_NOME_DONO) || ''; } catch { return ''; }
-  });
-  const [editandoNome, setEditandoNome] = useState(() => {
-    try { return !localStorage.getItem(CHAVE_NOME_DONO); } catch { return true; }
-  });
+  const [nomeDono, setNomeDono] = useState(() => nomeDoDonoSalvo());
+  const [editandoNome, setEditandoNome] = useState(false);
   const timersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
   const carregar = useCallback(async (signal?: AbortSignal) => {
@@ -145,9 +142,10 @@ export function FilaDeAprovacoes(props: {
 
   function salvarNomeDono(valor: string) {
     const limpo = valor.trim();
-    setNomeDono(limpo);
-    if (limpo) setEditandoNome(false);
+    // Grava primeiro: apagar o nome tem de voltar ao padrão, e não assinar com o nome velho que ainda estava salvo.
     try { localStorage.setItem(CHAVE_NOME_DONO, limpo); } catch { /* Preferência não é essencial. */ }
+    setNomeDono(limpo || nomeDoDonoSalvo());
+    if (limpo) setEditandoNome(false);
   }
 
   const semConteudo = !erro && (itens === undefined || itens.length === 0);
@@ -156,7 +154,7 @@ export function FilaDeAprovacoes(props: {
   const temPendentes = itens && itens.some(i => i.tipo === 'pendente');
 
   return (
-    <section id="fila-de-aprovacoes" className="fila-de-aprovacoes" aria-label="Esperando por você">
+    <section id="fila-de-aprovacoes" data-chegada="fila-de-aprovacoes" className="fila-de-aprovacoes" aria-label="Esperando por você">
       <div className="resumo-header">
         <span className="eyebrow"><Hourglass size={15} />ESPERANDO POR VOCÊ</span>
         <h2>Propostas para decidir</h2>

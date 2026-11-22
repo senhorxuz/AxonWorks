@@ -1,0 +1,20 @@
+/* Estados de carga: erro de tela inteira e esqueleto da barra lateral. Brasa e grafite, texto a partir de 11 px. */
+.estado-de-erro {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+  min-height: 290px; padding: 36px 24px; text-align: center;
+  border: 1px solid #414549; border-radius: 9px; background: #212326; color: #a7a49f;
+}
+.estado-de-erro > svg { color: var(--brasa, #e8794a); }
+.estado-de-erro h2 { font-size: 16px; line-height: 1.5; font-weight: 550; color: #e9e6df; max-width: 520px; margin: 0; }
+.estado-de-erro-acoes { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 6px; }
+.estado-de-erro .button { font-size: 12px; min-height: 38px; padding: 10px 16px; }
+
+.sidebar .recent-projects-esqueleto { display: flex; flex-direction: column; gap: 6px; padding: 0 12px; }
+.sidebar .recent-projects-esqueleto > span { display: block; height: 11px; border-radius: 4px; background: #2e3033; width: 78%; }
+.sidebar .recent-projects-esqueleto > span:nth-child(2) { width: 62%; }
+.sidebar .recent-projects-esqueleto > span:nth-child(3) { width: 70%; }
+@media (prefers-reduced-motion: no-preference) {
+  .sidebar .recent-projects-esqueleto > span { animation: carga-pulsa 1.4s ease-in-out infinite; }
+}
+@keyframes carga-pulsa { 50% { opacity: 0.45; } }
+.sr-so { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }

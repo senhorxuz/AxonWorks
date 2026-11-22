@@ -1,7 +1,12 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type FormEvent } from 'react';
+import { nomeDoDono } from './quadro/api-quadro';
+import { autoriaDaTela } from './identidade/identidade';
 import { BookMarked, X } from 'lucide-react';
 import type { ContentDocument, ContentEntry, ContentKind, ContentSourceKind } from '../shared/library';
 import { api, errorText } from './api';
+import { chaveDaChegada, rolagemParaMostrar } from './chegada/chegada';
+import { irPara } from './chegada/irPara';
+import { Markdown } from './texto/DocumentoMarkdown';
 import { previaDoConteudo, tomDoTipo } from './biblioteca/arte';
 import { ExLibris } from './biblioteca/ExLibris';
 import { HeroDaBiblioteca } from './biblioteca/HeroDaBiblioteca';
@@ -22,7 +27,9 @@ const SOURCE_LABEL: Record<ContentSourceKind, string> = {
   external_reference: 'Referência externa',
 };
 
-export function LibraryPanel({ projectId, agent }: { projectId: string; agent: string }) {
+/** `abrirPedido`: um documento a abrir assim que a aba aparece (vem das Relações); `aoAbrirPedido` avisa que já foi atendido. */
+/** Quem assina e de que origem nasce vem da mesma regra da Diretriz: com nome na barra, a IA; sem nome, o dono. */
+export function LibraryPanel({ projectId, agent, abrirPedido, aoAbrirPedido }: { projectId: string; agent: string; abrirPedido?: { id: string } | null; aoAbrirPedido?: () => void }) {
   const notify = useFeedback();
   const [items, setItems] = useState<ContentEntry[]>([]);
   const [selected, setSelected] = useState<ContentDocument | null>(null);
@@ -31,6 +38,7 @@ export function LibraryPanel({ projectId, agent }: { projectId: string; agent: s
   const [busy, setBusy] = useState(false);
   const [creating, setCreating] = useState(false);
   const [revising, setRevising] = useState(false);
+  const lista = useRef<HTMLDivElement>(null);
 
   // Esc fecha o documento aberto e volta para a grade (menos quando uma janela de edição está aberta).
   useEffect(() => {
@@ -57,10 +65,28 @@ export function LibraryPanel({ projectId, agent }: { projectId: string; agent: s
     setError('');
     try {
       setSelected(await api.contentItem(projectId, itemId));
+      // O leitor, onde quer que tenha aberto, recebe a chegada.
+      irPara({ chave: chaveDaChegada('conteudo', itemId) });
     } catch (err) {
       setError(errorText(err));
     }
   }
+
+  // A lista tem rolagem própria na leitura: o item escolhido continua à vista nela (sem mexer na rolagem da página).
+  useLayoutEffect(() => {
+    const caixa = lista.current;
+    const item = caixa?.querySelector<HTMLElement>('.library-item.is-active');
+    if (!caixa || !item) return;
+    const c = caixa.getBoundingClientRect();
+    const i = item.getBoundingClientRect();
+    caixa.scrollTop = rolagemParaMostrar({ topoDoItem: i.top, alturaDoItem: i.height, topoDaLista: c.top, alturaDaLista: c.height, rolagemAtual: caixa.scrollTop });
+  }, [selected?.item.id]);
+
+  useEffect(() => {
+    if (!abrirPedido) return;
+    void openItem(abrirPedido.id);
+    aoAbrirPedido?.();
+  }, [abrirPedido]);
 
   async function search(event: FormEvent) {
     event.preventDefault();
@@ -107,7 +133,7 @@ export function LibraryPanel({ projectId, agent }: { projectId: string; agent: s
         aoMudarBusca={setQuery}
         aoBuscar={(event) => void search(event)}
         ocupado={busy}
-        podeCriar={!!agent}
+        podeCriar
         aoCriar={() => setCreating(true)}
         aoAbrir={(id) => void openItem(id)}
       />
@@ -120,7 +146,7 @@ export function LibraryPanel({ projectId, agent }: { projectId: string; agent: s
       ) : (
         <>
         <div className={'library-layout ' + (selected ? 'lendo' : 'em-grade')}>
-          <div className="library-list">
+          <div className="library-list" ref={lista}>
             {items.map((entry) => (
               <button
                 type="button"
@@ -137,7 +163,7 @@ export function LibraryPanel({ projectId, agent }: { projectId: string; agent: s
             ))}
           </div>
           {selected && (
-            <article className="library-document">
+            <article className="library-document" data-chegada={chaveDaChegada('conteudo', selected.item.id)}>
               <ExLibris semente={selected.item.id} tamanho={150} tom={tomDoTipo(selected.item.kind)} />
               <button type="button" className="icon-button library-document-fechar" aria-label="Fechar documento" title="Fechar (Esc)" onClick={() => setSelected(null)}><X size={16} /></button>
               <header>
@@ -145,13 +171,13 @@ export function LibraryPanel({ projectId, agent }: { projectId: string; agent: s
                 <h3>{selected.item.title}</h3>
                 <p>Relatado por {selected.revision.createdBy} · <DateLabel value={selected.revision.createdAt}/> · revisão {selected.revision.revision}</p>
               </header>
-              <pre>{selected.revision.body}</pre>
+              <Markdown texto={selected.revision.body} />
               {selected.revisions.length > 1 && (
                 <p className="subtle-text">{selected.revisions.length} revisões no histórico. A busca usa só a vigente.</p>
               )}
               <div className="library-document-actions">
-                <button type="button" className="button secondary" disabled={!agent || busy} onClick={() => setRevising(true)}>Nova revisão</button>
-                <button type="button" className="text-button" disabled={!agent || busy} onClick={() => void archive()}>Arquivar</button>
+                <button type="button" className="button secondary" disabled={busy} onClick={() => setRevising(true)}>Nova revisão</button>
+                <button type="button" className="text-button" disabled={busy} onClick={() => void archive()}>Arquivar</button>
               </div>
             </article>
           )}
@@ -179,6 +205,7 @@ export function LibraryPanel({ projectId, agent }: { projectId: string; agent: s
           initialTitle={selected.item.title}
           initialBody={selected.revision.body}
           initialKind={selected.item.kind}
+          initialSourceKind={selected.revision.sourceKind}
           onClose={() => setRevising(false)}
           onSubmit={async (payload) => {
             const updated = await api.reviseContent(projectId, selected.item.id, {
@@ -199,6 +226,7 @@ export function LibraryPanel({ projectId, agent }: { projectId: string; agent: s
 function ContentFormDialog({
   title,
   agent,
+  initialSourceKind,
   initialTitle = '',
   initialBody = '',
   initialKind = 'note',
@@ -207,6 +235,7 @@ function ContentFormDialog({
 }: {
   title: string
   agent: string
+  initialSourceKind?: ContentSourceKind
   initialTitle?: string
   initialBody?: string
   initialKind?: ContentKind
@@ -219,20 +248,20 @@ function ContentFormDialog({
     sourceKind: ContentSourceKind
   }) => Promise<void>
 }) {
+  const autoria = autoriaDaTela(agent, nomeDoDono(), initialSourceKind);
   const [name, setName] = useState(initialTitle);
   const [kind, setKind] = useState<ContentKind>(initialKind);
   const [body, setBody] = useState(initialBody);
-  const [sourceKind, setSourceKind] = useState<ContentSourceKind>(agent ? 'agent_report' : 'human_directive');
+  const [sourceKind, setSourceKind] = useState<ContentSourceKind>(autoria.origem);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
-    if (!agent) { setError('Informe o nome do agente na barra lateral.'); return; }
     setBusy(true);
     setError('');
     try {
-      await onSubmit({ title: name, kind, body, createdBy: agent, sourceKind });
+      await onSubmit({ title: name, kind, body, createdBy: autoria.autor, sourceKind });
     } catch (err) {
       setError(errorText(err));
     } finally {
@@ -257,7 +286,7 @@ function ContentFormDialog({
         {error && <div className="alert" role="alert">{error}</div>}
         <div className="modal-actions">
           <button type="button" className="button ghost" onClick={onClose}>Cancelar</button>
-          <button className="button primary" disabled={busy || !name.trim() || !body.trim() || !agent}>{busy ? 'Salvando…' : 'Guardar'}</button>
+          <button className="button primary" disabled={busy || !name.trim() || !body.trim()}>{busy ? 'Salvando…' : 'Guardar'}</button>
         </div>
       </form>
     </Modal>

@@ -446,6 +446,7 @@ test('passagem estruturada: entregar checkpoint, receber como outra IA e confirm
   await expect(checkpoint).not.toBeVisible();
 
   const card = page.locator('.checkpoint-card').filter({ hasText: 'Checkpoint pronto para a próxima IA.' });
+  await card.getByRole('button', { name: /^Ver detalhes/ }).click();
   await card.getByRole('button', { name: 'Entregar para outra IA', exact: true }).click();
   const deliver = page.getByRole('dialog', { name: 'Entregar para outra IA', exact: true });
   await expect(deliver).toBeVisible();
@@ -570,6 +571,7 @@ test('exporta e importa pacote v2 preservando backlog e passagem', async ({ page
   await checkpoint.getByLabel('Próximo passo', { exact: true }).fill('Importar e conferir a passagem.');
   await checkpoint.getByRole('button', { name: 'Salvar checkpoint', exact: true }).click();
   const card = page.locator('.checkpoint-card').filter({ hasText: 'Origem pronta para exportar.' });
+  await card.getByRole('button', { name: /^Ver detalhes/ }).click();
   await card.getByRole('button', { name: 'Entregar para outra IA', exact: true }).click();
   const deliver = page.getByRole('dialog', { name: 'Entregar para outra IA', exact: true });
   await deliver.getByLabel('Destinatário').fill('Grok');
@@ -773,14 +775,14 @@ test('grafo & inteligência: topologia, inspeção de nós, análise de impacto 
   await page.getByRole('tab', { name: /Relações/i }).click();
 
   // Verifica cabeçalho e KPIs
-  await expect(page.getByRole('heading', { name: 'Grafo de Linhagem, Decisões & Dependências' })).toBeVisible();
-  await expect(page.getByText('Total de Nós')).toBeVisible();
-  await expect(page.getByText('Relações Ativas')).toBeVisible();
-  await expect(page.getByText('Conflitos de Decisão')).toBeVisible();
-  await expect(page.getByText('Conteúdos Desatualizados')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Como as coisas se ligam' })).toBeVisible();
+  await expect(page.getByText('Itens', { exact: true })).toBeVisible();
+  await expect(page.getByText('Ligações entre itens')).toBeVisible();
+  await expect(page.getByText('Decisões em conflito')).toBeVisible();
+  await expect(page.getByText('Documentos desatualizados')).toBeVisible();
 
   // Verifica que os swimlanes estão visíveis
-  await expect(page.getByRole('heading', { name: 'Tarefas & Detalhes' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Tarefas', exact: true })).toBeVisible();
   await expect(page.locator('.graph-lanes-grid').getByText('Estruturar modelo semântico')).toBeVisible();
 
   // Clica no nó da tarefa para inspecionar e disparar análise de impacto
@@ -789,22 +791,22 @@ test('grafo & inteligência: topologia, inspeção de nós, análise de impacto 
   // Verifica o inspetor lateral com análise de impacto
   const sidebar = page.locator('.graph-inspector-sidebar');
   await expect(sidebar.getByRole('heading', { name: 'Estruturar modelo semântico' })).toBeVisible();
-  await expect(sidebar.getByText('Análise de Alcance e Impacto')).toBeVisible();
+  await expect(sidebar.getByText('O que mudaria se este item mudasse')).toBeVisible();
   await expect(sidebar.getByText(/Risco Baixo|Risco Atenção|Risco Crítico/i)).toBeVisible();
 
   // Alterna para subview "Inteligência de Conflitos"
-  await page.locator('.graph-subnav-btn', { hasText: 'Inteligência de Conflitos' }).click();
-  await expect(page.getByRole('heading', { name: 'Diagnósticos de Conflito em Decisões' })).toBeVisible();
+  await page.locator('.graph-subnav-btn', { hasText: 'Conflitos' }).click();
+  await expect(page.getByRole('heading', { name: 'Decisões que se contradizem' })).toBeVisible();
   await expect(page.getByText('Nenhum conflito encontrado!')).toBeVisible();
 
   // Alterna para subview "Frescor de Biblioteca"
-  await page.locator('.graph-subnav-btn', { hasText: 'Frescor de Biblioteca' }).click();
-  await expect(page.getByRole('heading', { name: 'Auditoria de Frescor de Conteúdo da Biblioteca' })).toBeVisible();
+  await page.locator('.graph-subnav-btn', { hasText: 'Documentos em dia' }).click();
+  await expect(page.getByRole('heading', { name: 'Documentos que podem estar velhos' })).toBeVisible();
   await expect(page.getByText('Biblioteca 100% atualizada!')).toBeVisible();
 
   // Retorna para o Mapa Topológico
-  await page.locator('.graph-subnav-btn', { hasText: 'Mapa Topológico' }).click();
-  await expect(page.getByRole('heading', { name: 'Tarefas & Detalhes' })).toBeVisible();
+  await page.locator('.graph-subnav-btn', { hasText: 'Mapa' }).click();
+  await expect(page.getByRole('heading', { name: 'Tarefas', exact: true })).toBeVisible();
 
   await page.screenshot({ path: info.outputPath('graph-intelligence-panel.png'), fullPage: true });
   expect(errors).toEqual([]);
@@ -860,6 +862,7 @@ test('evidencia honesta: tres afirmacoes separadas, frescor desatualizado em por
     await page.getByRole('tab', { name: /^Checkpoints/ }).click();
     const card = page.locator('.checkpoint-card').first();
     await expect(card).toBeVisible();
+    await card.getByRole('button', { name: /^Ver detalhes/ }).click();
 
     // As afirmações nunca se fundem num selo único
     await expect(card.getByText('Informado pela IA')).toBeVisible();
@@ -878,6 +881,7 @@ test('evidencia honesta: tres afirmacoes separadas, frescor desatualizado em por
     await page.getByRole('tab', { name: /^Checkpoints/ }).click();
     const staleCard = page.locator('.checkpoint-card').first();
     await expect(staleCard).toBeVisible();
+    await staleCard.getByRole('button', { name: /^Ver detalhes/ }).click();
 
     // Evidência desatualizada é visualmente distinta e explica o motivo em português
     await expect(staleCard.locator('.evidence.evidence-stale')).toBeVisible();
@@ -983,7 +987,7 @@ test('evidencia honesta: tres afirmacoes separadas, frescor desatualizado em por
     // Recarrega e abre linha do tempo da decisão
     await page.reload();
     await page.getByRole('tab', { name: /^Decisões/ }).click();
-    await page.getByRole('button', { name: 'Mostrar histórico completo', exact: true }).click();
+    await page.getByRole('button', { name: /^Mostrar histórico/ }).click();
     const decCard = page.locator('.decision-card').filter({ hasText: 'Estrutura canônica de persistência' });
     await expect(decCard).toBeVisible();
     await decCard.getByRole('button', { name: 'Linha do tempo', exact: true }).click();

@@ -1,0 +1,24 @@
+/* Aba Checkpoints: agrupada por dia; cada registro fechado cabe em poucas linhas. */
+.checkpoints-dia { margin-bottom: 8px; }
+.checkpoints-dia-titulo {
+  display: flex; align-items: center; gap: 8px; margin: 22px 0 12px;
+  font-size: 12px; font-weight: 650; letter-spacing: 0.02em; color: #bdbab3;
+}
+.checkpoints-dia-titulo span { font-size: 11px; font-weight: 500; color: #a7a49f; }
+.checkpoints-dia:first-child .checkpoints-dia-titulo { margin-top: 0; }
+.checkpoints-ver-mais { display: flex; margin: 8px auto 28px; font-size: 12px; }
+
+.checkpoint-card .checkpoint-resumo {
+  margin: 12px 0 10px; font-size: 13px; line-height: 1.6; white-space: pre-wrap;
+}
+.checkpoint-card:not(.is-aberto) .checkpoint-resumo {
+  display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.checkpoint-card:not(.is-aberto) .checkpoint-next p {
+  display: -webkit-box; -webkit-line-clamp: 1; line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; margin-top: 4px;
+}
+.checkpoint-card:not(.is-aberto) .checkpoint-next { padding: 10px 14px; }
+.checkpoint-card .checkpoint-alternar { margin-top: 12px; font-size: 12px; }
+.checkpoint-card .checkpoint-alternar svg { transition: transform 0.15s; }
+.checkpoint-card.is-aberto .checkpoint-alternar svg { transform: rotate(180deg); }
+@media (prefers-reduced-motion: reduce) { .checkpoint-card .checkpoint-alternar svg { transition: none; } }

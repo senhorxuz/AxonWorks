@@ -3,8 +3,8 @@ import { Sunrise, CheckCircle2, Hourglass, Lock, TrendingUp, ArrowRight, Flame, 
 import type { ProjectDetail, Task, Checkpoint } from '../shared/types';
 import type { EvidenceView } from '../shared/evidence';
 import type { ProjectInsights } from '../shared/insights';
-import type { ApprovalRequest } from '../shared/approvals';
-import { api, request } from './api';
+import { api } from './api';
+import { detalheDasPendencias, fraseDasPendencias, type PendenciasDoDono } from './pendencias-do-dono';
 import { DateLabel } from './ui';
 import { animarEntradaResumo } from './recompensas';
 import { nivelDeConfianca } from './confianca';
@@ -87,10 +87,14 @@ export function ResumoAoAcordar(props: {
   detail: ProjectDetail;
   /** undefined = ainda nao chegou; nunca mostre numeros nesse estado. */
   insights: ProjectInsights | undefined;
+  /** O que espera o dono (a mesma conta da aba Decisões e de "Onde paramos"); undefined = a carta ainda não chegou. */
+  pendencias: PendenciasDoDono | undefined;
   /** Leva o dono ate a fila de aprovacoes. */
   onOpenApprovals: () => void;
+  onOpenDecisions: () => void;
+  onOpenBoard: () => void;
 }) {
-  const { projectId, detail, insights, onOpenApprovals } = props;
+  const { projectId, detail, insights, pendencias, onOpenApprovals, onOpenDecisions, onOpenBoard } = props;
   const listaProntoRef = useRef<HTMLUListElement>(null);
 
   // "Desde sua última visita": lido uma vez por projeto e regravado com o
@@ -101,18 +105,6 @@ export function ResumoAoAcordar(props: {
     setPeriodo(lido);
     gravarVisita(projectId, new Date());
   }, [projectId]);
-
-  // Propostas pendentes (Parte 5): buscadas aqui só para o contador do atalho
-  // "Esperando por você" — a lista completa é responsabilidade da FilaDeAprovacoes.
-  const [propostasPendentes, setPropostasPendentes] = useState<ApprovalRequest[] | undefined>(undefined);
-  useEffect(() => {
-    const controller = new AbortController();
-    request<ApprovalRequest[]>(`/projects/${projectId}/approvals?status=pending`, undefined, controller.signal, 'GET')
-      .then(items => { if (!controller.signal.aborted) setPropostasPendentes(items); })
-      .catch(() => { if (!controller.signal.aborted) setPropostasPendentes(undefined); });
-    return () => controller.abort();
-    // Recarrega a cada atualização do projeto (inclui decisões tomadas na fila).
-  }, [projectId, detail]);
 
   const desde = periodo?.desde;
   const tarefasConcluidas: TarefaConcluida[] = !desde ? [] : detail.tasks
@@ -146,15 +138,15 @@ export function ResumoAoAcordar(props: {
 
   if (!periodo) return null;
 
-  const contagemPendentes = propostasPendentes?.length;
   const stalledTasks = insights?.stalledTasks ?? [];
   const bloqueiosAbertos = insights?.signals.openBlockers;
   const evidenciasDesatualizadas = insights?.signals.staleEvidenceOnDoneTasks;
   const temTravado = stalledTasks.length > 0 || (bloqueiosAbertos?.count ?? 0) > 0;
   const temEvidenciasDesatualizadas = (evidenciasDesatualizadas?.count ?? 0) > 0;
-  const temPendentes = contagemPendentes !== undefined && contagemPendentes > 0;
+  const temPendentes = pendencias !== undefined && pendencias.total > 0;
   const temAtividade = detail.tasks.length > 0 || detail.checkpoints.length > 0;
-  const tudoEmDia = temAtividade && !temTravado && !temPendentes;
+  // Só é "tudo em dia" quando já sabemos o que espera o dono: carta que não chegou não é "nada esperando".
+  const tudoEmDia = temAtividade && !temTravado && pendencias !== undefined && !temPendentes;
   const proximosPassos = insights?.nextActions.slice(0, 3) ?? [];
   const momentum = insights?.momentum;
   const temMomentum = !!momentum && (momentum.tasksCompletedLast24h > 0 || momentum.checkpointsLast24h > 0 || momentum.streakDays > 0);
@@ -215,7 +207,7 @@ export function ResumoAoAcordar(props: {
         )}
       </section>
 
-      {temPendentes && <BlocoEsperando quantidade={contagemPendentes} aoAbrir={onOpenApprovals} />}
+      {temPendentes && <BlocoEsperando pendencias={pendencias} aoAbrirPropostas={onOpenApprovals} aoAbrirDecisoes={onOpenDecisions} aoAbrirQuadro={onOpenBoard} />}
 
       {temTravado && (
         <section className="resumo-secao" aria-label="Travado">
@@ -255,14 +247,19 @@ export function ResumoAoAcordar(props: {
   );
 }
 
-/** "Esperando por você": o número grande é o que se procura primeiro; o botão leva às propostas. */
-function BlocoEsperando({ quantidade, aoAbrir }: { quantidade: number; aoAbrir: () => void }) {
+/** "Esperando por você": o número grande é o que se procura primeiro; os botões levam a cada lugar onde se responde. */
+function BlocoEsperando({ pendencias, aoAbrirPropostas, aoAbrirDecisoes, aoAbrirQuadro }: { pendencias: PendenciasDoDono; aoAbrirPropostas: () => void; aoAbrirDecisoes: () => void; aoAbrirQuadro: () => void }) {
   return (
     <section className="resumo-secao" aria-label="Esperando por você">
       <h3><Hourglass size={16} />Esperando por você</h3>
-      <strong className="resumo-numero" aria-hidden="true">{quantidade}</strong>
-      <p>{pluralizar(quantidade, 'proposta espera', 'propostas esperam')} sua decisão.</p>
-      <button type="button" className="button secondary" onClick={aoAbrir}>Ver propostas<ArrowRight size={14} /></button>
+      <strong className="resumo-numero" aria-hidden="true">{pendencias.total}</strong>
+      <p>{fraseDasPendencias(pendencias.total)}</p>
+      <p className="resumo-detalhe">{detalheDasPendencias(pendencias)}</p>
+      <div className="resumo-esperando-acoes">
+        {pendencias.aprovacoes > 0 && <button type="button" className="button secondary" onClick={aoAbrirPropostas}>Ver propostas<ArrowRight size={14} /></button>}
+        {pendencias.decisoes > 0 && <button type="button" className="button secondary" onClick={aoAbrirDecisoes}>Ver decisões<ArrowRight size={14} /></button>}
+        {pendencias.cartoes > 0 && <button type="button" className="button secondary" onClick={aoAbrirQuadro}>Ver no Quadro<ArrowRight size={14} /></button>}
+      </div>
     </section>
   );
 }

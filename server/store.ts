@@ -550,6 +550,20 @@ export class WorkspaceStore {
     return this.snapshot(() => this.readDetail(id))
   }
 
+  /**
+   * O que `deleteProject` apaga e que nenhuma lista da tela mostra (rascunhos e passagens são por IA): a contagem
+   * para o diálogo "Excluir projeto" dizer a verdade.
+   */
+  contarRascunhosEPassagens(projectId: string): { rascunhos: number; passagens: number } {
+    const id = requireUuid(projectId, 'projectId')
+    return this.snapshot(() => {
+      this.requireProject(id)
+      const contar = (tabela: 'work_drafts' | 'handoff_deliveries') =>
+        numberish((this.db.prepare(`SELECT COUNT(*) AS n FROM ${tabela} WHERE project_id = ?`).get(id) as { n: SqlValue }).n)
+      return { rascunhos: contar('work_drafts'), passagens: contar('handoff_deliveries') }
+    })
+  }
+
   deleteProject(projectId: string, confirmation: unknown): DeletedProject {
     const id = requireUuid(projectId, 'projectId')
     const confirmed = requireConfirmation(confirmation)
@@ -3444,11 +3458,11 @@ export class WorkspaceStore {
 
   saveCharter(projectId: string, input: SaveCharterInput): CharterRevision {
     const pid = requireUuid(projectId, 'projectId')
-    const { actor, body, expectedRevision } = entradaDaDiretriz(input)
+    const { actor, body, expectedRevision, sourceKind } = entradaDaDiretriz(input)
     return this.mutate(() => {
       this.requireProject(pid)
       return gravarDiretriz(this.db, pid, this.loadCurrentCharter(pid), {
-        body, createdBy: actor, createdAt: this.isoNow(), sourceKind: 'human_directive', expectedRevision,
+        body, createdBy: actor, createdAt: this.isoNow(), sourceKind, expectedRevision,
       })
     })
   }

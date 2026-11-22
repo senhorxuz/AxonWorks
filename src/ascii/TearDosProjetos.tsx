@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import type { Project } from '../../shared/types';
 import { api } from '../api';
+import { chegarNoProjeto } from '../chegada/chegarNoProjeto';
 import { escalaDoElemento } from '../escala-da-tela';
 import { linhaDoTrilho, linhasDoTear, quadroDoTear, quadroFixo, tecerBase, type BaseDoTear, type Celula, type Classe } from './tear';
 import {
@@ -181,6 +182,8 @@ export function TearDosProjetos({ projetos }: { projetos: Project[] }) {
   const [medida, setMedida] = useState<Medida | null>(null);
   // O "agora" anda de minuto em minuto, quando você volta à aba ou passa o mouse: sem relógio próprio.
   const [agora, setAgora] = useState(() => minutoDe(Date.now()));
+  // O projeto sob o mouse: o nome e o trilho dele acendem juntos.
+  const [realce, setRealce] = useState<string | null>(null);
   const { visiveis, resto } = useMemo(() => escolherProjetos(projetos), [projetos]);
   const historicos = useHistoricos(visiveis);
   const linhas = linhasDoTear(visiveis.length);
@@ -282,10 +285,12 @@ export function TearDosProjetos({ projetos }: { projetos: Project[] }) {
           {visiveis.map((projeto, i) => (
             <li
               key={projeto.id}
-              className={`tear-projeto${trilhos[i]!.vivo ? ' tear-projeto-vivo' : ''}${trilhos[i]!.parado ? ' tear-projeto-parado' : ''}`}
+              className={`tear-projeto${trilhos[i]!.vivo ? ' tear-projeto-vivo' : ''}${trilhos[i]!.parado ? ' tear-projeto-parado' : ''}${realce === projeto.id ? ' tear-projeto-realce' : ''}`}
+              onMouseEnter={() => setRealce(projeto.id)}
+              onMouseLeave={() => setRealce(null)}
               style={{ top: `${linhaDoTrilho(i) * ALTURA_DA_LINHA}px` }}
             >
-              <span className="tear-nome" title={projeto.name}>{projeto.name}</span>
+              <a className="tear-nome" href={`#project/${projeto.id}`} title={projeto.name} onClick={() => chegarNoProjeto(projeto.id)}>{projeto.name}</a>
               <span className="tear-quando">{rotuloDoProjeto(projeto, historicoDe(historicos, projeto.id), agora)}</span>
             </li>
           ))}
@@ -298,6 +303,18 @@ export function TearDosProjetos({ projetos }: { projetos: Project[] }) {
         <div className="tear-trilhos" aria-hidden="true">
           <canvas ref={telaFixa} className="tear-tela tear-fixa" />
           <canvas ref={telaViva} className="tear-tela tear-viva" />
+          {visiveis.map((projeto, i) => (
+            <a
+              key={projeto.id}
+              className={`tear-trilho-link${realce === projeto.id ? ' tear-trilho-link-realce' : ''}`}
+              href={`#project/${projeto.id}`}
+              tabIndex={-1}
+              style={{ top: `${linhaDoTrilho(i) * ALTURA_DA_LINHA}px`, height: `${2 * ALTURA_DA_LINHA}px` }}
+              onMouseEnter={() => setRealce(projeto.id)}
+              onMouseLeave={() => setRealce(null)}
+              onClick={() => chegarNoProjeto(projeto.id)}
+            />
+          ))}
         </div>
       </div>
     </figure>

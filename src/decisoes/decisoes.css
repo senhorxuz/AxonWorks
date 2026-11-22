@@ -1,0 +1,23 @@
+/* Aba Decisões: propostas abertas no topo, em brasa; vigentes e histórico abaixo. */
+.decisions-panel .decisoes-bloco { margin-bottom: 26px; }
+.decisions-panel .decisoes-bloco > h3 {
+  display: flex; align-items: center; gap: 8px; margin: 0 0 14px;
+  font-size: 13px; font-weight: 650; letter-spacing: 0; color: #d9d6cf;
+}
+.decisions-panel .decisoes-bloco.pede-voce {
+  border: 1px solid var(--brasa-fio, rgba(232, 121, 74, 0.4)); background: var(--brasa-vidro, rgba(232, 121, 74, 0.12));
+  border-radius: 10px; padding: 18px 18px 2px;
+}
+.decisions-panel .decisoes-bloco.pede-voce > h3 { color: var(--brasa-clara, #f6b28e); }
+.decisions-panel .decisoes-bloco.pede-voce > h3 .count-badge {
+  color: var(--brasa-clara, #f6b28e); border-color: var(--brasa-fio, rgba(232, 121, 74, 0.4)); background: transparent;
+}
+.decisions-panel .decisoes-sem-vigentes { font-size: 12px; color: #a7a49f; margin: 0 0 22px; }
+.decisions-panel .decisoes-historico { margin-top: 8px; display: grid; gap: 16px; }
+.decisions-panel .decisoes-historico > button { justify-self: start; }
+
+/* O número da aba que pede o dono acende em brasa (a aba Decisões, com propostas abertas). */
+.tabs button span.tab-pede {
+  background: var(--brasa-vidro, rgba(232, 121, 74, 0.12)); color: var(--brasa-clara, #f6b28e);
+  border: 1px solid var(--brasa-fio, rgba(232, 121, 74, 0.4)); font-weight: 700;
+}

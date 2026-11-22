@@ -2,25 +2,15 @@
  * Destaque de chegada e rolagem das colunas de "Onde paramos": as contas, sem tela.
  *
  * Regra do dono (22/11/2026): todo clique que leva a outro ponto da tela destaca o destino.
- * Quem rola e acende de verdade é ./useChegada.ts; aqui ficam os números e as decisões.
+ * Quem rola e acende de verdade é ./useChegada.ts (com as contas comuns de ../chegada/chegada.ts); aqui ficam as decisões da coluna.
  */
 import type { DiaDoFeito, MesDoFeito } from './dias';
 
-/** O destino fica destacado por 2,2 s; com movimento reduzido, um contorno parado por 2 s. */
-export const DURACAO_DA_CHEGADA_MS = 2200;
-export const DURACAO_SEM_MOVIMENTO_MS = 2000;
+/** Os números e a rolagem do destaque de chegada agora são comuns a toda a Axon (src/chegada); daqui só se reexportam. */
+export { DURACAO_DA_CHEGADA_MS, DURACAO_SEM_MOVIMENTO_MS, duracaoDaChegada, rolagemParaUmTerco } from '../chegada/chegada';
+
 /** Diferença, em pixels, abaixo da qual a coluna conta como "no fim" ou "cabe inteira" (arredondamento da tela). */
 const FOLGA_PX = 8;
-
-export function duracaoDaChegada(movimentoReduzido: boolean): number {
-  return movimentoReduzido ? DURACAO_SEM_MOVIMENTO_MS : DURACAO_DA_CHEGADA_MS;
-}
-
-/** Para onde a coluna rola para o destino ficar a um terço da altura dela (nunca antes do começo). */
-export function rolagemParaUmTerco(medidas: { topoDoDestino: number; topoDaColuna: number; rolagemAtual: number; alturaDaColuna: number }): number {
-  const { topoDoDestino, topoDaColuna, rolagemAtual, alturaDaColuna } = medidas;
-  return Math.max(0, topoDoDestino - topoDaColuna + rolagemAtual - alturaDaColuna / 3);
-}
 
 export type EstadoDoPe = 'cabe' | 'tem-mais' | 'fim';
 

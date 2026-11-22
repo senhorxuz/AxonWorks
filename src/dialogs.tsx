@@ -1,4 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { InformarNomeSeFaltar, BotaoInformarNome } from './identidade/InformarNome';
+import { apiQuadro, nomeDoDono } from './quadro/api-quadro';
+import { contarLista, contarOrientacoes, dicaDaConfirmacao, linhasDoRemovido, type ContagemDoProjeto } from './apagar/removido';
 import { ArrowDownToLine, ArrowRight, Check, CheckSquare, Copy, Download, ExternalLink, FileCode, Laptop, Plug, Plus, RefreshCw, Send, SlidersHorizontal, Square, Terminal, Trash2 } from 'lucide-react';
 import type { BacklogItem, Project, ProjectDetail, Checkpoint, CheckpointInput, ConnectorsInfo, Handoff, MessageInput, Task, AcceptanceCriterion, ExpectedOutput, ExpectedOutputKind, TaskPriority, EvidenceView, BlockerTimeline, DecisionTimeline } from '../shared/types';
 import type { Decision, FinalizeWorkInput, ImportProjectResult, InboxItem, MessageResolution, SaveWorkDraftInput, WorkDraft, ProjectBlocker } from '../shared/continuity';
@@ -10,7 +13,7 @@ export function NewProject({ onClose, onCreated }: { onClose: () => void; onCrea
   const [name, setName] = useState(''); const [objective, setObjective] = useState(''); const [workspacePath, setPath] = useState('');
   const [busy, setBusy] = useState(false); const [error, setError] = useState('');
   async function submit(e: FormEvent) { e.preventDefault(); setBusy(true); setError(''); try { onCreated(await request<Project>('/projects', { name, objective, workspacePath })); } catch (err) { setError(errorText(err)); } finally { setBusy(false); } }
-  return <Modal title="Novo projeto" eyebrow="WORKSPACE" onClose={onClose}><p className="modal-description">Informe um nome e o que você quer fazer.</p><form onSubmit={submit} className="form-stack"><label>Nome do projeto<input autoFocus value={name} onChange={e => setName(e.target.value)} placeholder="Ex.: Meu novo aplicativo" required maxLength={160}/></label><label>Objetivo<textarea aria-label="Objetivo" value={objective} onChange={e => setObjective(e.target.value)} placeholder="O que você quer construir ou resolver?" required maxLength={8000} rows={3}/></label><label>Pasta do projeto (opcional)<input value={workspacePath} onChange={e => setPath(e.target.value)} placeholder="D:\projetos\meu-projeto" maxLength={2000}/><small>Uma referência local. Nenhum arquivo será importado ou alterado.</small></label>{error && <div className="alert" role="alert">{error}</div>}<div className="modal-actions"><button type="button" className="button ghost" onClick={onClose}>Cancelar</button><button className="button primary" disabled={busy || !name.trim() || !objective.trim()}>{busy ? 'Criando…' : 'Criar projeto'}<ArrowRight size={16}/></button></div></form></Modal>;
+  return <Modal title="Novo projeto" eyebrow="WORKSPACE" onClose={onClose}><p className="modal-description">Informe um nome e o que você quer fazer.</p><form onSubmit={submit} className="form-stack"><label>Nome do projeto<input autoFocus value={name} onChange={e => setName(e.target.value)} placeholder="Ex.: Meu novo aplicativo" required maxLength={160}/></label><label>Objetivo<textarea aria-label="Objetivo" value={objective} onChange={e => setObjective(e.target.value)} placeholder="O que você quer construir ou resolver?" required maxLength={8000} rows={3}/></label><label>Pasta do projeto (opcional)<input value={workspacePath} onChange={e => setPath(e.target.value)} placeholder="D:\projetos\meu-projeto" maxLength={2000}/><small>Uma referência local. Nenhum arquivo será importado ou alterado.</small></label>{error && <div className="alert" role="alert">{error}<InformarNomeSeFaltar erro={error}/></div>}<div className="modal-actions"><button type="button" className="button ghost" onClick={onClose}>Cancelar</button><button className="button primary" disabled={busy || !name.trim() || !objective.trim()}>{busy ? 'Criando…' : 'Criar projeto'}<ArrowRight size={16}/></button></div></form></Modal>;
 }
 
 export function CheckpointDialog({ detail, agent, onClose, onSaved, refresh }: { detail: ProjectDetail; agent: string; onClose: () => void; onSaved: () => Promise<void>; refresh: () => Promise<void> }) {
@@ -176,7 +179,7 @@ export function WorkIntentDialog({ projectId, agent, task, onClose, onSaved }: {
       <label>Acesso<select aria-label="Acesso" value={access} onChange={event => setAccess(event.target.value as 'read' | 'write')}><option value="write">Escrita</option><option value="read">Leitura</option></select></label>
       <label>Saídas esperadas<textarea aria-label="Saídas esperadas" value={outputs} onChange={event => setOutputs(event.target.value)} rows={2} placeholder="Uma por linha"/></label>
       <label>Checagens planejadas<textarea aria-label="Checagens planejadas" value={checks} onChange={event => setChecks(event.target.value)} rows={2} placeholder="Uma por linha"/></label>
-      {error && <div className="alert" role="alert">{error}</div>}
+      {error && <div className="alert" role="alert">{error}<InformarNomeSeFaltar erro={error}/></div>}
       <div className="modal-actions"><button type="button" className="button ghost" onClick={onClose}>Cancelar</button><button className="button primary" disabled={busy || !objective.trim() || !agent}>{busy ? 'Gravando…' : 'Gravar intenção'}<Check size={16}/></button></div>
     </form>
   </Modal>;
@@ -207,7 +210,7 @@ export function ReopenTaskDialog({ projectId, agent, task, onClose, onSaved }: {
     <form className="form-stack" onSubmit={event => void submit(event)}>
       <p className="subtle-text">{task.title}</p>
       <label>Por que esta tarefa volta ao trabalho?<textarea aria-label="Por que esta tarefa volta ao trabalho?" autoFocus value={note} onChange={event => setNote(event.target.value)} required maxLength={2000} rows={3} placeholder="Ex.: A revisão pediu um ajuste nos detalhes."/></label>
-      {error && <div className="alert" role="alert">{error}</div>}
+      {error && <div className="alert" role="alert">{error}<InformarNomeSeFaltar erro={error}/></div>}
       <div className="modal-actions"><button type="button" className="button ghost" onClick={onClose}>Cancelar</button><button className="button primary" disabled={busy || !note.trim() || !agent}>{busy ? 'Reabrindo…' : 'Reabrir tarefa'}<Check size={16}/></button></div>
     </form>
   </Modal>;
@@ -217,7 +220,7 @@ export function MessageDialog({ projectId, agent, onClose, onSaved }: { projectI
   const notify = useFeedback();
   const [to, setTo] = useState(''); const [kind, setKind] = useState<MessageInput['kind']>('note'); const [body, setBody] = useState(''); const [error, setError] = useState(''); const [busy, setBusy] = useState(false);
   async function submit(e: FormEvent) { e.preventDefault(); setError(''); setBusy(true); try { await request(`/projects/${projectId}/messages`, { from: agent, to, kind, body }); notify('Mensagem registrada','Disponível na caixa postal de '+to+'.'); await onSaved(); } catch (err) { setError(errorText(err)); } finally { setBusy(false); } }
-  return <Modal title="Nova mensagem" eyebrow="CAIXA POSTAL" onClose={onClose}><p className="modal-description">De <strong>{agent || 'agente não informado'}</strong> para a caixa postal do projeto. O envio não inicia uma IA.</p><form onSubmit={submit} className="form-stack"><div className="form-columns"><label>Destinatário<input autoFocus value={to} onChange={e => setTo(e.target.value)} required placeholder="Ex.: Gemini" maxLength={80}/></label><label>Tipo de mensagem<select value={kind} onChange={e => setKind(e.target.value as MessageInput['kind'])}><option value="note">Nota</option><option value="question">Pergunta</option><option value="review">Pedido de revisão</option><option value="handoff">Passagem de trabalho</option></select></label></div><label>Mensagem<textarea aria-label="Mensagem" value={body} onChange={e => setBody(e.target.value)} required rows={5} placeholder="Compartilhe uma descoberta ou peça uma revisão específica." maxLength={12000}/></label>{error && <div className="alert" role="alert">{error}</div>}<div className="modal-actions"><button type="button" className="button ghost" onClick={onClose}>Cancelar</button><button className="button primary" disabled={busy || !body.trim() || !to.trim() || !agent}>{busy ? 'Enviando…' : 'Enviar mensagem'}<Send size={15}/></button></div></form></Modal>;
+  return <Modal title="Nova mensagem" eyebrow="CAIXA POSTAL" onClose={onClose}><p className="modal-description">De <strong>{agent || 'agente não informado'}</strong> para a caixa postal do projeto. O envio não inicia uma IA.</p><form onSubmit={submit} className="form-stack"><div className="form-columns"><label>Destinatário<input autoFocus value={to} onChange={e => setTo(e.target.value)} required placeholder="Ex.: Gemini" maxLength={80}/></label><label>Tipo de mensagem<select value={kind} onChange={e => setKind(e.target.value as MessageInput['kind'])}><option value="note">Nota</option><option value="question">Pergunta</option><option value="review">Pedido de revisão</option><option value="handoff">Passagem de trabalho</option></select></label></div><label>Mensagem<textarea aria-label="Mensagem" value={body} onChange={e => setBody(e.target.value)} required rows={5} placeholder="Compartilhe uma descoberta ou peça uma revisão específica." maxLength={12000}/></label>{error && <div className="alert" role="alert">{error}<InformarNomeSeFaltar erro={error}/></div>}<div className="modal-actions"><button type="button" className="button ghost" onClick={onClose}>Cancelar</button><button className="button primary" disabled={busy || !body.trim() || !to.trim() || !agent}>{busy ? 'Enviando…' : 'Enviar mensagem'}<Send size={15}/></button></div></form></Modal>;
 }
 
 export function ResolveMessageDialog({ projectId, agent, item, onClose, onResolved }: { projectId: string; agent: string; item: InboxItem; onClose: () => void; onResolved: (resolution: MessageResolution) => void }) {
@@ -244,7 +247,7 @@ export function ResolveMessageDialog({ projectId, agent, item, onClose, onResolv
     </div>
     <form className="form-stack" onSubmit={event => void submit(event)}>
       <label>Como esta pendência foi resolvida?<textarea autoFocus aria-label="Como esta pendência foi resolvida?" value={note} onChange={event => setNote(event.target.value)} rows={4} maxLength={8000} placeholder="Ex.: Adotamos a decisão e registramos no checkpoint versão 12." required/><small>Deixe informação suficiente para outra IA entender o resultado sem refazer a investigação.</small></label>
-      {error && <div className="alert" role="alert">{error}</div>}
+      {error && <div className="alert" role="alert">{error}<InformarNomeSeFaltar erro={error}/></div>}
       <div className="modal-actions"><button type="button" className="button ghost" onClick={onClose}>Cancelar</button><button className="button primary" disabled={busy || !note.trim()}>{busy ? 'Registrando…' : 'Registrar resolução'}<Check size={16}/></button></div>
     </form>
   </Modal>;
@@ -290,7 +293,7 @@ export function WorkDraftDialog({ detail, agent, draft, onClose, onSaved }: { de
         <label>Áreas alteradas<textarea aria-label="Áreas alteradas" value={changedAreas} onChange={event => setChangedAreas(event.target.value)} rows={2} maxLength={12000} placeholder="Um caminho ou área por linha"/></label>
         <label>Pendências abertas<textarea aria-label="Pendências abertas" value={openIssues} onChange={event => setOpenIssues(event.target.value)} rows={2} maxLength={12000} placeholder="Um ponto por linha"/></label>
       </div>
-      {error && <div className="alert" role="alert">{error}</div>}
+      {error && <div className="alert" role="alert">{error}<InformarNomeSeFaltar erro={error}/></div>}
       <div className="modal-actions"><button type="button" className="button ghost" onClick={onClose}>Cancelar</button><button className="button primary" disabled={busy || !summary.trim() || !nextAction.trim() || !agent}>{busy ? 'Salvando…' : 'Salvar rascunho'}<Check size={16}/></button></div>
     </form>
   </Modal>;
@@ -327,7 +330,7 @@ export function DeliverHandoffDialog({ projectId, agent, checkpoint, taskTitle, 
     <form onSubmit={submit} className="form-stack">
       <label>Destinatário<input autoFocus value={to} onChange={e => setTo(e.target.value)} required placeholder="Ex.: Grok ou *" maxLength={80}/><small>Use * para avisar todas as identidades do projeto.</small></label>
       <label className="handoff-message-field">Mensagem para a próxima IA<textarea aria-label="Mensagem para a próxima IA" value={message} onChange={e => setMessage(e.target.value)} rows={6} maxLength={8000} placeholder="O que a próxima IA deve ler primeiro. Pode ficar em branco."/><small>Pode ficar em branco. O próximo passo do checkpoint continua visível.</small></label>
-      {error && <div className="alert" role="alert">{error}</div>}
+      {error && <div className="alert" role="alert">{error}<InformarNomeSeFaltar erro={error}/></div>}
       <div className="modal-actions"><button type="button" className="button ghost" onClick={onClose}>Cancelar</button><button className="button primary" disabled={busy || !to.trim() || !agent}>{busy ? 'Entregando…' : 'Entregar passagem'}<Send size={15}/></button></div>
     </form>
   </Modal>;
@@ -347,7 +350,7 @@ export function ExportDialog({ project, onClose }: { project: Project; onClose: 
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch (err) { setError(errorText(err)); } finally { setBundleBusy(false); }
   }
-  return <Modal title="Exportar contexto" eyebrow="RETOMADA" onClose={onClose} wide><p className="modal-description">{project.name} · {handoff ? `versão ${handoff.revision} · ${handoff.markdown.length.toLocaleString('pt-BR')} caracteres` : 'Preparando pacote…'}</p>{error && <div role="alert" className="alert">{error}</div>}{handoff ? <>{handoff.truncated && <div className="notice">O pacote foi reduzido para respeitar o limite de tamanho. Consulte o projeto para o histórico completo.</div>}<label className="export-label" htmlFor="export-context">Contexto para compartilhar</label><textarea className="export-preview" id="export-context" value={handoff.markdown} readOnly spellCheck={false}/><p className="subtle-text">Confira antes de compartilhar. O mascaramento de segredos conhecidos é auxiliar e não garante a remoção de todo dado sensível.</p>{copied && <div className="copy-status" role="status"><Check size={15}/>Contexto copiado.</div>}<div className="modal-actions export-actions"><button className="button secondary" disabled={bundleBusy} onClick={() => void downloadBundle()}><ArrowDownToLine size={16}/>{bundleBusy ? 'Preparando…' : 'Baixar pacote AXON'}</button><button className="button secondary" onClick={download}><ArrowDownToLine size={16}/>Baixar Markdown</button><button className="button primary" onClick={() => void copy()}><Copy size={16}/>Copiar contexto</button></div></> : !error && <div className="loading" role="status"><RefreshCw size={18}/>Preparando contexto…</div>}</Modal>;
+  return <Modal title="Exportar contexto" eyebrow="RETOMADA" onClose={onClose} wide><p className="modal-description">{project.name} · {handoff ? `versão ${handoff.revision} · ${handoff.markdown.length.toLocaleString('pt-BR')} caracteres` : 'Preparando pacote…'}</p>{error && <div role="alert" className="alert">{error}<InformarNomeSeFaltar erro={error}/></div>}{handoff ? <>{handoff.truncated && <div className="notice">O pacote foi reduzido para respeitar o limite de tamanho. Consulte o projeto para o histórico completo.</div>}<label className="export-label" htmlFor="export-context">Contexto para compartilhar</label><textarea className="export-preview" id="export-context" value={handoff.markdown} readOnly spellCheck={false}/><p className="subtle-text">Confira antes de compartilhar. O mascaramento de segredos conhecidos é auxiliar e não garante a remoção de todo dado sensível.</p>{copied && <div className="copy-status" role="status"><Check size={15}/>Contexto copiado.</div>}<div className="modal-actions export-actions"><button className="button secondary" disabled={bundleBusy} onClick={() => void downloadBundle()}><ArrowDownToLine size={16}/>{bundleBusy ? 'Preparando…' : 'Baixar pacote AXON'}</button><button className="button secondary" onClick={download}><ArrowDownToLine size={16}/>Baixar Markdown</button><button className="button primary" onClick={() => void copy()}><Copy size={16}/>Copiar contexto</button></div></> : !error && <div className="loading" role="status"><RefreshCw size={18}/>Preparando contexto…</div>}</Modal>;
 }
 
 
@@ -379,7 +382,7 @@ export function ImportProjectDialog({ onClose, onImported }: { onClose: () => vo
     <form className="form-stack" onSubmit={submit}>
       <label className="file-drop">Escolher arquivo JSON<input type="file" accept=".json,application/json" onChange={event => void loadFile(event.target.files?.[0])}/><small>Até 1 MB. O arquivo é validado antes de entrar no workspace.</small></label>
       <label>Pacote JSON<textarea aria-label="Pacote JSON" autoFocus value={source} onChange={event => setSource(event.target.value)} rows={10} placeholder={'{ "format": "axon-project", ... }'} spellCheck={false}/></label>
-      {error && <div className="alert" role="alert">{error}</div>}
+      {error && <div className="alert" role="alert">{error}<InformarNomeSeFaltar erro={error}/></div>}
       <div className="modal-actions"><button type="button" className="button ghost" onClick={onClose}>Cancelar</button><button className="button primary" disabled={busy || !source.trim()}>{busy ? 'Importando…' : 'Importar cópia'}<ArrowRight size={16}/></button></div>
     </form>
   </Modal>;
@@ -390,19 +393,28 @@ export function DeleteProjectDialog({ project, onClose, onDeleted }: { project: 
   const [confirmation, setConfirmation] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-  const [summary, setSummary] = useState<{ tasks: number; checkpoints: number; messages: number; backlog: number } | null>(null);
+  const [summary, setSummary] = useState<ContagemDoProjeto | null>(null);
   useEffect(() => {
     let active = true;
+    // O que não der para contar vira "–" (nunca um zero de mentira); só a falha de abrir o projeto é erro da caixa.
+    const contar = (pedido: Promise<unknown>) => pedido.then(contarLista, () => null);
     Promise.all([
       api.project(project.id),
-      api.backlog(project.id, undefined, true).catch((): BacklogItem[] => []),
-    ]).then(([detail, backlog]) => {
+      contar(api.backlog(project.id, undefined, true)),
+      contar(apiQuadro.quadro(project.id).then(quadro => quadro.cards)),
+      contar(api.content(project.id, true)),
+      contar(api.decisions(project.id, true)),
+      contar(api.blockers(project.id, true)),
+      contar(api.charterHistory(project.id)),
+      contar(request<unknown[]>(`/projects/${encodeURIComponent(project.id)}/approvals`)),
+      request<{ rascunhos: number; passagens: number }>(`/projects/${encodeURIComponent(project.id)}/o-que-sera-removido`).then(c => c, () => null),
+      request<{ projectId: string | null }[]>(`/projects/${encodeURIComponent(project.id)}/licoes`).then(licoes => contarOrientacoes(licoes, project.id), () => null),
+    ]).then(([detail, backlog, cartoes, documentos, decisoes, bloqueios, versoesDaDiretriz, propostas, ocultos, orientacoes]) => {
       if (!active) return;
       setSummary({
-        tasks: detail.tasks.length,
-        checkpoints: detail.checkpoints.length,
-        messages: detail.messages.length,
-        backlog: Array.isArray(backlog) ? backlog.length : 0,
+        tarefas: detail.tasks.length, checkpoints: detail.checkpoints.length, mensagens: detail.messages.length,
+        backlog, cartoes, documentos, decisoes, bloqueios, orientacoes, versoesDaDiretriz, propostas,
+        passagens: ocultos?.passagens ?? null, rascunhos: ocultos?.rascunhos ?? null,
       });
     }).catch(err => { if (active) setError(errorText(err)); });
     return () => { active = false; };
@@ -420,19 +432,16 @@ export function DeleteProjectDialog({ project, onClose, onDeleted }: { project: 
     } catch (err) { setError(errorText(err)); } finally { setBusy(false); }
   }
   return <Modal title="Excluir projeto" eyebrow="EXCLUSÃO PERMANENTE" onClose={onClose}>
-    <p className="modal-description">Remove o projeto, backlog, tarefas, checkpoints, mensagens e passagens. Não pode ser desfeito.</p>
+    <p className="modal-description">Remove o projeto e tudo o que está dentro dele, como mostra a lista abaixo. Não pode ser desfeito.</p>
     <div className="handoff-review delete-summary">
       <span className="eyebrow">O QUE SERÁ REMOVIDO</span>
       {summary ? <dl>
-        <div><dt>Tarefas</dt><dd>{summary.tasks}</dd></div>
-        <div><dt>Checkpoints</dt><dd>{summary.checkpoints}</dd></div>
-        <div><dt>Mensagens</dt><dd>{summary.messages}</dd></div>
-        <div><dt>Itens de backlog</dt><dd>{summary.backlog}</dd></div>
+        {linhasDoRemovido(summary).map(linha => <div key={linha.chave}><dt>{linha.rotulo}</dt><dd title={linha.incerto ? 'Não foi possível contar agora' : undefined}>{linha.valor}</dd></div>)}
       </dl> : <p className="subtle-text">Contando o que está neste projeto…</p>}
     </div>
     <form className="form-stack" onSubmit={event => void submit(event)}>
-      <label>Digite o nome do projeto<input autoFocus value={confirmation} onChange={event => setConfirmation(event.target.value)} placeholder={project.name} autoComplete="off" spellCheck={false} aria-invalid={confirmation.length > 0 && !matches}/><small>Escreva exatamente {project.name}.</small></label>
-      {error && <div className="alert" role="alert">{error}</div>}
+      <label>Digite o nome do projeto<input autoFocus value={confirmation} onChange={event => setConfirmation(event.target.value)} placeholder={dicaDaConfirmacao(project.name)} autoComplete="off" spellCheck={false} aria-invalid={confirmation.length > 0 && !matches}/><small>Escreva exatamente {project.name}.</small></label>
+      {error && <div className="alert" role="alert">{error}<InformarNomeSeFaltar erro={error}/></div>}
       <div className="modal-actions">
         <button type="button" className="button ghost" onClick={onClose}>Cancelar</button>
         <button type="submit" className="button danger" disabled={busy || !matches}>{busy ? 'Excluindo…' : 'Excluir projeto'}</button>
@@ -444,7 +453,7 @@ export function DeleteProjectDialog({ project, onClose, onDeleted }: { project: 
 export function DeleteBacklogItemDialog({ item, onClose, onConfirm, busy, error }: { item: BacklogItem; onClose: () => void; onConfirm: () => void; busy: boolean; error: string }) {
   return <Modal title="Excluir ideia arquivada" eyebrow="EXCLUSÃO PERMANENTE" onClose={onClose}>
     <p className="modal-description">Remove <strong>{item.title}</strong> do backlog. Tarefas, checkpoints e mensagens permanecem.</p>
-    {error && <div className="alert" role="alert">{error}</div>}
+    {error && <div className="alert" role="alert">{error}<InformarNomeSeFaltar erro={error}/></div>}
     <div className="modal-actions">
       <button type="button" className="button ghost" onClick={onClose}>Cancelar</button>
       <button type="button" className="button danger" disabled={busy} onClick={onConfirm}>{busy ? 'Excluindo…' : 'Excluir permanentemente'}</button>
@@ -540,7 +549,7 @@ export function ProposeDecisionDialog({ projectId, agent, onClose, onSaved }: { 
             />
           </label>
         </div>
-        {error && <div className="alert" role="alert">{error}</div>}
+        {error && <div className="alert" role="alert">{error}<InformarNomeSeFaltar erro={error}/></div>}
         <div className="modal-actions">
           <button type="button" className="button ghost" onClick={onClose}>Cancelar</button>
           <button type="submit" className="button primary" disabled={busy || !title.trim() || !body.trim() || !proposedBy.trim()}>
@@ -555,7 +564,7 @@ export function ProposeDecisionDialog({ projectId, agent, onClose, onSaved }: { 
 
 export function AcceptDecisionDialog({ projectId, agent, decision, onClose, onSaved }: { projectId: string; agent: string; decision: Decision; onClose: () => void; onSaved: () => Promise<void> }) {
   const notify = useFeedback();
-  const [actor, setActor] = useState(agent || '');
+  const [actor, setActor] = useState(nomeDoDono());
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
@@ -596,7 +605,7 @@ export function AcceptDecisionDialog({ projectId, agent, decision, onClose, onSa
       </div>
       <form onSubmit={submit} className="form-stack">
         <label>
-          Operador humano responsável
+          Quem decide
           <input
             autoFocus
             value={actor}
@@ -605,9 +614,9 @@ export function AcceptDecisionDialog({ projectId, agent, decision, onClose, onSa
             required
             maxLength={80}
           />
-          <small>Decisões canônicas exigem a identificação de quem validou a proposta.</small>
+          <small>Já vem como "{nomeDoDono()}". Troque só se quiser assinar com outro nome.</small>
         </label>
-        {error && <div className="alert" role="alert">{error}</div>}
+        {error && <div className="alert" role="alert">{error}<InformarNomeSeFaltar erro={error}/></div>}
         <div className="modal-actions">
           <button type="button" className="button ghost" onClick={onClose}>Cancelar</button>
           <button type="submit" className="button primary" disabled={busy || !actor.trim()}>
@@ -622,7 +631,7 @@ export function AcceptDecisionDialog({ projectId, agent, decision, onClose, onSa
 
 export function RevokeDecisionDialog({ projectId, agent, decision, onClose, onSaved }: { projectId: string; agent: string; decision: Decision; onClose: () => void; onSaved: () => Promise<void> }) {
   const notify = useFeedback();
-  const [actor, setActor] = useState(agent || '');
+  const [actor, setActor] = useState(nomeDoDono());
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -664,7 +673,7 @@ export function RevokeDecisionDialog({ projectId, agent, decision, onClose, onSa
       </div>
       <form onSubmit={submit} className="form-stack">
         <label>
-          Operador humano responsável
+          Quem decide
           <input
             autoFocus
             value={actor}
@@ -685,7 +694,7 @@ export function RevokeDecisionDialog({ projectId, agent, decision, onClose, onSa
             maxLength={2000}
           />
         </label>
-        {error && <div className="alert" role="alert">{error}</div>}
+        {error && <div className="alert" role="alert">{error}<InformarNomeSeFaltar erro={error}/></div>}
         <div className="modal-actions">
           <button type="button" className="button ghost" onClick={onClose}>Cancelar</button>
           <button type="submit" className="button danger" disabled={busy || !actor.trim()}>
@@ -701,7 +710,7 @@ export function SupersedeDecisionDialog({ projectId, agent, decision, onClose, o
   const notify = useFeedback();
   const [title, setTitle] = useState(decision.title);
   const [body, setBody] = useState(decision.body);
-  const [actor, setActor] = useState(agent || '');
+  const [actor, setActor] = useState(nomeDoDono());
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -772,7 +781,7 @@ export function SupersedeDecisionDialog({ projectId, agent, decision, onClose, o
         </label>
         <div className="form-columns">
           <label>
-            Operador humano responsável
+            Quem decide
             <input
               value={actor}
               onChange={e => setActor(e.target.value)}
@@ -791,7 +800,7 @@ export function SupersedeDecisionDialog({ projectId, agent, decision, onClose, o
             />
           </label>
         </div>
-        {error && <div className="alert" role="alert">{error}</div>}
+        {error && <div className="alert" role="alert">{error}<InformarNomeSeFaltar erro={error}/></div>}
         <div className="modal-actions">
           <button type="button" className="button ghost" onClick={onClose}>Cancelar</button>
           <button type="submit" className="button primary" disabled={busy || !title.trim() || !body.trim() || !actor.trim()}>
@@ -1076,7 +1085,7 @@ export function TaskContractDialog({
           )}
         </div>
 
-        {error && <div className="alert" role="alert">{error}</div>}
+        {error && <div className="alert" role="alert">{error}<InformarNomeSeFaltar erro={error}/></div>}
 
         <div className="modal-actions">
           <button type="button" className="button ghost" onClick={onClose}>Cancelar</button>
@@ -1610,7 +1619,7 @@ export function BlockerTimelineDialog({
         </div>
       )}
 
-      {error && <div className="alert" role="alert">{error}</div>}
+      {error && <div className="alert" role="alert">{error}<InformarNomeSeFaltar erro={error}/></div>}
 
       {timeline && timeline.events.length === 0 && (
         <p className="subtle-text">Nenhum evento registrado ainda.</p>
@@ -1700,7 +1709,7 @@ export function DecisionTimelineDialog({
         </div>
       )}
 
-      {error && <div className="alert" role="alert">{error}</div>}
+      {error && <div className="alert" role="alert">{error}<InformarNomeSeFaltar erro={error}/></div>}
 
       {timeline && timeline.events.length === 0 && (
         <p className="subtle-text">Nenhum evento registrado ainda.</p>

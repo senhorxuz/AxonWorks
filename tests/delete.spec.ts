@@ -18,7 +18,7 @@ test('exclui projeto da biblioteca só depois do nome exato e volta à lista se 
   const dialog = page.getByRole('dialog', { name: 'Excluir projeto', exact: true });
   await expect(dialog).toBeVisible();
   await expect(dialog.getByLabel('Digite o nome do projeto')).toBeFocused();
-  await expect(dialog).toContainText('Remove o projeto, backlog, tarefas, checkpoints, mensagens e passagens');
+  await expect(dialog).toContainText('Remove o projeto e tudo o que está dentro dele');
   const confirm = dialog.getByRole('button', { name: 'Excluir projeto', exact: true });
   await expect(confirm).toBeDisabled();
   await dialog.getByLabel('Digite o nome do projeto').fill('arquivo para exclusão');

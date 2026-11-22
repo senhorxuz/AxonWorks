@@ -44,11 +44,15 @@ export function useLixeira(projectId: string) {
     }
   }
 
-  function mandar(id: string) {
-    return executar(async () => {
+  /** Devolve o item que foi para a lixeira (para o "Desfazer"), ou null se não deu certo. */
+  async function mandar(id: string) {
+    const guardado: { item: ItemNaLixeira | null } = { item: null };
+    const deuCerto = await executar(async () => {
       const item = await request<ItemNaLixeira>(caminho, { tipo: 'licao', id });
+      guardado.item = item;
       setItens(atuais => [item, ...atuais]);
     });
+    return deuCerto ? guardado.item : null;
   }
 
   function retirar(item: ItemNaLixeira, operacao: 'restaurar' | 'apagar') {

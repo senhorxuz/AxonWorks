@@ -28,6 +28,7 @@
 }
 
 .quadro {
+  position: relative;
   padding: 4px 0 40px;
 }
 
@@ -366,11 +367,11 @@
 }
 
 .quadro-cartao[data-prioridade="urgent"] {
-  box-shadow: inset 3px 0 0 #f87171, inset 0 1px 0 rgba(255, 255, 255, 0.045), 0 1px 2px rgba(0, 0, 0, 0.22);
+  box-shadow: inset 3px 0 0 #e5534b, inset 0 1px 0 rgba(255, 255, 255, 0.045), 0 1px 2px rgba(0, 0, 0, 0.22);
 }
 
 .quadro-cartao[data-prioridade="high"] {
-  box-shadow: inset 3px 0 0 #fbbf24, inset 0 1px 0 rgba(255, 255, 255, 0.045), 0 1px 2px rgba(0, 0, 0, 0.22);
+  box-shadow: inset 3px 0 0 var(--brasa, #e8794a), inset 0 1px 0 rgba(255, 255, 255, 0.045), 0 1px 2px rgba(0, 0, 0, 0.22);
 }
 
 .quadro-cartao[data-arrastando] {
@@ -411,13 +412,8 @@
   color: var(--et);
 }
 
-.quadro-etiqueta[data-etiqueta="bug"] { --et: #fca5a5; }
-.quadro-etiqueta[data-etiqueta="improvement"] { --et: #7dd3fc; }
-.quadro-etiqueta[data-etiqueta="feature"] { --et: #c1bfb8; }
-.quadro-etiqueta[data-etiqueta="design"] { --et: #f9a8d4; }
-.quadro-etiqueta[data-etiqueta="content"] { --et: #fcd34d; }
-.quadro-etiqueta[data-etiqueta="test"] { --et: #bef264; }
-.quadro-etiqueta[data-etiqueta="infra"] { --et: #d7d3cd; }
+/* Etiquetas em grafite: só o texto diz o que é (a cor fica para o que tem sentido, a escala das colunas). */
+.quadro-etiqueta { --et: #c9cbd0; background: rgba(255, 255, 255, 0.07); }
 
 .quadro-cartao-titulo {
   font-size: 13.5px;
@@ -438,11 +434,11 @@
 .quadro-prioridade {
   font-size: 11px;
   font-weight: 700;
-  color: #fca5a5;
+  color: #f08a84; /* o vermelho de Bloqueado (#e5534b), claro o bastante para ler */
 }
 
 .quadro-prioridade[data-prioridade="high"] {
-  color: #fcd34d;
+  color: var(--brasa-clara, #f6b28e);
 }
 
 .quadro-tem-anotacao {
@@ -493,10 +489,10 @@
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: color-mix(in srgb, var(--cor-nome) 17%, transparent);
+  background: rgba(255, 255, 255, 0.09);
   font-size: 11px;
   font-weight: 700;
-  color: var(--cor-nome);
+  color: #d7d9de;
 }
 
 .quadro-cartao-autor {
@@ -813,8 +809,8 @@
   color: var(--q-tinta);
 }
 
-.quadro-painel-prioridades button[aria-checked="true"][data-prioridade="urgent"] { color: #fca5a5; }
-.quadro-painel-prioridades button[aria-checked="true"][data-prioridade="high"] { color: #fcd34d; }
+.quadro-painel-prioridades button[aria-checked="true"][data-prioridade="urgent"] { color: #f08a84; }
+.quadro-painel-prioridades button[aria-checked="true"][data-prioridade="high"] { color: var(--brasa-clara, #f6b28e); }
 
 .quadro-painel-descricao {
   width: 100%;

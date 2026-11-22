@@ -123,7 +123,8 @@ test('proposta de mudança de diretriz aprovada pela tela muda a diretriz de ver
   await page.goto(`/#project/${project.id}`);
   await expect(page.getByRole('heading', { name: project.name, level: 1 })).toBeVisible();
 
-  await expect(page.getByText('1 proposta espera sua decisão')).toBeVisible();
+  await expect(page.getByText('1 item espera você.')).toBeVisible();
+  await expect(page.getByText('1 proposta para decidir', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Ver propostas' }).click();
 
   const fila = page.locator('#fila-de-aprovacoes');
@@ -133,6 +134,8 @@ test('proposta de mudança de diretriz aprovada pela tela muda a diretriz de ver
   await expect(card).toContainText('O parceiro pediu integração antes do prazo original.');
   await expect(card).toContainText('Diretriz original: manter o escopo pequeno.');
   await expect(card).toContainText('Diretriz nova: priorizar integrações externas antes do lançamento.');
+
+  await fila.getByRole('button', { name: 'Trocar nome' }).click();
 
   await fila.getByLabel('Seu nome, para registrar decisões').fill('Dono do projeto');
   await fila.getByRole('button', { name: 'Salvar nome' }).click();
@@ -171,6 +174,8 @@ test('proposta recusada exige motivo e o motivo fica registrado', async ({ page,
   const fila = page.locator('#fila-de-aprovacoes');
   const card = fila.locator('.fila-card').filter({ hasText: 'Registrar decisão de nomenclatura' });
   await expect(card).toBeVisible();
+
+  await fila.getByRole('button', { name: 'Trocar nome' }).click();
 
   await fila.getByLabel('Seu nome, para registrar decisões').fill('Responsável pelo projeto');
   await fila.getByRole('button', { name: 'Salvar nome' }).click();
@@ -242,10 +247,10 @@ test('abrir o projeto com proposta pendente não rola a página até o campo de 
   await proporAprovacao(request, project.id, { agent: 'Grok', kind: 'note', title: 'Proposta pendente', body: 'Conteúdo da proposta.', rationale: 'Motivo da proposta.' });
 
   await page.goto(`/#project/${project.id}`);
-  const campoNome = page.locator('#fila-nome-dono');
+  const campoNome = page.locator('#fila-de-aprovacoes .fila-identidade');
   await expect(campoNome).toBeAttached();
 
-  // Sem isto o teste passaria mesmo com o defeito: o campo precisa estar abaixo da primeira tela.
+  // Sem isto o teste passaria mesmo com o defeito: o bloco do nome precisa estar abaixo da primeira tela.
   const posicaoNoDocumento = await campoNome.evaluate(el => el.getBoundingClientRect().top + window.scrollY);
   expect(posicaoNoDocumento).toBeGreaterThan(page.viewportSize()!.height);
 
@@ -264,7 +269,7 @@ test('Parte 10: "Sugestões para agora" substitui "Próximo passo sugerido" no r
   await expect(proximoAntigo).toHaveCount(0);
 });
 
-test('Parte 10: formulários de bloqueio e diretriz iniciam recolhidos e expandem ao clicar', async ({ page, request }) => {
+test('Parte 10: o formulário de bloqueio e o editor da diretriz iniciam recolhidos e expandem ao clicar', async ({ page, request }) => {
   const project = await criarProjeto(request, 'Projeto Formulários Recolhidos ' + Date.now());
   await page.goto(`/#project/${project.id}`);
   await expect(page.getByRole('heading', { name: project.name, level: 1 })).toBeVisible();
@@ -280,7 +285,9 @@ test('Parte 10: formulários de bloqueio e diretriz iniciam recolhidos e expande
   await expect(page.getByLabel('O que impede o trabalho')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Salvar bloqueio', exact: true })).toBeVisible();
 
-  // Formulário de diretriz começa recolhido atrás do botão "Editar diretriz"
+  // A Visão geral só resume a diretriz; o editor mora na aba Diretriz e começa recolhido atrás de "Editar diretriz"
+  await expect(page.getByRole('button', { name: 'Editar diretriz', exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Abrir a diretriz', exact: true }).click();
   const botaoEditarDiretriz = page.getByRole('button', { name: 'Editar diretriz', exact: true });
   await expect(botaoEditarDiretriz).toBeVisible();
   await expect(page.getByLabel('Texto vigente da diretriz do projeto')).toHaveCount(0);
@@ -288,7 +295,7 @@ test('Parte 10: formulários de bloqueio e diretriz iniciam recolhidos e expande
   // Clica para expandir
   await botaoEditarDiretriz.click();
   await expect(page.getByLabel('Texto vigente da diretriz do projeto')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Salvar versão', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Salvar versão 2', exact: true })).toBeVisible();
 });
 
 test('Parte 10: resumo técnico longo exibe primeiras linhas e "Ver mais" para expandir', async ({ page, request }) => {
@@ -515,6 +522,8 @@ test('Parte 13: aprovação de proposta exibe linha de confirmação com frase e
   const card = fila.locator('.fila-card').filter({ hasText: 'Atualizar diretriz principal' });
   await expect(card).toBeVisible();
 
+  await fila.getByRole('button', { name: 'Trocar nome' }).click();
+
   await fila.getByLabel('Seu nome, para registrar decisões').fill('Dono do projeto');
   await fila.getByRole('button', { name: 'Salvar nome' }).click();
 
@@ -544,6 +553,8 @@ test('Parte 13: recusa de proposta exibe linha de confirmação com frase exata 
   await expect(fila).toBeVisible();
   const card = fila.locator('.fila-card').filter({ hasText: 'Nota a ser recusada' });
   await expect(card).toBeVisible();
+
+  await fila.getByRole('button', { name: 'Trocar nome' }).click();
 
   await fila.getByLabel('Seu nome, para registrar decisões').fill('Dono do projeto');
   await fila.getByRole('button', { name: 'Salvar nome' }).click();

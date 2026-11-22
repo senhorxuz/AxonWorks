@@ -61,6 +61,11 @@ test('lista regras, separa erros e mostra verificações por momento sem depende
     const locais = erros.getByRole('region', { name: 'Neste projeto' });
     const gerais = erros.getByRole('region', { name: 'Em todos os projetos' });
     await expect(locais.getByText('Revisar links da vitrine')).toBeVisible();
+    // "Em todos os projetos" começa recolhido, com a contagem à vista.
+    await expect(gerais.getByText('Conferir acentos na importação')).toBeHidden();
+    await expect(gerais.getByRole('button', { name: /^Em todos os projetos/ })).toHaveAttribute('aria-expanded', 'false');
+    await expect(gerais.locator('.regras-grupo-contagem')).toHaveText('1');
+    await gerais.getByRole('button', { name: /^Em todos os projetos/ }).click();
     await expect(gerais.getByText('Conferir acentos na importação')).toBeVisible();
     await expect(locais.getByText('Conferir acentos na importação')).toHaveCount(0);
     await expect(gerais.getByText('Revisar links da vitrine')).toHaveCount(0);
@@ -120,11 +125,11 @@ test('cria, corrige e desfaz uma regra guardando o histórico e o motivo', async
   await expect(suasRegras.getByText('Preservar a vitrine', { exact: true })).toHaveCount(0);
   await expect(suasRegras.getByText('Preservar a vitrine e a página de preços', { exact: true })).toBeVisible();
 
-  await suasRegras.getByRole('button', { name: /^Desfazer/ }).click();
-  await expect(dialogo).toHaveAccessibleName('Desfazer regra');
+  await suasRegras.getByRole('button', { name: /^Aposentar regra/ }).click();
+  await expect(dialogo).toHaveAccessibleName('Aposentar regra');
   await dialogo.getByLabel('Motivo').fill('Vamos redesenhar a vitrine.');
-  await dialogo.getByRole('button', { name: 'Desfazer regra' }).click();
-  await expect(painel.getByRole('status').filter({ hasText: 'Regra desfeita.' })).toBeVisible();
+  await dialogo.getByRole('button', { name: 'Aposentar regra' }).click();
+  await expect(painel.getByRole('status').filter({ hasText: 'Regra aposentada.' })).toBeVisible();
   await expect(suasRegras.getByText('Você ainda não tem regras neste projeto.')).toBeVisible();
 
   const [anterior, corrigida] = await historico(request, projeto.id);
@@ -147,7 +152,7 @@ test('cria uma verificação antes de subir e aposenta um erro pelo motivo infor
   await expect(painel.getByRole('region', { name: 'Antes de subir' })).toContainText('Testar a página de preços');
 
   await painel.getByText('O serviço de e-mail já foi trocado.').click();
-  await painel.getByRole('button', { name: /^Aposentar/ }).click();
+  await painel.getByRole('button', { name: /^Aposentar: O serviço de e-mail/ }).click();
   await dialogo.getByLabel('Motivo').fill('O serviço antigo saiu da loja.');
   await dialogo.getByRole('button', { name: 'Aposentar erro' }).click();
   await expect(painel.getByRole('region', { name: 'Neste projeto' })).toContainText('Nenhum erro anotado neste projeto.');
@@ -177,6 +182,7 @@ test('mostra carregamento, avisa a falha e tenta de novo até chegar ao estado v
   await painel.getByRole('button', { name: 'Tentar novamente', exact: true }).click();
   await expect(painel.getByText('Você ainda não tem regras neste projeto.')).toBeVisible();
   await expect(painel.getByText('Nenhum erro anotado neste projeto.')).toBeVisible();
+  await painel.getByRole('button', { name: /^Em todos os projetos/ }).click();
   await expect(painel.getByText('Nenhum erro geral anotado.')).toBeVisible();
   await expect(painel.getByText('Nenhuma verificação para este momento.')).toHaveCount(3);
   await expect(painel.getByRole('alert')).toHaveCount(0);
@@ -261,4 +267,37 @@ test('manda uma orientação para a lixeira, restaura e apaga de vez com confirm
   await expect(lixeira.getByText('A lixeira está vazia')).toBeVisible();
   expect(comBancoDeTeste(store => store.listAuditLogs({ projectId: projeto.id }).find(item => item.action === 'purge_record')?.resourceId)).toBe(regra.id);
   expect(await historico(request, projeto.id)).toEqual([]);
+});
+
+test('"Em todos os projetos" começa recolhido, com a contagem à vista, e tem busca', async ({ page, request }) => {
+  const projeto = await criarProjeto(request);
+  const gerais = comBancoDeTeste(store => [
+    store.registrarLicao(null, { texto: 'O terminal cortou os acentos na importação.', linhaCurta: 'Conferir acentos na importação', agent: 'Codex' }),
+    store.registrarLicao(null, { texto: 'A senha apareceu num log de teste.', linhaCurta: 'Não logar senhas', agent: 'Codex' }),
+    store.registrarLicao(null, { texto: 'O banco real foi tocado por engano.', linhaCurta: 'Não tocar no banco real', agent: 'Codex' }),
+  ]);
+  try {
+    const painel = await abrir(page, projeto);
+    const grupo = painel.getByRole('region', { name: 'Em todos os projetos' });
+    const botao = grupo.getByRole('button', { name: /^Em todos os projetos/ });
+    await expect(botao).toHaveAttribute('aria-expanded', 'false');
+    await expect(grupo.locator('.regras-grupo-contagem')).toHaveText('3');
+    await expect(grupo.getByText('Não logar senhas')).toBeHidden();
+    await expect(grupo.getByRole('searchbox')).toHaveCount(0);
+
+    await botao.click();
+    await expect(botao).toHaveAttribute('aria-expanded', 'true');
+    await expect(grupo.getByText('Não logar senhas')).toBeVisible();
+    const busca = grupo.getByRole('searchbox', { name: 'Buscar nos erros de todos os projetos' });
+    await busca.fill('SENHA');
+    await expect(grupo.getByText('Não logar senhas')).toBeVisible();
+    await expect(grupo.getByText('Não tocar no banco real')).toHaveCount(0);
+    await expect(grupo.locator('.regras-grupo-contagem')).toHaveText('1 de 3');
+    await busca.fill('zzz');
+    await expect(grupo.getByText('Nenhum erro encontrado com essa busca.')).toBeVisible();
+    await busca.fill('');
+    await expect(grupo.locator('.regras-grupo-contagem')).toHaveText('3');
+  } finally {
+    comBancoDeTeste(store => { for (const licao of gerais) store.aposentarLicao(licao.id, { agent: 'Dono', motivo: 'Fim do cenário' }); });
+  }
 });

@@ -1,6 +1,7 @@
 import { useId, useLayoutEffect, useRef, useState, type FormEvent } from 'react';
 import { LICAO_MOTIVO_MAXIMO, LICAO_TEXTO_MAXIMO, MOMENTOS_DA_VERIFICACAO, type Licao, type MomentoDaVerificacao } from '../../shared/licoes';
 import { ApiError } from '../api';
+import { prenderTab } from '../foco/armadilha';
 import { mensagemDaEscrita, rotulosDaEdicao, ROTULOS_DOS_MOMENTOS, type AcaoSobreLicao } from './texto';
 import { salvarLicao } from './useRegras';
 
@@ -48,7 +49,7 @@ export function EditarLicao({ projectId, acao, aoCancelar, aoSalvar }: Proprieda
   return <dialog className="regras-dialogo" ref={dialogo} aria-labelledby={`${id}-titulo`} onCancel={evento => {
     evento.preventDefault();
     if (!salvando) aoCancelar();
-  }}>
+  }} onKeyDown={evento => prenderTab(evento, dialogo.current)}>
     <form onSubmit={enviar}>
       <h2 id={`${id}-titulo`}>{rotulos.titulo}</h2>
       {retirar && <p className="regras-dialogo-contexto">{acao.licao.texto}</p>}

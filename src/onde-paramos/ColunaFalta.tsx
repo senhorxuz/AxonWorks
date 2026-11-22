@@ -1,3 +1,4 @@
+import { CLASSE_DA_CHEGADA } from '../chegada/irPara';
 import { useState } from 'react';
 import { Check } from 'lucide-react';
 import type { GrupoFalta, ItemFalta } from '../../shared/carta';
@@ -44,7 +45,7 @@ export function ColunaFalta(props: { grupos: GrupoDaTela[]; confirmandoId: strin
 function GrupoDaFalta({ grupo, confirmandoId, aoConfirmar, chegou }: { grupo: GrupoDaTela; confirmandoId: string | null; aoConfirmar: Confirmar; chegou: boolean }) {
   const idDoTitulo = `carta-grupo-${grupo.id}`;
   return (
-    <section className={chegou ? 'carta-grupo carta-chegou' : 'carta-grupo'} data-grupo={grupo.id} aria-labelledby={idDoTitulo} tabIndex={-1}>
+    <section className={chegou ? `carta-grupo carta-chegou ${CLASSE_DA_CHEGADA}` : 'carta-grupo'} data-grupo={grupo.id} aria-labelledby={idDoTitulo} tabIndex={-1}>
       <h4 id={idDoTitulo}>
         {grupo.titulo}{' '}
         <span className="carta-contagem">{grupo.itens.length}</span>

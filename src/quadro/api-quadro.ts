@@ -8,6 +8,7 @@ import type {
   UpdateBoardCardInput,
 } from '../../shared/board';
 import { request } from '../api';
+import { nomeDoDonoDe } from '../identidade/identidade';
 
 const base = (projectId: string) => `/projects/${encodeURIComponent(projectId)}/board`;
 
@@ -24,13 +25,7 @@ export const apiQuadro = {
     request<{ cardId: string }>(`${base(projectId)}/cards/${encodeURIComponent(cardId)}/delete`, input),
 };
 
-const CHAVE_NOME_DONO = 'axon-nome-do-dono';
-
-/** Quem assina as mudanças feitas pela tela: o nome do dono salvo neste computador. */
+/** Quem assina as mudanças feitas pela tela: o nome do dono salvo neste computador (ou "Dono do projeto"). */
 export function nomeDoDono(): string {
-  try {
-    return localStorage.getItem(CHAVE_NOME_DONO)?.trim() || 'Dono do projeto';
-  } catch {
-    return 'Dono do projeto';
-  }
+  return nomeDoDonoDe(typeof localStorage === 'undefined' ? undefined : localStorage);
 }

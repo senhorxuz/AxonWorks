@@ -5,6 +5,7 @@ import type { EstadoDaEntrega } from '../../shared/entrega';
 import { ApiError, errorText } from '../api';
 import { EntregaDoCartao } from '../entregas/EntregaDoCartao';
 import { gsap } from '../motion';
+import { prenderTab } from '../foco/armadilha';
 import { apiQuadro, nomeDoDono } from './api-quadro';
 import { corDoNome, inicial, tempoRelativo } from './logica';
 
@@ -169,6 +170,7 @@ export function CartaoDetalhe({ projectId, cartao, corDaColuna, onFechar, onAtua
       style={{ '--cor-coluna': corDaColuna } as CSSProperties}
       onCancel={e => { e.preventDefault(); fechar(); }}
       onClick={e => { if (e.target === painel.current) fechar(); }}
+      onKeyDown={e => prenderTab(e, painel.current)}
     >
       <div className="quadro-painel-corpo">
         <header className="quadro-painel-topo">

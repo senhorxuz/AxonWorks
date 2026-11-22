@@ -1,0 +1,76 @@
+/*
+ * Pente fino de UX — frente "dono e cores". Tudo que esta frente acrescenta fica aqui, importado por último,
+ * para a junção com as outras frentes ser só somar arquivos. Direção de arte: Brasa e Grafite.
+ */
+
+/* 3.1 — explicação única do nome da IA e botão "Informar nome" */
+.identity-help { display: block; margin: 8px 2px 0; font-size: 11px; line-height: 1.5; color: #a4a7ad; }
+.informar-nome, .alert .informar-nome { margin-left: 10px; color: var(--brasa-clara, #f6b28e); text-decoration: underline; text-underline-offset: 3px; font-size: 12px; }
+.agent-warning-hint .text-button { margin-left: 6px; color: var(--brasa-clara, #f6b28e); text-decoration: underline; text-underline-offset: 3px; font-size: 11px; }
+.subtle-text .text-button, .copiar-aviso-desativado .text-button, .resume-empty .text-button { color: var(--brasa-clara, #f6b28e); text-decoration: underline; text-underline-offset: 3px; font-size: 12px; }
+
+/* 12.4 — confirmação ao fechar com texto digitado */
+.modal-descartar { margin: 0 0 16px; padding: 12px 14px; border: 1px solid var(--brasa-fio, rgba(232, 121, 74, .4)); background: var(--brasa-vidro, rgba(232, 121, 74, .12)); border-radius: 8px; }
+.modal-descartar p { margin: 0 0 10px; font-size: 12px; line-height: 1.5; color: #ecedef; }
+.modal-descartar > div { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* 12.1 — a busca (Ctrl K) fica fixa a ~20% do topo, sem "pular" conforme os resultados */
+dialog.modal.modal-paleta { margin: 20vh auto auto; }
+
+/* 12.2 — o anel de foco vai na caixa, não no campo de dentro (sem anel duplo) */
+:root .command-search input:focus-visible,
+:root .library-search input:focus-visible { outline: none; box-shadow: none; }
+:root .command-search:focus-within,
+:root .library-search:focus-within { outline: 2px solid var(--brasa, #e8794a); outline-offset: 1px; border-color: var(--brasa, #e8794a); box-shadow: none; }
+
+/* 5.2 — Quadro: degradê e setas nas bordas do trilho quando há colunas fora da tela */
+.quadro-setas { position: absolute; left: 0; right: 0; pointer-events: none; z-index: 5; }
+.quadro-borda { position: absolute; top: 0; bottom: 18px; width: 72px; }
+.quadro-borda-esq { left: 0; background: linear-gradient(90deg, #141415, rgba(20, 20, 21, 0)); }
+.quadro-borda-dir { right: 0; background: linear-gradient(270deg, #141415, rgba(20, 20, 21, 0)); }
+.quadro-seta { position: absolute; top: 50%; transform: translateY(-50%); width: 36px; height: 36px; display: grid; place-items: center; border-radius: 50%; border: 1px solid #4a4b50; background: #232427; color: #e5e7eb; cursor: pointer; pointer-events: auto; box-shadow: 0 4px 14px rgba(0, 0, 0, .45); }
+.quadro-seta:hover { background: #2e2f33; border-color: var(--brasa-fio, rgba(232, 121, 74, .4)); }
+.quadro-seta:focus-visible { outline: 2px solid var(--brasa, #e8794a); outline-offset: 2px; }
+.quadro-seta-esq { left: 6px; }
+.quadro-seta-dir { right: 6px; }
+
+/* 7.2 — Relações em grafite; a brasa só onde há conflito ou risco */
+.lane-decision .lane-header-left,
+.lane-content .lane-header-left,
+.lane-task .lane-header-left,
+.lane-blocker .lane-header-left { color: #d7d9de; }
+.kpi-tag.ok { background: rgba(255, 255, 255, 0.07); color: #c9cbd0; border: 1px solid rgba(255, 255, 255, 0.14); }
+.kpi-tag.warning { background: var(--brasa-vidro, rgba(232, 121, 74, .12)); color: var(--brasa-clara, #f6b28e); border: 1px solid var(--brasa-fio, rgba(232, 121, 74, .4)); }
+.risk-badge.risk-low { background: rgba(255, 255, 255, 0.07); color: #c9cbd0; border: 1px solid rgba(255, 255, 255, 0.16); }
+.risk-badge.risk-medium { background: var(--brasa-vidro, rgba(232, 121, 74, .12)); color: var(--brasa-clara, #f6b28e); border: 1px solid var(--brasa-fio, rgba(232, 121, 74, .4)); }
+.risk-badge.risk-high { background: rgba(232, 121, 74, .22); color: #ffd9c4; border: 1px solid var(--brasa, #e8794a); }
+.node-type-badge.type-decision,
+.node-type-badge.type-content,
+.node-type-badge.type-task,
+.node-type-badge.type-blocker { background: rgba(255, 255, 255, 0.08); color: #d7d9de; }
+.graph-subnav-btn.active { background: #2a2b2e; }
+.graph-subnav-btn:hover { background: #232326; border-color: #3c3d41; }
+.graph-node-card.is-selected { background: #2a2b2e; }
+.graph-node-card.has-stale { border-left-color: var(--brasa-fio, rgba(232, 121, 74, .4)); }
+.graph-inspector-sidebar,
+.graph-subview-panel { background: #1b1b1d; border-color: #2e2f32; }
+.conn-pill { background: #232326; border-color: #333437; }
+.graph-inspector-sidebar { max-height: calc(100vh - 110px); overflow-y: auto; }
+
+/* 8.1 — documento da Biblioteca lido como Markdown */
+.library-document .md { margin: 18px 0; font-size: 13px; line-height: 1.7; color: #d4cfc2; overflow-wrap: anywhere; }
+.library-document .md > :first-child { margin-top: 0; }
+.library-document .md p { margin: 0 0 12px; }
+.library-document .md h4, .library-document .md h5, .library-document .md h6 { margin: 20px 0 8px; color: #f3efe4; line-height: 1.35; }
+.library-document .md h4 { font-size: 17px; }
+.library-document .md h5 { font-size: 14px; }
+.library-document .md h6 { font-size: 13px; }
+.library-document .md ul, .library-document .md ol { margin: 0 0 12px; padding-left: 22px; }
+.library-document .md li { margin-bottom: 4px; }
+.library-document .md strong { color: #f3efe4; font-weight: 700; }
+.library-document .md code { font-family: var(--fonte-mono, Consolas, monospace); font-size: 12px; background: rgba(255, 255, 255, .08); padding: 1px 5px; border-radius: 4px; color: #e8e4d8; }
+.library-document .md pre.md-codigo { margin: 0 0 14px; padding: 12px 14px; background: #1b1b1d; border: 1px solid #2e2f32; border-radius: 8px; overflow-x: auto; white-space: pre; }
+.library-document .md pre.md-codigo code { background: none; padding: 0; font-size: 12px; line-height: 1.6; }
+.library-document .md blockquote { margin: 0 0 12px; padding: 4px 0 4px 14px; border-left: 3px solid #4a4b50; color: #b8b4a8; }
+.library-document .md hr { border: 0; border-top: 1px solid #3a3b3f; margin: 16px 0; }
+.graph-inspector-sidebar .inspector-actions { position: sticky; bottom: -18px; background: #1b1b1d; padding-bottom: 4px; }

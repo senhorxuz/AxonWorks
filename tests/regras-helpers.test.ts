@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
-import { test } from 'node:test'
+import { describe, test } from 'node:test'
 import type { Licao } from '../shared/licoes.js'
-import { aplicarLicao, separarLicoes, autoriaDaLicao, resumoDaFalha, mensagemDaEscrita, rotulosDaEdicao } from '../src/regras/texto.js'
+import { aplicarLicao, separarLicoes, autoriaDaLicao, resumoDaFalha, mensagemDaEscrita, rotulosDaEdicao, fraseRepetida } from '../src/regras/texto.js'
 
 const base: Licao = {
   id: '1', projectId: 'projeto', texto: 'Conferir os links', origem: 'Claude', criadaEm: '2026-11-20T12:00:00.000Z',
@@ -83,12 +83,45 @@ test('rótulos de edição distinguem salvar, corrigir, desfazer e aposentar', (
     titulo: 'Corrigir verificação', campo: 'O que precisa ser conferido', botao: 'Salvar correção', sucesso: 'Correção salva.',
   })
   assert.deepEqual(rotulosDaEdicao({ tipo: 'aposentar', licao: regra }), {
-    titulo: 'Desfazer regra', campo: 'Motivo', botao: 'Desfazer regra', sucesso: 'Regra desfeita.',
+    titulo: 'Aposentar regra', campo: 'Motivo', botao: 'Aposentar regra', sucesso: 'Regra aposentada.',
   })
   assert.deepEqual(rotulosDaEdicao({ tipo: 'aposentar', licao: verificacao }), {
-    titulo: 'Desfazer verificação', campo: 'Motivo', botao: 'Desfazer verificação', sucesso: 'Verificação desfeita.',
+    titulo: 'Aposentar verificação', campo: 'Motivo', botao: 'Aposentar verificação', sucesso: 'Verificação aposentada.',
   })
   assert.deepEqual(rotulosDaEdicao({ tipo: 'aposentar', licao: base }), {
     titulo: 'Aposentar erro', campo: 'Motivo', botao: 'Aposentar erro', sucesso: 'Erro aposentado.',
+  })
+})
+
+describe('fraseRepetida: a frase do dono só aparece quando diz algo além do título', () => {
+  test('igual, ou só com outra pontuação, maiúscula ou acento, repete', () => {
+    assert.equal(fraseRepetida('Preservar a página de preços', 'Preservar a página de preços'), true)
+    assert.equal(fraseRepetida('Preservar a página de preços.', 'preservar a pagina de precos'), true)
+  })
+  test('uma frase mais curta, que não traz nada novo, repete', () => {
+    assert.equal(fraseRepetida('Nunca apagar o banco de dados real', 'nunca apagar o banco'), true)
+  })
+  test('as mesmas palavras em outra ordem repetem', () => {
+    assert.equal(fraseRepetida('Rodar os testes antes de subir cada versão nova', 'Rodar os testes antes de subir cada nova versão'), true)
+  })
+  test('uma única palavra nova já basta para mostrar a frase', () => {
+    assert.equal(fraseRepetida('Rodar os testes antes de subir', 'Rodar os testes antes de subir sempre'), false)
+  })
+  test('uma negação que o título não tem nunca é escondida', () => {
+    assert.equal(fraseRepetida('Sempre rodar testes antes de subir', 'Não rodar testes antes de subir'), false)
+    assert.equal(fraseRepetida('Rodar testes antes de subir', 'Nunca rodar testes antes de subir'), false)
+    assert.equal(fraseRepetida('Rodar testes antes de subir', 'Jamais rodar testes antes de subir'), false)
+  })
+  test('com a negação já no título, a mesma frase repete', () => {
+    assert.equal(fraseRepetida('Nunca apagar o banco real', 'nunca apagar o banco'), true)
+  })
+  test('uma frase com palavras novas não repete', () => {
+    assert.equal(fraseRepetida('Preservar a página de preços', 'Não mexer no checkout durante a promoção'), false)
+    assert.equal(fraseRepetida('Preservar a página de preços', 'Preservar a página de preços sempre e em qualquer lugar'), false)
+  })
+  test('frase vazia ou só pontuação não tem o que mostrar', () => {
+    assert.equal(fraseRepetida('Qualquer coisa', ''), true)
+    assert.equal(fraseRepetida('Qualquer coisa', '...'), true)
+    assert.equal(fraseRepetida('', 'Algo'), false)
   })
 })

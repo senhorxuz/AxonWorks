@@ -98,6 +98,7 @@ export function createApp(store: WorkspaceStore) {
   app.get('/api/projects', (req, res) => res.json(store.listProjects(req.auth?.projectId)));
   app.post('/api/projects', (req, res) => res.status(201).json(store.createProject(req.body)));
   app.get('/api/projects/:id', (req, res) => res.json(store.getProject(req.params.id)));
+  app.get('/api/projects/:id/o-que-sera-removido', (req, res) => res.json(store.contarRascunhosEPassagens(req.params.id)));
   ligarRotasDasLicoes(app, store);
   app.get('/api/projects/:id/entregas', (req, res) => {
     conferirEscopoDaEntrega(req.auth, req.params.id);

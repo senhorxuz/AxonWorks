@@ -1,16 +1,26 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
+import { InformarNomeSeFaltar, BotaoInformarNome } from './identidade/InformarNome';
+import { autoriaDaTela } from './identidade/identidade';
+import { nomeDoDono } from './quadro/api-quadro';
 import { AnimatedTabs } from './AnimatedTabs';
 import { useFeedback } from './Feedback';
 import { Archive, ArrowDownToLine, ArrowRight, Check, Clock3, FileText, Flag, GitCommitHorizontal, ListTodo, AlertTriangle, CheckCircle2, Copy, Inbox, MailOpen, MessageSquare, NotebookPen, Plus, RefreshCw, Send, ShieldCheck, SlidersHorizontal, AlertCircle, CheckSquare, Square, FileOutput, HelpCircle, History, Shield } from 'lucide-react';
-import type { BacklogItem, BacklogPriority, ProjectDetail, Task, Checkpoint, EvidenceView, BlockerTimeline, DecisionTimeline } from '../shared/types';
+import type { BacklogItem, BacklogPriority, ProjectDetail, Task, Checkpoint, EvidenceView, BlockerTimeline } from '../shared/types';
 import type { Decision, HandoffDelivery, InboxItem, MessageResolution, ProjectBlocker, ResumeBrief, WorkDraft } from '../shared/continuity';
 import { ApiError, api, errorText, request } from './api';
 import { BotoesDeApagar } from './apagar/BotoesDeApagar';
-import { AcceptDecisionDialog, CheckpointDialog, DeleteBacklogItemDialog, DeliverHandoffDialog, FinalizeWorkDialog, MessageDialog, ProposeDecisionDialog, ReopenTaskDialog, ResolveMessageDialog, RevokeDecisionDialog, SupersedeDecisionDialog, TaskContractDialog, WorkDraftDialog, WorkIntentDialog, CrossCheckEvidenceDialog, BlockerTimelineDialog, DecisionTimelineDialog } from './dialogs';
+import { AcceptDecisionDialog, CheckpointDialog, DeleteBacklogItemDialog, DeliverHandoffDialog, FinalizeWorkDialog, MessageDialog, ProposeDecisionDialog, ReopenTaskDialog, ResolveMessageDialog, RevokeDecisionDialog, SupersedeDecisionDialog, TaskContractDialog, WorkDraftDialog, WorkIntentDialog, CrossCheckEvidenceDialog, BlockerTimelineDialog } from './dialogs';
+import { irPara } from './chegada/irPara';
+import { CHAVE_DAS_DECISOES_ESPERANDO, chaveDaChegada, type DestinoDoNo } from './chegada/chegada';
 import { DateLabel, EmptyNote } from './ui';
 import { LibraryPanel } from './LibraryPanel';
 import { GraphPanel } from './GraphPanel';
 import { OperationalChangelog } from './OperationalChangelog';
+import { PainelDeDecisoes } from './decisoes/PainelDeDecisoes';
+import { separarDecisoes } from './decisoes/separar';
+import { decisoesEsperandoNaAba, pendenciasDoDono } from './pendencias-do-dono';
+import { rotuloDoDestinatario } from './mensagens/destinatario';
+import { ListaDeCheckpoints } from './checkpoints/ListaDeCheckpoints';
 import type { ProjectInsights, StalledTask } from '../shared/insights';
 import { ResumoAoAcordar } from './ResumoAoAcordar';
 import { FilaDeAprovacoes } from './FilaDeAprovacoes';
@@ -23,6 +33,9 @@ import { celebrarCriterioCumprido } from './recompensas';
 import { OndeParamos } from './onde-paramos/OndeParamos';
 import { Regras } from './regras/Regras';
 import { Diretriz } from './diretriz/Diretriz';
+import { caminhoParaExibir } from './projetos/caminho';
+import { FORMULARIO_DO_BLOQUEIO, alternarAberto, chaveDosDetalhes, destinoDoAberto } from './painel/um-por-vez';
+import { ResumoDaDiretriz } from './diretriz/ResumoDaDiretriz';
 import { useCarta } from './onde-paramos/useCarta';
 import { abaInicial } from './onde-paramos/texto';
 import './comemoracoes.css';
@@ -43,6 +56,9 @@ export function ProjectWorkspace({ detail, agent, refresh, onExport }: { detail:
   const notify = useFeedback();
   // `null` = ainda não se sabe em que aba abrir: projeto parado há 7 dias ou mais abre em "Onde paramos".
   const [tab, setTab] = useState<string | null>(null);
+  // Pedidos que cruzam abas: o documento a abrir na Biblioteca e a tarefa concluída a abrir na coluna de Tarefas.
+  const [abrirConteudo, setAbrirConteudo] = useState<{ id: string } | null>(null);
+  const [formularioAberto, setFormularioAberto] = useState<string | null>(null);
   const carta = useCarta(detail.project.id, detail);
   useEffect(() => {
     if (tab === null && !carta.carregando) setTab(abaInicial(carta.carta?.diasParado ?? null));
@@ -118,9 +134,11 @@ export function ProjectWorkspace({ detail, agent, refresh, onExport }: { detail:
   const backlogReady = useRef(false);
   const backlogSeq = useRef(0);
   const [decisions, setDecisions] = useState<Decision[]>([]);
+  // Decisão que o dono pediu para ver (vinda de Relações): se já saiu de cena, a aba abre o histórico.
+  const [decisaoParaVer, setDecisaoParaVer] = useState<string | null>(null);
+  const [chegadaDoDono, setChegadaDoDono] = useState(false);
   const [decisionsLoading, setDecisionsLoading] = useState(false);
   const [decisionsError, setDecisionsError] = useState('');
-  const [showDecisionsHistory, setShowDecisionsHistory] = useState(false);
   const [proposeDecisionOpen, setProposeDecisionOpen] = useState(false);
   const [acceptingDecision, setAcceptingDecision] = useState<Decision | null>(null);
   const [revokingDecision, setRevokingDecision] = useState<Decision | null>(null);
@@ -159,7 +177,8 @@ export function ProjectWorkspace({ detail, agent, refresh, onExport }: { detail:
   }, [detail.project.id]);
   const loadDecisions = useCallback(async (signal?: AbortSignal) => {
     try {
-      const items = await api.decisions(detail.project.id, showDecisionsHistory, signal);
+      // Sempre a lista inteira: as propostas abertas precisam estar à vista, e o histórico se separa na tela.
+      const items = await api.decisions(detail.project.id, true, signal);
       if (signal?.aborted) return;
       setDecisions(items);
       setDecisionsError('');
@@ -167,7 +186,7 @@ export function ProjectWorkspace({ detail, agent, refresh, onExport }: { detail:
       if (signal?.aborted) return;
       setDecisionsError(errorText(err));
     }
-  }, [detail.project.id, showDecisionsHistory]);
+  }, [detail.project.id]);
   useEffect(() => {
     if (!agent) { setUnreadDeliveryCount(0); return; }
     const controller = new AbortController();
@@ -204,7 +223,7 @@ export function ProjectWorkspace({ detail, agent, refresh, onExport }: { detail:
       if (!controller.signal.aborted) setDecisionsLoading(false);
     });
     return () => controller.abort();
-  }, [detail.project.id, detail.project.updatedAt, showDecisionsHistory, loadDecisions]);
+  }, [detail.project.id, detail.project.updatedAt, loadDecisions]);
   // A contagem de conflitos e desatualizações do grafo é medida e reportada
   // pelo próprio GraphPanel (via onIssuesCountChange), que só existe montado
   // quando a aba "Grafo & Inteligência" está aberta. Isso evita um segundo
@@ -220,7 +239,10 @@ export function ProjectWorkspace({ detail, agent, refresh, onExport }: { detail:
     return () => controller.abort();
   }, [tab, detail.project.id, detail.project.updatedAt, loadEvidence]);
   const activeBacklogCount = backlog.filter(item => item.stage === 'idea' || item.stage === 'ready').length;
-  const activeDecisionsCount = decisions.filter(item => item.status === 'accepted').length;
+  // O número da aba Decisões é o das propostas que pedem o dono: a mesma conta da Visão geral e de "Onde paramos".
+  const pendencias = pendenciasDoDono(carta.carta?.falta.precisa_de_voce);
+  // Se a carta falhar, o número vem das propostas da própria lista de decisões, em vez de sumir.
+  const decisoesEsperando = decisoesEsperandoNaAba(pendencias, separarDecisoes(decisions).abertas.length);
   async function taskAction(task: Task, action: 'claim' | 'release') {
     setError(''); if (!agent) { setError('Preencha o nome do agente na barra lateral.'); return; }
     setBusy(true); try {
@@ -236,7 +258,7 @@ export function ProjectWorkspace({ detail, agent, refresh, onExport }: { detail:
   }
   async function addTask(e: React.FormEvent) {
     e.preventDefault(); setError(''); setBusy(true);
-    try { await request(`/projects/${detail.project.id}/tasks`, { title: taskTitle }); notify('Tarefa adicionada', taskTitle); setTaskTitle(''); await refresh(); } catch (err) { setError(errorText(err)); } finally { setBusy(false); }
+    try { const nova = await request<Task>(`/projects/${detail.project.id}/tasks`, { title: taskTitle }); notify('Tarefa adicionada', taskTitle); setTaskTitle(''); await refresh(); irPara({ chave: chaveDaChegada('tarefa', nova.id), semFoco: true }); } catch (err) { setError(errorText(err)); } finally { setBusy(false); }
   }
   async function toggleTaskCriterion(task: Task, criterionIndex: number): Promise<boolean> {
     if (!task.acceptanceCriteria) return false;
@@ -256,26 +278,42 @@ export function ProjectWorkspace({ detail, agent, refresh, onExport }: { detail:
       return false;
     }
   }
+  /** Troca de aba e leva até o item: abre o que esconde (histórico, documento, tarefa concluída) e o destaca. */
+  /** Formulários e detalhes da Visão geral abrem um por vez; abrir leva o dono até ele. */
+  function alternarFormulario(chave: string) {
+    const proximo = alternarAberto(formularioAberto, chave);
+    setFormularioAberto(proximo);
+    const destino = proximo ? destinoDoAberto(proximo) : null;
+    if (destino) irPara(destino);
+  }
+  function navegarPara(aba: string, destino?: DestinoDoNo) {
+    setTab(aba);
+    if (!destino) return;
+    if (destino.tipo === 'decisao') setDecisaoParaVer(destino.id);
+    if (destino.tipo === 'conteudo') { setAbrirConteudo({ id: destino.id }); return; }
+    if (destino.tipo === 'tarefa') setFormularioAberto(chaveDosDetalhes(destino.id));
+    irPara({ chave: destino.chave });
+  }
   const abasDeOrientacoes = new Map([
-    ['diretriz', <Diretriz projectId={detail.project.id} agent={agent} refresh={refresh}/>],
+    ['diretriz', <Diretriz projectId={detail.project.id} nomeDoProjeto={detail.project.name} agent={agent} refresh={refresh} registros={detail.checkpoints}/>],
     ['regras', <Regras projectId={detail.project.id}/>],
   ]);
 
   return <>
-    <div className="project-meta"><span><span className="tiny-dot"/>{textosModo.salvo}</span><span className="mono-label">versão {detail.project.revision}</span>{detail.project.workspacePath && <span className="workspace-path" title={detail.project.workspacePath}>{detail.project.workspacePath}</span>}<span className="meta-date">Atualizado <DateLabel value={detail.project.updatedAt}/></span></div>
-    <AnimatedTabs value={tab ?? ''} onChange={setTab} items={[{ id: 'carta', label: 'Onde paramos' }, { id: 'overview', label: 'Visão geral' }, { id: 'diretriz', label: 'Diretriz' }, { id: 'board', label: 'Quadro' }, { id: 'regras', label: 'Regras' }, { id: 'retrospective', label: 'Retrospectiva' }, { id: 'graph', label: 'Relações', count: graphIssuesCount }, { id: 'library', label: 'Biblioteca' }, { id: 'backlog', label: 'Backlog', count: activeBacklogCount }, { id: 'decisions', label: 'Decisões', count: activeDecisionsCount }, { id: 'checkpoints', label: 'Checkpoints', count: checkpoints.length }, { id: 'messages', label: 'Mensagens', count: detail.messages.length + unreadDeliveryCount }, { id: 'resume', label: 'Retomar' }]}/>
-    {error && <div role="alert" className="alert">{error}</div>}
-    <div className={'workspace-grid' + (['carta', 'regras', 'library', 'graph', 'retrospective', 'board'].includes(tab ?? '') ? ' is-wide' : '')} role="tabpanel" id="project-tabpanel" aria-labelledby={tab ? `tab-${tab}` : undefined}>
+    <div className="project-meta"><span><span className="tiny-dot"/>{textosModo.salvo}</span><span className="mono-label">versão {detail.project.revision}</span>{detail.project.workspacePath && <span className="workspace-path" title={caminhoParaExibir(detail.project.workspacePath)}>{caminhoParaExibir(detail.project.workspacePath)}</span>}<span className="meta-date">Atualizado <DateLabel value={detail.project.updatedAt}/></span></div>
+    <AnimatedTabs value={tab ?? ''} onChange={setTab} items={[{ id: 'carta', label: 'Onde paramos' }, { id: 'overview', label: 'Visão geral' }, { id: 'diretriz', label: 'Diretriz' }, { id: 'board', label: 'Quadro' }, { id: 'regras', label: 'Regras' }, { id: 'retrospective', label: 'Retrospectiva' }, { id: 'graph', label: 'Relações', count: graphIssuesCount }, { id: 'library', label: 'Biblioteca' }, { id: 'backlog', label: 'Backlog', count: activeBacklogCount }, { id: 'decisions', label: 'Decisões', count: decisoesEsperando || undefined, pede: true }, { id: 'checkpoints', label: 'Checkpoints', count: checkpoints.length }, { id: 'messages', label: 'Mensagens', count: detail.messages.length + unreadDeliveryCount }, { id: 'resume', label: 'Retomar' }]}/>
+    {error && <div role="alert" className="alert">{error}<InformarNomeSeFaltar erro={error}/></div>}
+    <div className={'workspace-grid' + (['carta', 'diretriz', 'regras', 'library', 'graph', 'retrospective', 'board'].includes(tab ?? '') ? ' is-wide' : '')} role="tabpanel" id="project-tabpanel" aria-labelledby={tab ? `tab-${tab}` : undefined}>
       <div className="workspace-primary">
         {tab === null && <div className="loading" role="status"><RefreshCw size={18}/>Abrindo o projeto…</div>}
         {tab === 'carta' && <OndeParamos projectId={detail.project.id} estado={carta} aoConfirmarDecisao={refresh}/>}
         {abasDeOrientacoes.get(tab ?? '')}
-        {tab === 'board' && <Quadro projectId={detail.project.id} atualizadoEm={detail} aoAtualizarEntrega={carta.recarregar}/>}
+        {tab === 'board' && <Quadro projectId={detail.project.id} atualizadoEm={detail} aoAtualizarEntrega={carta.recarregar} aoMudarCartoes={carta.recarregar} chegadaDoDono={chegadaDoDono} aoAtenderChegadaDoDono={() => setChegadaDoDono(false)}/>}
         {tab === 'retrospective' && <Retrospectiva detail={detail}/>}
         {tab === 'overview' && <>
-          <ResumoAoAcordar projectId={detail.project.id} detail={detail} insights={insightsDoProjeto} onOpenApprovals={() => document.getElementById('fila-de-aprovacoes')?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' })}/>
+          <ResumoAoAcordar projectId={detail.project.id} detail={detail} insights={insightsDoProjeto} pendencias={pendencias} onOpenDecisions={() => { setTab('decisions'); irPara({ chave: CHAVE_DAS_DECISOES_ESPERANDO }); }} onOpenBoard={() => { setTab('board'); setChegadaDoDono(true); }} onOpenApprovals={() => irPara({ chave: 'fila-de-aprovacoes', foco: '.fila-card-acoes .button.primary:not(:disabled)' })}/>
           <FilaDeAprovacoes projectId={detail.project.id} onDecided={() => void refresh()}/>
-          <section className="resume-card"><div className="resume-card-top"><span className="eyebrow"><GitCommitHorizontal size={16}/>PRÓXIMO PASSO</span><span className="resume-revision">{latest ? `versão ${latest.revision}` : 'AINDA NÃO SALVO'}</span></div><h2>{latest ? latest.nextStep : 'Nenhum próximo passo'}</h2><p>{latest ? latest.summary : 'Salve o que foi feito e a próxima ação para continuar depois.'}</p>{!agent && <div className="resume-card-hint-row"><span className="agent-warning-hint" role="status">Informe o nome na barra lateral para salvar rascunho ou encerrar trabalho.</span></div>}<div className="resume-card-footer"><div className="resume-card-footer-author">{latest ? <span>Salvo por {latest.agent} · <DateLabel value={latest.createdAt}/></span> : <span>O histórico começa no primeiro checkpoint.</span>}</div><div className="resume-card-actions"><button type="button" onClick={() => { setEditingDraft(null); setDraftOpen(true); }} disabled={!agent} title={!agent ? 'Informe o nome na barra lateral' : undefined}>Salvar rascunho<NotebookPen size={16}/></button><button type="button" onClick={() => setFinalizeOpen(true)} disabled={!agent} title={!agent ? 'Informe o nome na barra lateral' : undefined}>Encerrar trabalho<Send size={16}/></button><button onClick={() => setCheckpoint(true)}>{latest ? 'Novo checkpoint' : 'Salvar primeiro checkpoint'}<Plus size={16}/></button></div></div></section>
+          <section className="resume-card"><div className="resume-card-top"><span className="eyebrow"><GitCommitHorizontal size={16}/>PRÓXIMO PASSO</span><span className="resume-revision">{latest ? `versão ${latest.revision}` : 'AINDA NÃO SALVO'}</span></div><h2>{latest ? latest.nextStep : 'Nenhum próximo passo'}</h2><p>{latest ? latest.summary : 'Salve o que foi feito e a próxima ação para continuar depois.'}</p>{!agent && <div className="resume-card-hint-row"><span className="agent-warning-hint" role="status">Informe o nome na barra lateral para salvar rascunho ou encerrar trabalho. <BotaoInformarNome /></span></div>}<div className="resume-card-footer"><div className="resume-card-footer-author">{latest ? <span>Salvo por {latest.agent} · <DateLabel value={latest.createdAt}/></span> : <span>O histórico começa no primeiro checkpoint.</span>}</div><div className="resume-card-actions"><button type="button" onClick={() => { setEditingDraft(null); setDraftOpen(true); }} disabled={!agent} title={!agent ? 'Informe o nome na barra lateral' : undefined}>Salvar rascunho<NotebookPen size={16}/></button><button type="button" onClick={() => setFinalizeOpen(true)} disabled={!agent} title={!agent ? 'Informe o nome na barra lateral' : undefined}>Encerrar trabalho<Send size={16}/></button><button onClick={() => setCheckpoint(true)}>{latest ? 'Novo checkpoint' : 'Salvar primeiro checkpoint'}<Plus size={16}/></button></div></div></section>
           {drafts.length > 0 && <section className="draft-card" aria-label="Rascunho não entregue">{drafts.map(draft => {
             const taskTitle = draft.taskId ? detail.tasks.find(task => task.id === draft.taskId)?.title : null;
             return <article key={draft.id} className="draft-entry">
@@ -299,18 +337,18 @@ export function ProjectWorkspace({ detail, agent, refresh, onExport }: { detail:
               </div>
             </article>;
           })}</section>}
-          <OperationalChangelog detail={detail} agent={agent} decisions={decisions} />
-          <Diretriz projectId={detail.project.id} agent={agent} refresh={refresh}/>
-          <BlockersPanel projectId={detail.project.id} agent={agent} refresh={refresh}/>
+          <OperationalChangelog detail={detail} agent={agent} decisions={separarDecisoes(decisions).vigentes} />
+          <ResumoDaDiretriz projectId={detail.project.id} nomeDoProjeto={detail.project.name} refresh={refresh} abrir={() => { setTab('diretriz'); irPara({ chave: 'diretriz' }); }}/>
+          <BlockersPanel projectId={detail.project.id} agent={agent} refresh={refresh} formAberto={formularioAberto === FORMULARIO_DO_BLOQUEIO} alternarForm={() => alternarFormulario(FORMULARIO_DO_BLOQUEIO)} fecharForm={() => setFormularioAberto(atual => atual === FORMULARIO_DO_BLOQUEIO ? null : atual)}/>
           <section className="panel"><div className="panel-heading"><h2>Memória do projeto</h2><span className="mono-label">O QUE IMPORTA AGORA</span></div><div className="memory-columns"><div><span className="memory-label"><Flag size={15}/>Decisões recentes</span>{latest?.decisions.length ? <ul>{latest.decisions.map((d, i) => <li key={i}>{d}</li>)}</ul> : <p className="subtle-text">Nenhuma decisão registrada no último checkpoint.</p>}</div><div><span className="memory-label"><Clock3 size={15}/>Pontos de atenção</span>{latest?.blockers.length ? <ul>{latest.blockers.map((b, i) => <li key={i}>{b}</li>)}</ul> : <p className="subtle-text">{latest ? 'Nenhum bloqueio declarado no último checkpoint.' : 'Bloqueios e incertezas ficam registrados aqui.'}</p>}</div></div></section>
           <section className="activity-section"><div className="panel-heading"><h2>Últimos checkpoints</h2><button className="text-button" onClick={() => setTab('checkpoints')}>Ver checkpoints<ArrowRight size={14}/></button></div>{checkpoints.length === 0 ? <EmptyNote><GitCommitHorizontal size={20}/><p>Nenhum checkpoint ainda.<br/><span>Salve um checkpoint para começar o histórico.</span></p></EmptyNote> : <div className="timeline">{checkpoints.slice(0, 3).map(cp => <div className="timeline-item" key={cp.id}><span className="timeline-dot"/><div><div className="timeline-meta"><strong>{cp.agent}</strong><span>salvou a versão {cp.revision}</span><DateLabel value={cp.createdAt}/></div><p>{cp.summary}</p></div></div>)}</div>}</section>
         </>}
-        {tab === 'graph' && <GraphPanel projectId={detail.project.id} agent={agent} onNavigateTab={setTab} onIssuesCountChange={setGraphIssuesCount}/>}
-        {tab === 'library' && <LibraryPanel projectId={detail.project.id} agent={agent}/>}
+        {tab === 'graph' && <GraphPanel projectId={detail.project.id} agent={agent} onNavigateTab={navegarPara} onIssuesCountChange={setGraphIssuesCount}/>}
+        {tab === 'library' && <LibraryPanel projectId={detail.project.id} agent={agent} abrirPedido={abrirConteudo} aoAbrirPedido={() => setAbrirConteudo(null)}/>}
         {tab === 'backlog' && <BacklogPanel projectId={detail.project.id} agent={agent} items={backlog} loading={backlogLoading} error={backlogError} onReload={loadBacklog} refresh={refresh}/>}
-        {tab === 'decisions' && <DecisionsPanel projectId={detail.project.id} agent={agent} decisions={decisions} loading={decisionsLoading} error={decisionsError} showHistory={showDecisionsHistory} onToggleHistory={() => setShowDecisionsHistory(prev => !prev)} onPropose={() => setProposeDecisionOpen(true)} onAccept={setAcceptingDecision} onRevoke={setRevokingDecision} onSupersede={setSupersedingDecision} onReload={loadDecisions}/>}
-        {tab === 'checkpoints' && <><div className="section-heading"><div><h2>Checkpoints</h2><p>Histórico do progresso salvo neste projeto.</p></div><button className="button primary" onClick={() => setCheckpoint(true)}><Plus size={16}/>Novo checkpoint</button></div>{checkpoints.length ? checkpoints.map(cp => <CheckpointCard key={cp.id} checkpoint={cp} agent={agent} evidenceViews={evidenceList} onCrossCheck={setCrossCheckingEvidence} taskTitle={detail.tasks.find(task => task.id === cp.taskId)?.title} onDeliver={setDeliverCheckpoint} onApagado={refresh}/>) : <EmptyNote><FileText size={25}/><p>Nenhum checkpoint ainda.</p><button className="text-button" onClick={() => setCheckpoint(true)}>Salvar primeiro checkpoint<ArrowRight size={14}/></button></EmptyNote>}</>}
-        {tab === 'messages' && <><div className="mailbox-overview"><DeliveriesPanel projectId={detail.project.id} agent={agent} onUnreadCountChange={setUnreadDeliveryCount}/><InboxPanel projectId={detail.project.id} agent={agent}/></div><div className="section-heading"><div><h2>Mensagens do projeto</h2><p>Recados que qualquer agente pode consultar depois.</p></div><button className="button primary" onClick={() => setMessage(true)}><Plus size={16}/>Nova mensagem</button></div>{detail.messages.length ? <div className="messages">{[...detail.messages].reverse().map(m => <article className="message-card" key={m.id}><div className="message-meta"><span className="message-avatar">{m.from.slice(0, 1).toUpperCase()}</span><strong>{m.from}</strong><ArrowRight size={13}/><span>{m.to}</span><span className="message-kind">{{ note: 'Nota', question: 'Pergunta', review: 'Revisão', handoff: 'Passagem' }[m.kind]}</span></div><p>{m.body}</p><DateLabel value={m.createdAt}/></article>)}</div> : <div className="messages-empty"><EmptyNote><MessageSquare size={20}/><p>Nenhuma mensagem ainda.</p><button className="text-button" onClick={() => setMessage(true)}>Escrever uma mensagem<ArrowRight size={14}/></button></EmptyNote></div>}</>}
+        {tab === 'decisions' && <PainelDeDecisoes projectId={detail.project.id} abrirHistoricoPara={decisaoParaVer} aoAtenderHistorico={() => setDecisaoParaVer(null)} decisions={decisions} loading={decisionsLoading} error={decisionsError} onPropose={() => setProposeDecisionOpen(true)} onAccept={setAcceptingDecision} onRevoke={setRevokingDecision} onSupersede={setSupersedingDecision} onReload={loadDecisions}/>}
+        {tab === 'checkpoints' && <><div className="section-heading"><div><h2>Checkpoints</h2><p>Histórico do progresso salvo neste projeto.</p></div><button className="button primary" onClick={() => setCheckpoint(true)}><Plus size={16}/>Novo checkpoint</button></div>{checkpoints.length ? <ListaDeCheckpoints checkpoints={checkpoints} agent={agent} evidenceViews={evidenceList} onCrossCheck={setCrossCheckingEvidence} onDeliver={setDeliverCheckpoint} onApagado={refresh}/> : <EmptyNote><FileText size={25}/><p>Nenhum checkpoint ainda.</p><button className="text-button" onClick={() => setCheckpoint(true)}>Salvar primeiro checkpoint<ArrowRight size={14}/></button></EmptyNote>}</>}
+        {tab === 'messages' && <><div className="mailbox-overview"><DeliveriesPanel projectId={detail.project.id} agent={agent} onUnreadCountChange={setUnreadDeliveryCount}/><InboxPanel projectId={detail.project.id} agent={agent}/></div><div className="section-heading"><div><h2>Mensagens do projeto</h2><p>Recados que qualquer agente pode consultar depois.</p></div><button className="button primary" onClick={() => setMessage(true)}><Plus size={16}/>Nova mensagem</button></div>{detail.messages.length ? <div className="messages">{[...detail.messages].reverse().map(m => <article className="message-card" key={m.id}><div className="message-meta"><span className="message-avatar">{m.from.slice(0, 1).toUpperCase()}</span><strong>{m.from}</strong><ArrowRight size={13}/><span>{rotuloDoDestinatario(m.to)}</span><span className="message-kind">{{ note: 'Nota', question: 'Pergunta', review: 'Revisão', handoff: 'Passagem' }[m.kind]}</span></div><p>{m.body}</p><DateLabel value={m.createdAt}/></article>)}</div> : <div className="messages-empty"><EmptyNote><MessageSquare size={20}/><p>Nenhuma mensagem ainda.</p><button className="text-button" onClick={() => setMessage(true)}>Escrever uma mensagem<ArrowRight size={14}/></button></EmptyNote></div>}</>}
         {tab === 'resume' && <><CopiarParaOutraIA projectId={detail.project.id} agent={agent}/><AgentResume projectId={detail.project.id} agent={agent} tasks={detail.tasks} onExport={onExport} onUnreadCountChange={setUnreadDeliveryCount}/></>}
       </div>
       <aside className="workspace-secondary">
@@ -353,13 +391,15 @@ export function ProjectWorkspace({ detail, agent, refresh, onExport }: { detail:
                 onIntent={setIntentTask}
                 onToggleCriterion={toggleTaskCriterion}
                 celebrating={celebratingTaskIds.has(task.id)}
+                aberto={formularioAberto === chaveDosDetalhes(task.id)}
+                onAlternar={() => alternarFormulario(chaveDosDetalhes(task.id))}
                 onCelebrationEnd={handleCelebrationEnd}
               />
             ))}
           </div>
           <form className="task-form" onSubmit={addTask}>
             <label htmlFor="task-title">Título da tarefa</label>
-            <input id="task-title" placeholder="O que precisa ser feito?" value={taskTitle} onChange={e => setTaskTitle(e.target.value)} disabled={busy} required maxLength={200}/>
+            <input id="task-title" placeholder="O que precisa ser feito?" value={taskTitle} onChange={e => setTaskTitle(e.target.value)} readOnly={busy} aria-busy={busy} required maxLength={200}/>
             <button className="button secondary" disabled={busy || !taskTitle.trim()}><Plus size={15}/>Adicionar tarefa</button>
           </form>
         </section>
@@ -410,6 +450,8 @@ function TaskItem({
   stalled,
   celebrating,
   onCelebrationEnd,
+  aberto,
+  onAlternar,
 }: {
   task: Task;
   stalled: StalledTask | undefined;
@@ -423,8 +465,10 @@ function TaskItem({
   onToggleCriterion: (task: Task, index: number) => Promise<boolean>;
   celebrating?: boolean;
   onCelebrationEnd?: (taskId: string) => void;
+  aberto: boolean;
+  onAlternar: () => void;
 }) {
-  const [showDetails, setShowDetails] = useState(false);
+  const showDetails = aberto;
   const [comemorando, setComemorando] = useState(false);
 
   useEffect(() => {
@@ -455,6 +499,7 @@ function TaskItem({
     <article
       className={`task${isDone ? (showDetails ? ' is-done is-expanded' : ' is-done is-collapsed') : ''}`}
       key={task.id}
+      data-chegada={chaveDaChegada('tarefa', task.id)}
       data-comemoracao={comemorando ? 'concluida' : undefined}
     >
       <div className="task-header-row">
@@ -579,7 +624,7 @@ function TaskItem({
               <button
                 type="button"
                 className="text-button task-details-toggle"
-                onClick={() => setShowDetails(prev => !prev)}
+                onClick={onAlternar}
               >
                 {showDetails ? 'Recolher detalhes' : 'Ver detalhes'}
               </button>
@@ -601,202 +646,6 @@ function TaskItem({
     </article>
   );
 }
-
-function CheckpointCard({
-  checkpoint: cp,
-  agent,
-  evidenceViews = [],
-  onDeliver,
-  onCrossCheck,
-  onApagado,
-}: {
-  checkpoint: Checkpoint;
-  agent: string;
-  taskTitle?: string;
-  evidenceViews?: EvidenceView[];
-  onDeliver: (checkpoint: Checkpoint) => void;
-  onCrossCheck?: (evidence: EvidenceView) => void;
-  onApagado: () => Promise<void>;
-}) {
-  const mine = Boolean(agent) && cp.agent === agent;
-
-  const checkpointViews: EvidenceView[] = evidenceViews.filter(v => v.checkpointId === cp.id);
-  const relevantViews: EvidenceView[] = checkpointViews.length > 0
-    ? checkpointViews
-    : (cp.evidence.length === 0 && evidenceViews.length > 0)
-      ? evidenceViews
-      : cp.evidence.map((e, i) => {
-          const found = evidenceViews.find(v => v.command === e.command || v.position === i);
-          return found || {
-            id: `ev-${cp.id}-${i}`,
-            projectId: cp.projectId,
-            checkpointId: cp.id,
-            position: i,
-            command: e.command,
-            outcome: e.outcome,
-            details: e.details,
-            reportedBy: cp.agent,
-            provenance: 'agent_report' as const,
-            createdAt: cp.createdAt,
-            assertions: ['agent_reported' as const],
-            freshness: 'no_artifacts' as const,
-            explanation: '',
-            artifacts: [],
-            verifications: [],
-          };
-        });
-
-  return (
-    <article className="checkpoint-card">
-      <div className="checkpoint-meta">
-        <span className="revision-badge">versão {cp.revision}</span>
-        <strong>{cp.agent}</strong>
-        <DateLabel value={cp.createdAt} />
-      </div>
-      <h3>{cp.summary}</h3>
-      <div className="checkpoint-next">
-        <ArrowRight size={16} />
-        <div>
-          <span>PRÓXIMO PASSO</span>
-          <p>{cp.nextStep}</p>
-        </div>
-      </div>
-      {cp.decisions.length > 0 && (
-        <div className="checkpoint-details">
-          <strong>Decisões</strong>
-          <ul>{cp.decisions.map((d, i) => <li key={i}>{d}</li>)}</ul>
-        </div>
-      )}
-      {cp.blockers.length > 0 && (
-        <div className="checkpoint-details">
-          <strong>Bloqueios</strong>
-          <ul>{cp.blockers.map((b, i) => <li key={i}>{b}</li>)}</ul>
-        </div>
-      )}
-      {relevantViews.map((ev, i) => {
-        const isStale = ev.freshness === 'stale';
-        const isMissing = ev.freshness === 'missing';
-        const isUnverifiable = ev.freshness === 'unverifiable';
-        const hasWarning = isStale || isMissing || isUnverifiable;
-
-        return (
-          <div
-            key={ev.id || i}
-            className={`evidence ${isStale ? 'evidence-stale' : ''} ${hasWarning ? 'has-warning' : ''}`}
-          >
-            <div className="evidence-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', gap: '10px', flexWrap: 'wrap' }}>
-              <div className="evidence-assertions" style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
-                <span className="status-tag neutral assertion-tag">Informado pela IA</span>
-                {(ev.assertions?.includes('cross_checked') || (ev.verifications && ev.verifications.length > 0)) && (
-                  <span className="status-tag info assertion-tag" style={{ background: '#1c3247', borderColor: '#2e5984', color: '#7bc3f7' }}>
-                    Conferido por outra IA ({ev.verifications?.length || 1})
-                  </span>
-                )}
-                {ev.assertions?.includes('artifact_bound') && (
-                  <span className="status-tag system assertion-tag" style={{ background: '#2f2540', borderColor: '#5c4280', color: '#caa6f7' }}>
-                    Arquivos conferidos pelo sistema
-                  </span>
-                )}
-              </div>
-              <span className={`status-tag micro outcome-tag ${ev.outcome}`}>
-                {{ passed: 'Sucesso informado', failed: 'Falha informada', not_run: 'Não executado' }[ev.outcome] || ev.outcome}
-              </span>
-            </div>
-
-            <div className="evidence-cmd" style={{ marginTop: '6px', width: '100%' }}>
-              <code>{ev.command}</code>
-            </div>
-
-            {ev.details && <p className="evidence-details-text" style={{ margin: '4px 0 0' }}>{ev.details}</p>}
-
-            {/* Explicação de frescor em português direto */}
-            {isStale && (
-              <div className="evidence-freshness-alert stale" role="alert" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 12px', background: '#38201a', border: '1px solid #7d3525', borderRadius: '5px', width: '100%', marginTop: '8px' }}>
-                <AlertTriangle size={15} style={{ flexShrink: 0 }} />
-                <span>{ev.explanation || 'Esta evidência não cobre a versão atual: arquivos mudaram desde a medição.'}</span>
-              </div>
-            )}
-            {isMissing && (
-              <div className="evidence-freshness-alert missing" role="alert" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 12px', background: '#38201a', border: '1px solid #7d3525', borderRadius: '5px', width: '100%', marginTop: '8px' }}>
-                <AlertCircle size={15} style={{ flexShrink: 0 }} />
-                <span>{ev.explanation || 'Arquivo declarado não existe mais no caminho informado.'}</span>
-              </div>
-            )}
-            {isUnverifiable && (
-              <div className="evidence-freshness-alert unverifiable" role="alert" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 12px', background: '#353020', border: '1px solid #73622b', borderRadius: '5px', width: '100%', marginTop: '8px' }}>
-                <HelpCircle size={15} style={{ flexShrink: 0 }} />
-                <span>{ev.explanation || 'Não foi possível conferir os arquivos.'}</span>
-              </div>
-            )}
-
-            {/* Arquivos conferidos */}
-            {ev.artifacts && ev.artifacts.length > 0 && (
-              <div className="evidence-artifacts-block" style={{ width: '100%', marginTop: '8px', borderTop: '1px solid #3c4147', paddingTop: '8px' }}>
-                <span className="evidence-section-subtitle" style={{ fontWeight: 600, display: 'block', marginBottom: '6px' }}>Arquivos conferidos</span>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  {ev.artifacts.map((art, aIdx) => (
-                    <div key={art.id || aIdx} className="evidence-artifact-row" style={{ background: '#191b1e', padding: '6px 10px', borderRadius: '4px', border: '1px solid #373c43' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
-                        <code className="evidence-artifact-path">{art.path}</code>
-                        <span className={`status-tag micro evidence-artifact-status ${art.freshness === 'covers_current' ? 'success' : art.freshness === 'stale' ? 'stale' : 'neutral'}`}>
-                          {{ covers_current: 'Atual', stale: 'Desatualizada', missing: 'Arquivo não encontrado', unverifiable: 'Não foi possível conferir' }[art.freshness] || art.freshness}
-                        </span>
-                      </div>
-                      {art.reason && <p className="evidence-artifact-reason" style={{ margin: '3px 0 0' }}>{art.reason}</p>}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Conferências cruzadas */}
-            {ev.verifications && ev.verifications.length > 0 && (
-              <div className="evidence-verifications-block" style={{ width: '100%', marginTop: '8px', borderTop: '1px solid #3c4147', paddingTop: '8px' }}>
-                <span className="evidence-section-subtitle" style={{ fontWeight: 600, display: 'block', marginBottom: '6px' }}>Conferências de outras IAs</span>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  {ev.verifications.map((ver, vIdx) => (
-                    <div key={ver.id || vIdx} className="verification-item" style={{ background: '#1c222b', padding: '8px 10px', borderRadius: '4px', border: '1px solid #2e3c4e' }}>
-                      <div className="verification-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span>Conferido por <strong>{ver.verifiedBy}</strong></span>
-                        {ver.createdAt && <DateLabel value={ver.createdAt} />}
-                      </div>
-                      <p className="verification-note" style={{ margin: '4px 0 0' }}>{ver.note}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {onCrossCheck && (
-              <div className="evidence-actions" style={{ marginTop: '10px', width: '100%', display: 'flex', justifyContent: 'flex-end' }}>
-                <button
-                  type="button"
-                  className="button secondary cross-check-btn"
-                  style={{ padding: '6px 10px', minHeight: '28px' }}
-                  onClick={() => onCrossCheck(ev)}
-                  title="Conferir este teste com outra identidade declarada"
-                >
-                  <CheckCircle2 size={13} />
-                  Conferir evidência
-                </button>
-              </div>
-            )}
-          </div>
-        );
-      })}
-      {mine && (
-        <div className="checkpoint-actions">
-          <button className="button secondary" onClick={() => onDeliver(cp)}>
-            <Send size={15} />
-            Entregar para outra IA
-          </button>
-        </div>
-      )}
-      <BotoesDeApagar projectId={cp.projectId} checkpointId={cp.id} onApagado={onApagado} />
-    </article>
-  );
-}
-
 
 function InboxPanel({ projectId, agent }: { projectId: string; agent: string }) {
   const [items, setItems] = useState<InboxItem[]>([]);
@@ -825,7 +674,7 @@ function InboxPanel({ projectId, agent }: { projectId: string; agent: string }) 
   const pendingCount = items.filter(item => (item.message.kind === 'question' || item.message.kind === 'review') && !item.resolution).length;
   return <section className="inbox-panel" role="region" aria-label={'Caixa de entrada de ' + (agent || 'agente não informado')}>
     <div className="inbox-heading"><div><span className="eyebrow"><Inbox size={15}/>PARA ESTE AGENTE</span><h2>Caixa de entrada</h2></div>{agent && <div className="inbox-counts"><span className="count-badge">{items.filter(item => !item.acknowledgedAt).length} novas</span>{pendingCount > 0 && <span className="count-badge attention-count">{pendingCount} {pendingCount === 1 ? 'pendente' : 'pendentes'}</span>}</div>}</div>
-    {!agent ? <p className="subtle-text">Informe seu nome de agente na barra lateral para consultar mensagens diretas e avisos gerais.</p> :
+    {!agent ? <p className="subtle-text">Informe seu nome de agente na barra lateral para consultar mensagens diretas e avisos gerais. <BotaoInformarNome /></p> :
       loading ? <p className="subtle-text">Consultando mensagens…</p> :
       items.length === 0 ? <p className="subtle-text">Nada pendente para {agent}.</p> :
       <div className="inbox-list">{[...items].reverse().map(item => {
@@ -836,7 +685,7 @@ function InboxPanel({ projectId, agent }: { projectId: string; agent: string }) 
           <div className="inbox-actions">{item.acknowledgedAt ? <span className="read-state"><CheckCircle2 size={14}/>Lida</span> : <button className="button secondary" onClick={() => void acknowledge(item)}>Marcar como lida</button>}{resolvable && !item.resolution && <button className="button resolve-button" onClick={() => setResolving(item)}>Resolver</button>}</div>
         </article>;
       })}</div>}
-    {error && <div className="alert" role="alert">{error}</div>}
+    {error && <div className="alert" role="alert">{error}<InformarNomeSeFaltar erro={error}/></div>}
     {resolving && <ResolveMessageDialog projectId={projectId} agent={agent} item={resolving} onClose={() => setResolving(null)} onResolved={resolved}/>} 
   </section>;
 }
@@ -882,11 +731,11 @@ function DeliveriesPanel({ projectId, agent, onUnreadCountChange }: { projectId:
   }
   return <section className="deliveries-panel" role="region" aria-label={'Passagens de trabalho de ' + (agent || 'agente não informado')}>
     <div className="inbox-heading"><div><span className="eyebrow"><Send size={15}/>PASSAGEM ESTRUTURADA</span><h2>Passagens de trabalho</h2></div>{agent && <span className="count-badge">{items.filter(item => !item.acknowledgedAt).length} {items.filter(item => !item.acknowledgedAt).length === 1 ? 'nova' : 'novas'}</span>}</div>
-    {!agent ? <p className="subtle-text">Informe seu nome de agente na barra lateral para ver passagens destinadas a você.</p> :
+    {!agent ? <p className="subtle-text">Informe seu nome de agente na barra lateral para ver passagens destinadas a você. <BotaoInformarNome /></p> :
       loading ? <p className="subtle-text">Consultando passagens…</p> :
       items.length === 0 ? <p className="subtle-text">Nenhuma passagem destinada a {agent}.</p> :
       <div className="delivery-list">{items.map(item => <DeliveryCard key={item.id} delivery={item} onAcknowledge={acknowledge}/>)}</div>}
-    {error && <div className="alert" role="alert">{error}</div>}
+    {error && <div className="alert" role="alert">{error}<InformarNomeSeFaltar erro={error}/></div>}
   </section>;
 }
 
@@ -961,7 +810,7 @@ function AgentResume({ projectId, agent, tasks, onExport, onUnreadCountChange }:
       onUnreadCountChange(Math.max(0, currentBrief.deliveries.filter(value => !value.acknowledgedAt).length - 1));
     } catch (err) { setError(errorText(err)); }
   }
-  if (!agent) return <section className="panel resume-empty" role="region" aria-label="Retomada inteligente"><MailOpen size={25}/><h2>Identifique o agente que vai assumir</h2><p>Informe o nome na barra lateral. O AXON montará uma retomada usando a caixa postal e o estado real do projeto.</p></section>;
+  if (!agent) return <section className="panel resume-empty" role="region" aria-label="Retomada inteligente"><MailOpen size={25}/><h2>Identifique o agente que vai assumir</h2><p>Informe o nome na barra lateral. O AXON montará uma retomada usando a caixa postal e o estado real do projeto. <BotaoInformarNome /></p></section>;
   const now = Date.now();
   const live = (task: Task) => Boolean(task.leaseUntil && new Date(task.leaseUntil).getTime() > now);
   const claimedByAgent = tasks.filter(task => live(task) && task.assignee === agent);
@@ -984,7 +833,7 @@ function AgentResume({ projectId, agent, tasks, onExport, onUnreadCountChange }:
   return <section className="smart-resume" role="region" aria-label={'Retomada inteligente de ' + agent}>
     <header className="smart-resume-header"><div><span className="eyebrow"><MailOpen size={15}/>CORREIO DE CONTINUIDADE</span><h2>Retomada de {agent}</h2><p>Escolha o trabalho que será retomado e receba somente o contexto correspondente.</p></div><div className="resume-controls">{brief && <span className="resume-revision">versão {brief.revision}</span>}<label className="resume-task-picker" htmlFor="resume-task-focus"><span>Tarefa em foco</span><select id="resume-task-focus" value={effectiveTaskId} disabled={loading} onChange={event => void chooseFocus(event.target.value)}><option value="">Visão geral do projeto</option>{claimedByAgent.length > 0 && <optgroup label="Reservadas por você">{claimedByAgent.map(task => <option key={task.id} value={task.id}>{task.title}</option>)}</optgroup>}{available.length > 0 && <optgroup label="Disponíveis">{available.map(task => <option key={task.id} value={task.id}>{task.title}</option>)}</optgroup>}{claimedByOthers.length > 0 && <optgroup label="Reservadas por outro agente">{claimedByOthers.map(task => <option key={task.id} value={task.id}>{task.title} · {task.assignee}</option>)}</optgroup>}</select></label><small>{focusStatus} Selecionar organiza o briefing; não inicia trabalho.</small></div></header>
     {loading && <div className="loading" role="status"><RefreshCw size={17}/>Montando sua retomada…</div>}
-    {error && <div className="alert" role="alert">{error}</div>}
+    {error && <div className="alert" role="alert">{error}<InformarNomeSeFaltar erro={error}/></div>}
     {brief && !loading && <><div className="resume-intelligence-grid">
       <article className="resume-focus"><span className="eyebrow">{focusedTask ? 'TAREFA EM FOCO' : 'VISÃO GERAL'}</span><h3>{focusedTask?.title ?? (tasks.length ? 'Escolha a tarefa que será retomada' : 'Nenhuma tarefa registrada')}</h3><div className="resume-next"><span>{focusedTask ? 'PRÓXIMO PASSO DESTA TAREFA' : 'PRÓXIMO PASSO GERAL'}</span><p>{focusedTask ? taskCheckpoint?.nextStep ?? 'Nenhum checkpoint ligado a esta tarefa.' : projectCheckpoint?.nextStep ?? 'Ainda não há próximo passo registrado.'}</p></div>{showProjectContext && projectCheckpoint && <div className="resume-project-context"><div><span>Contexto geral do projeto</span><small>versão {projectCheckpoint.revision} · <DateLabel value={projectCheckpoint.createdAt}/></small></div><p>{projectCheckpoint.summary}</p></div>}<small>{focusStatus} {focusedTask && 'Esta escolha não altera a reserva da tarefa.'}</small></article>
       <article className={brief.attention.length ? 'resume-attention has-items' : 'resume-attention'}><span className="eyebrow"><AlertTriangle size={14}/>ATENÇÃO</span><h3>{brief.attention.length} {brief.attention.length === 1 ? 'item pede atenção' : 'itens pedem atenção'}</h3>{brief.attention.length ? <ul>{brief.attention.slice(0, 5).map((item, index) => <li key={item.sourceId + index}><span>{item.kind === 'blocker' ? 'Bloqueio' : item.kind === 'question' ? 'Pergunta' : item.kind === 'review' ? 'Revisão' : 'Passagem'}</span>{item.text}</li>)}</ul> : <p>Nenhum bloqueio, pergunta, revisão ou passagem pendente.</p>}</article>
@@ -1093,13 +942,12 @@ function BacklogPanel({ projectId, agent, items, loading, error: loadError, onRe
   async function capture(event: FormEvent) {
     event.preventDefault();
     setError('');
-    if (!agent) { setError('Preencha o nome do agente na barra lateral.'); return; }
     const nextTitle = title.trim();
     if (!nextTitle) return;
     await runMutation(async () => {
       const created = await api.createBacklogItem(projectId, {
         title: nextTitle,
-        createdBy: agent,
+        createdBy: autoriaDaTela(agent, nomeDoDono()).autor,
         description: description.trim() || undefined,
         priority,
       });
@@ -1123,10 +971,11 @@ function BacklogPanel({ projectId, agent, items, loading, error: loadError, onRe
     );
   }
   function promote(item: BacklogItem) {
+    let tarefaId = '';
     void runMutation(async () => {
-      await api.promoteBacklogItem(projectId, item.id);
+      tarefaId = (await api.promoteBacklogItem(projectId, item.id)).task.id;
       return '';
-    }, { message: 'Tarefa criada', detail: item.title }, refresh);
+    }, { message: 'Tarefa criada', detail: item.title }, async () => { await refresh(); irPara({ chave: chaveDaChegada('tarefa', tarefaId) }); });
   }
   function archive(item: BacklogItem) {
     void runMutation(async () => {
@@ -1232,183 +1081,9 @@ function BacklogPanel({ projectId, agent, items, loading, error: loadError, onRe
   </section>;
 }
 
-function DecisionsPanel({
-  projectId,
-  agent,
-  decisions,
-  loading,
-  error,
-  showHistory,
-  onToggleHistory,
-  onPropose,
-  onAccept,
-  onRevoke,
-  onSupersede,
-  onReload,
-}: {
-  projectId: string;
-  agent: string;
-  decisions: Decision[];
-  loading: boolean;
-  error: string;
-  showHistory: boolean;
-  onToggleHistory: () => void;
-  onPropose: () => void;
-  onAccept: (decision: Decision) => void;
-  onRevoke: (decision: Decision) => void;
-  onSupersede: (decision: Decision) => void;
-  onReload: () => Promise<void>;
+function BlockersPanel({ projectId, agent, refresh, formAberto, alternarForm, fecharForm }: {
+  projectId: string; agent: string; refresh: () => Promise<void>; formAberto: boolean; alternarForm: () => void; fecharForm: () => void;
 }) {
-  const [selectedTimelineDecision, setSelectedTimelineDecision] = useState<Decision | null>(null);
-  return (
-    <section className="decisions-panel" aria-busy={loading}>
-      <div className="section-heading">
-        <div>
-          <h2>Decisões canônicas</h2>
-          <p>Diretrizes e escolhas arquiteturais. Decisões vigentes orientam as IAs nos briefings de continuidade.</p>
-        </div>
-        <div className="heading-actions">
-          <button
-            type="button"
-            className="button secondary"
-            aria-pressed={showHistory}
-            onClick={onToggleHistory}
-          >
-            {showHistory ? 'Mostrar apenas vigentes' : 'Mostrar histórico completo'}
-          </button>
-          <button type="button" className="button primary" onClick={onPropose}>
-            <Plus size={16} />
-            Propor decisão
-          </button>
-        </div>
-      </div>
-
-      {loading && decisions.length === 0 && (
-        <div className="loading" role="status">
-          <RefreshCw size={17} />
-          Consultando decisões…
-        </div>
-      )}
-
-      {error && (
-        <div className="alert" role="alert">
-          <span>{error}</span>
-          <button type="button" onClick={() => void onReload()}>Tentar novamente</button>
-        </div>
-      )}
-
-      {!loading && decisions.length === 0 ? (
-        <EmptyNote>
-          <Flag size={25} />
-          <p>
-            {showHistory
-              ? 'Nenhuma decisão registrada neste projeto.'
-              : 'Nenhuma decisão vigente no momento.'}
-            <br />
-            <span>Uma decisão proposta por IA só tem valor canônico após ser aceita pelo operador humano.</span>
-          </p>
-          <button type="button" className="text-button" onClick={onPropose}>
-            Propor primeira decisão
-            <ArrowRight size={14} />
-          </button>
-        </EmptyNote>
-      ) : (
-        <div className="decision-list">
-          {decisions.map(decision => {
-            const isProposed = decision.status === 'proposed';
-            const isAccepted = decision.status === 'accepted';
-            const isSuperseded = decision.status === 'superseded';
-            const isRevoked = decision.status === 'revoked';
-
-            const statusLabel =
-              isAccepted ? 'Vigente' :
-              isProposed ? 'Proposta' :
-              isSuperseded ? 'Substituída' :
-              'Revogada';
-
-            const statusClass =
-              isAccepted ? 'decision-tag-accepted' :
-              isProposed ? 'decision-tag-proposed' :
-              isSuperseded ? 'decision-tag-superseded' :
-              'decision-tag-revoked';
-
-            return (
-              <article
-                key={decision.id}
-                className={`decision-card ${isSuperseded ? 'is-superseded' : ''} ${isRevoked ? 'is-revoked' : ''}`}
-              >
-                <div className="decision-card-head">
-                  <span className={`status-tag ${statusClass}`}>{statusLabel}</span>
-                  <span className="revision-badge">v{decision.version}</span>
-                  {decision.source?.kind === 'human_directive' && (
-                    <span className="status-tag neutral">Diretiva humana</span>
-                  )}
-                  <DateLabel value={decision.createdAt} />
-                </div>
-                <h3>{decision.title}</h3>
-                <p className="decision-card-body">{decision.body}</p>
-                <div className="decision-card-meta">
-                  <span>Proposta por <strong>{decision.proposedBy}</strong></span>
-                  {decision.acceptedBy && <span> · Aceita por <strong>{decision.acceptedBy}</strong></span>}
-                  {decision.revokedBy && <span> · Revogada por <strong>{decision.revokedBy}</strong></span>}
-                  {decision.supersedesId && <span> · Substitui decisão anterior</span>}
-                  {decision.supersededById && <span> · Substituída por nova versão</span>}
-                  {decision.source?.note && <small className="decision-note">({decision.source.note})</small>}
-                </div>
-                <div className="decision-card-actions">
-                  <button
-                    type="button"
-                    className="button ghost"
-                    onClick={() => setSelectedTimelineDecision(decision)}
-                  >
-                    Linha do tempo
-                  </button>
-                  {isProposed && (
-                    <button
-                      type="button"
-                      className="button primary"
-                      onClick={() => onAccept(decision)}
-                    >
-                      <Check size={14} />
-                      Aceitar decisão
-                    </button>
-                  )}
-                  {isAccepted && (
-                    <>
-                      <button
-                        type="button"
-                        className="button secondary"
-                        onClick={() => onSupersede(decision)}
-                      >
-                        Substituir
-                      </button>
-                      <button
-                        type="button"
-                        className="button ghost"
-                        onClick={() => onRevoke(decision)}
-                      >
-                        Revogar
-                      </button>
-                    </>
-                  )}
-                </div>
-              </article>
-            );
-          })}
-        </div>
-      )}
-      {selectedTimelineDecision && (
-        <DecisionTimelineDialog
-          projectId={projectId}
-          decision={selectedTimelineDecision}
-          onClose={() => setSelectedTimelineDecision(null)}
-        />
-      )}
-    </section>
-  );
-}
-
-function BlockersPanel({ projectId, agent, refresh }: { projectId: string; agent: string; refresh: () => Promise<void> }) {
   const notify = useFeedback();
   const [items, setItems] = useState<ProjectBlocker[]>([]);
   const [selectedTimelineBlocker, setSelectedTimelineBlocker] = useState<ProjectBlocker | null>(null);
@@ -1416,7 +1091,6 @@ function BlockersPanel({ projectId, agent, refresh }: { projectId: string; agent
   const [body, setBody] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-  const [formOpen, setFormOpen] = useState(false);
   const load = useCallback(() => {
     api.blockers(projectId, true).then(setItems).catch(err => setError(errorText(err)));
   }, [projectId]);
@@ -1430,7 +1104,7 @@ function BlockersPanel({ projectId, agent, refresh }: { projectId: string; agent
       await api.openBlocker(projectId, { agent, title, body });
       notify('Bloqueio aberto', title);
       setTitle(''); setBody('');
-      setFormOpen(false);
+      fecharForm();
       load();
       await refresh();
     } catch (err) { setError(errorText(err)); } finally { setBusy(false); }
@@ -1447,9 +1121,9 @@ function BlockersPanel({ projectId, agent, refresh }: { projectId: string; agent
   }
   return <section className="panel" aria-label="Bloqueios abertos">
     <div className="panel-heading"><h2>Bloqueios</h2><span className="mono-label">NÃO SOMEM SÓ DE LER</span></div>
-    {error && <div className="alert" role="alert">{error}</div>}
+    {error && <div className="alert" role="alert">{error}<InformarNomeSeFaltar erro={error}/></div>}
     {openItems.length === 0 ? <p className="subtle-text">Nenhum bloqueio aberto.</p> : openItems.map(item => (
-      <article key={item.id} className="decision-entry">
+      <article key={item.id} data-chegada={chaveDaChegada('bloqueio', item.id)} className="decision-entry">
         <strong>{item.title}</strong>
         <p>{item.body}</p>
         <div className="decision-entry-actions">
@@ -1459,15 +1133,15 @@ function BlockersPanel({ projectId, agent, refresh }: { projectId: string; agent
         </div>
       </article>
     ))}
-    {!formOpen ? (
-      <button type="button" className="button secondary" onClick={() => setFormOpen(true)}>Abrir bloqueio</button>
+    {!formAberto ? (
+      <button type="button" className="button secondary" onClick={alternarForm}>Abrir bloqueio</button>
     ) : (
-      <form className="form-stack" onSubmit={event => void open(event)}>
+      <form className="form-stack" data-chegada={chaveDaChegada('aberto', FORMULARIO_DO_BLOQUEIO)} onSubmit={event => void open(event)}>
         <label>Título do bloqueio<input value={title} onChange={event => setTitle(event.target.value)} required maxLength={200} disabled={busy}/></label>
         <label>O que impede o trabalho<textarea aria-label="O que impede o trabalho" value={body} onChange={event => setBody(event.target.value)} required maxLength={8000} rows={2} disabled={busy}/></label>
         <div className="form-row-actions">
           <button className="button secondary" disabled={busy || !title.trim() || !body.trim() || !agent}>Salvar bloqueio</button>
-          <button type="button" className="button ghost" onClick={() => { setFormOpen(false); setTitle(''); setBody(''); }}>Cancelar</button>
+          <button type="button" className="button ghost" onClick={() => { fecharForm(); setTitle(''); setBody(''); }}>Cancelar</button>
         </div>
       </form>
     )}

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { BotaoInformarNome } from './identidade/InformarNome';
 import { AlertCircle, Check, Copy } from 'lucide-react';
 import { api, errorText } from './api';
 import type { ResumeBrief } from '../shared/continuity';
@@ -143,7 +144,7 @@ export function CopiarParaOutraIA(props: { projectId: string; agent: string }) {
 
       {!agent && (
         <div className="copiar-aviso-desativado" role="status">
-          Informe o nome na barra lateral.
+          Informe o nome na barra lateral. <BotaoInformarNome />
         </div>
       )}
 
@@ -174,9 +175,10 @@ export function CopiarParaOutraIA(props: { projectId: string; agent: string }) {
           id="copiar-texto-previa"
           ref={textareaRef}
           readOnly
+          placeholder="O texto aparece aqui quando você informar o nome da IA."
           value={
             !agent
-              ? 'Informe o nome na barra lateral para gerar o texto de retomada.'
+              ? ''
               : loading
                 ? 'Carregando retomada...'
                 : textoPronto
