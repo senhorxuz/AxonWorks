@@ -41,8 +41,8 @@ Qualquer LLM com MCP usa a Axon pelas ferramentas. No Claude Code há ainda a li
 ## ✦ As telas
 
 <p align="center">
-  <img src="docs/imagens/onde-paramos.png" alt="Tela Onde paramos: o fio do projeto com um nó por dia de trabalho, o que foi feito, o que precisa de você e o próximo passo." width="100%">
-  <br><sub><b>Onde paramos</b> · o fio do projeto, um nó por dia de trabalho; o que foi feito, o que precisa de você e o próximo passo</sub>
+  <img src="docs/imagens/onde-paramos.png" alt="Tela Onde paramos: o fio do projeto em caracteres, com um trilho por IA e um símbolo por coisa feita, o que foi feito e o que falta." width="100%">
+  <br><sub><b>Onde paramos</b> · o fio do projeto, um trilho por IA e um símbolo por coisa feita; o que foi feito e o que falta, lado a lado</sub>
 </p>
 
 <table>

@@ -63,15 +63,6 @@
   color: var(--c-tinta);
 }
 
-.carta .carta-subtitulo {
-  margin: 18px 0 8px;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--c-suave);
-}
-
 .carta .carta-frase {
   margin: 0;
   max-width: 62ch;
@@ -93,35 +84,6 @@
 }
 
 /* O que foi feito */
-
-.carta-feito {
-  display: grid;
-  gap: 8px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.carta-feito li {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 10px 14px;
-  font-size: 14px;
-  line-height: 1.5;
-  color: var(--c-texto);
-  background: var(--c-cartao);
-  border: 1px solid var(--c-fio);
-  border-radius: 8px;
-}
-
-.carta-feito time {
-  flex-shrink: 0;
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
-  color: var(--c-suave);
-}
 
 .carta-mes,
 .carta-rascunho {
@@ -515,7 +477,6 @@
 @media (max-width: 720px) {
   .carta .carta-titulo { font-size: 26px !important; }
   .carta .carta-frase { font-size: 17px; }
-  .carta-feito li { flex-direction: column; gap: 4px; }
   .carta-grupo { padding-left: 10px; }
   .carta-continuar { padding: 16px; }
   .carta-continuar .button { width: 100%; }
@@ -523,8 +484,398 @@
 
 @media (prefers-reduced-motion: no-preference) {
   .carta-item,
-  .carta-feito li {
-    transition: border-color 0.2s var(--c-curva), background-color 0.2s var(--c-curva);
+  .feito-linha {
+    transition: background-color 0.16s var(--c-curva);
   }
-  .carta-item:hover { border-color: rgba(255, 255, 255, 0.16); }
+}
+
+/* =====================================================================================================
+ * Manchete, duas colunas e a lista por dia (22/11/2026).
+ * Texto de leitura nunca abaixo de 12 px nem mais apagado que #8f8c86 (régua de legibilidade da casa).
+ * ===================================================================================================== */
+
+.carta {
+  --c-apagado: #8f8c86;
+  --c-mono: var(--fonte-mono, "Cascadia Code", "SFMono-Regular", Consolas, monospace);
+  --c-brasa: var(--brasa, #e8794a);
+  --c-brasa-clara: var(--brasa-clara, #f6b28e);
+}
+
+/* A frase do estado é a manchete; o título vira um rótulo pequeno acima dela. */
+
+.carta .carta-cabeca-com-manchete {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  align-items: baseline;
+  gap: 4px 14px;
+}
+
+.carta .carta-cabeca-com-manchete .carta-titulo {
+  font-size: 13px !important;
+  font-weight: 650;
+  letter-spacing: 0;
+  line-height: 1.4;
+  color: #b9b5ad;
+}
+
+.carta .carta-cabeca-com-manchete .carta-ultima {
+  margin: 0;
+  font-size: 13px !important;
+  line-height: 1.4;
+  color: var(--c-apagado);
+}
+
+.carta .carta-manchete {
+  grid-column: 1 / -1;
+  max-width: 30em;
+  margin: 8px 0 0;
+  /* O !important vence a regra geral que fixa todo parágrafo em 12 px (a mesma razão do título). */
+  font-size: 30px !important;
+  font-weight: 600;
+  letter-spacing: -0.022em;
+  line-height: 1.22;
+  color: #f3efe7;
+  text-wrap: balance;
+}
+
+.carta .carta-cabeca > .carta-vazio { margin-top: 16px; }
+.carta .carta-cabeca-com-manchete + .fio-quadro { margin-top: 30px; }
+
+/* As colunas: cabeçalho fixo, corpo que rola por dentro na tela larga (regras de altura em src/tela-grande.css). */
+
+.carta .carta-coluna {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.carta .coluna-topo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 12px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--c-fio);
+}
+
+.carta .carta-coluna .coluna-topo > h3 {
+  margin: 0;
+  font-size: 19px !important;
+  letter-spacing: -0.015em;
+}
+
+.coluna-conta { font-size: 13px; color: var(--c-apagado); }
+
+.coluna-atalhos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.carta .coluna-atalho {
+  min-height: 28px;
+  padding: 4px 11px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  background: none;
+  font-size: 12px;
+  color: #a8a49c;
+  cursor: pointer;
+  transition: color 0.16s, border-color 0.16s;
+}
+
+.carta .coluna-atalho b { margin-right: 2px; font-weight: 650; color: var(--c-tinta); font-variant-numeric: tabular-nums; }
+.carta .coluna-atalho[data-destino="precisa_de_voce"] { border-color: rgba(232, 121, 74, 0.4); color: var(--c-brasa-clara); }
+.carta .coluna-atalho[data-destino="precisa_de_voce"] b { color: var(--c-brasa); }
+.carta .coluna-atalho:focus-visible { outline: 2px solid var(--c-brasa); outline-offset: 2px; }
+
+@media (hover: hover) and (pointer: fine) {
+  .carta .coluna-atalho:hover { border-color: rgba(255, 255, 255, 0.24); color: #fff; }
+}
+
+.coluna-rolagem {
+  flex: 1;
+  min-height: 0;
+  margin-right: -14px;
+  padding-right: 14px;
+  scrollbar-width: thin;
+  scrollbar-color: #3a3a3d transparent;
+}
+
+/* Tem mais embaixo: o fim da coluna some num degradê. */
+.coluna-rolagem.coluna-tem-mais {
+  -webkit-mask-image: linear-gradient(#000 calc(100% - 56px), transparent);
+  mask-image: linear-gradient(#000 calc(100% - 56px), transparent);
+}
+
+.carta .coluna-pe {
+  min-height: 20px;
+  margin: 6px 0 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--c-apagado);
+}
+
+.carta .coluna-rolagem .carta-vazio { margin-top: 18px; }
+.carta .coluna-rolagem .carta-rascunho { margin: 14px 0 6px; }
+
+/* "O que foi feito": um dia aberto por vez; cada outro dia é uma linha só, com a última afirmação dele. */
+
+.feito-dia { border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
+
+.feito-dia > summary {
+  display: grid;
+  grid-template-columns: 12px max-content minmax(0, 1fr) max-content;
+  align-items: baseline;
+  column-gap: 10px;
+  min-height: 44px;
+  padding: 13px 2px;
+  list-style: none;
+  cursor: pointer;
+}
+
+.feito-dia > summary::-webkit-details-marker,
+.carta-mes > summary::-webkit-details-marker { display: none; }
+
+.feito-dia > summary::before,
+.carta .carta-mes > summary::before {
+  font: 11px/1 var(--c-mono);
+  color: var(--c-apagado);
+  content: "▸";
+  transition: transform 0.2s var(--c-curva), color 0.16s;
+}
+
+.feito-dia[open] > summary::before { transform: rotate(90deg); color: var(--c-brasa-clara); }
+.carta .carta-mes[open] > summary::before { transform: rotate(90deg); }
+
+.feito-data { font-size: 15px; font-weight: 650; letter-spacing: -0.01em; color: #cfcbc3; transition: color 0.16s; }
+.feito-data i { margin-left: 8px; font-size: 12.5px; font-style: normal; font-weight: 400; letter-spacing: 0; color: var(--c-apagado); }
+
+.feito-fecho {
+  overflow: hidden;
+  font-size: 13px;
+  color: var(--c-apagado);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: color 0.16s, opacity 0.16s;
+}
+
+.feito-quem { font-size: 12px; color: var(--c-apagado); }
+.feito-quem b { font-weight: 600; color: #b9b5ad; }
+
+.feito-dia[open] > summary .feito-data { color: #fff; }
+.feito-dia > summary:focus-visible { outline: 2px solid var(--c-brasa); outline-offset: 2px; border-radius: 6px; }
+
+@media (hover: hover) and (pointer: fine) {
+  .feito-dia > summary:hover .feito-data { color: #fff; }
+  .feito-dia > summary:hover .feito-fecho { color: #d6d2ca; }
+}
+
+/* O cabeçalho do dia aberto fica fixo no topo da rolagem e esconde o resumo. */
+.feito-dia[open] > summary {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: linear-gradient(#141415 80%, transparent);
+}
+
+.feito-dia[open] > summary .feito-fecho { opacity: 0; }
+.feito-linhas { padding: 0 0 12px; }
+
+.feito-linha {
+  position: relative;
+  display: grid;
+  grid-template-columns: 46px 22px minmax(0, 1fr);
+  align-items: baseline;
+  padding: 7px 10px 8px 0;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.feito-linha.feito-ligada { background-color: rgba(255, 255, 255, 0.045); }
+.feito-linha:focus-visible { outline: 2px solid var(--c-brasa); outline-offset: 1px; }
+.feito-linha:focus:not(:focus-visible) { outline: none; }
+
+@media (hover: hover) and (pointer: fine) {
+  .feito-linha:hover { background-color: rgba(255, 255, 255, 0.035); }
+}
+
+.feito-hora { padding-right: 10px; font: 400 11.5px/1 var(--c-mono); color: var(--c-apagado); text-align: right; }
+
+.feito-marca {
+  position: relative;
+  align-self: stretch;
+  padding-top: 4px;
+  font: 14px/1 var(--c-mono);
+  color: #a8a49c;
+  text-align: center;
+}
+
+/* A linha fina que liga os símbolos do dia: o mesmo fio, de cima para baixo. */
+.feito-marca::after {
+  position: absolute;
+  left: 50%;
+  top: 23px;
+  bottom: -11px;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.1);
+  content: "";
+}
+
+.feito-linhas .feito-linha:last-child .feito-marca::after { display: none; }
+.feito-tarefa .feito-marca, .feito-cartao .feito-marca { color: var(--c-tinta); }
+
+.carta .feito-linha p {
+  overflow: hidden;
+  margin: 0;
+  font-size: 13.5px !important;
+  line-height: 1.55;
+  color: var(--c-apagado);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.carta .feito-linha.feito-aberta p { color: #a8a49c; white-space: normal; text-wrap: pretty; overflow-wrap: anywhere; }
+.feito-linha p b { font-weight: 600; color: #e9e5dd; }
+.feito-inteiro { color: #d6d2ca; }
+.feito-assina { display: block; margin-top: 3px; font-size: 12px; color: var(--c-apagado); }
+
+/* Onde paramos: a última coisa feita, sempre aberta, em brasa. */
+.feito-linha.feito-agora {
+  margin-bottom: 8px;
+  padding: 13px 14px 14px 0;
+  border: 1px solid rgba(232, 121, 74, 0.16);
+  background: linear-gradient(90deg, rgba(232, 121, 74, 0.1), rgba(232, 121, 74, 0.02) 70%);
+  cursor: default;
+}
+
+.feito-agora .feito-marca { color: var(--c-brasa); text-shadow: 0 0 12px rgba(232, 121, 74, 0.9); }
+.feito-agora .feito-marca::after { top: 30px; }
+.feito-agora .feito-hora { color: var(--c-brasa-clara); }
+.carta .feito-linha.feito-agora p { color: #cfcac1; white-space: normal; }
+.feito-agora p b, .feito-agora .feito-inteiro { font-weight: 600; color: #fff; }
+
+.feito-selo {
+  display: block;
+  margin-bottom: 5px;
+  font: 600 11px/1 var(--c-mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--c-brasa);
+}
+
+.feito-repetida { font-style: italic; color: #b3afa7; }
+
+/* Meses antigos: uma linha por mês; abertos, mostram os dias na mesma forma. */
+.carta .carta-mes {
+  margin-top: 0;
+  border: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 0;
+  background: none;
+}
+
+.carta .carta-mes > summary {
+  gap: 10px;
+  padding: 13px 2px;
+  list-style: none;
+  font-size: 15px;
+  font-weight: 650;
+  color: #cfcbc3;
+}
+
+.carta .carta-mes > .feito-dia { margin-left: 22px; }
+.carta .carta-mes > .feito-dia:last-child { border-bottom: 0; }
+
+/* "O que falta": linhas no lugar das caixas, com uma barra fina na cor do grupo. */
+
+.carta .carta-grupo {
+  margin-top: 0;
+  padding-left: 0;
+  border-left: 0;
+  border-radius: 12px;
+}
+
+.carta .carta-grupo:focus { outline: none; }
+
+.carta .carta-grupo > h4 {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  margin: 0;
+  padding: 18px 0 8px;
+  background: linear-gradient(#141415 80%, transparent);
+}
+
+.carta .carta-grupo[data-grupo="precisa_de_voce"] > h4 { color: var(--c-brasa-clara); }
+.carta .carta-itens { gap: 2px; }
+
+.carta .carta-item {
+  position: relative;
+  gap: 5px;
+  padding: 11px 12px 12px 18px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+}
+
+.carta .carta-item::before {
+  position: absolute;
+  left: 4px;
+  top: 14px;
+  bottom: 14px;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--c-grupo, rgba(255, 255, 255, 0.14));
+  content: "";
+  opacity: 0.55;
+}
+
+.carta .carta-grupo[data-grupo="precisa_de_voce"] .carta-item::before,
+.carta .carta-grupo[data-grupo="travado"] .carta-item::before { opacity: 1; }
+
+@media (hover: hover) and (pointer: fine) {
+  .carta .carta-item:hover { background-color: rgba(255, 255, 255, 0.03); }
+}
+
+.carta .carta-item .carta-item-titulo { font-size: 14px !important; font-weight: 650; }
+.carta .carta-item .carta-detalhe { font-size: 13px !important; color: #a8a49c; }
+.carta .carta-item .carta-item-topo { margin-top: 2px; }
+.carta .carta-item .carta-origem { font-weight: 400; color: var(--c-apagado); }
+
+/* Destaque de chegada: todo clique que leva a outro ponto da tela acende o destino por um instante. */
+
+.carta .carta-chegou { animation: carta-achado 2.2s var(--c-curva) both; }
+
+@keyframes carta-achado {
+  0% { box-shadow: 0 0 0 0 rgba(232, 121, 74, 0), inset 0 0 0 1px rgba(232, 121, 74, 0); background-color: rgba(232, 121, 74, 0); }
+  12% { box-shadow: 0 0 0 6px rgba(232, 121, 74, 0.18), inset 0 0 0 1px rgba(232, 121, 74, 0.9); background-color: rgba(232, 121, 74, 0.16); }
+  45% { box-shadow: 0 0 0 0 rgba(232, 121, 74, 0), inset 0 0 0 1px rgba(232, 121, 74, 0.6); background-color: rgba(232, 121, 74, 0.08); }
+  100% { box-shadow: 0 0 0 0 rgba(232, 121, 74, 0), inset 0 0 0 1px rgba(232, 121, 74, 0); background-color: rgba(232, 121, 74, 0); }
+}
+
+.carta .feito-linha.carta-chegou .feito-marca { animation: carta-marca-achada 2.2s var(--c-curva) both; }
+
+@keyframes carta-marca-achada {
+  0%, 45% { color: var(--c-brasa); text-shadow: 0 0 12px rgba(232, 121, 74, 0.95); transform: scale(1.35); }
+  100% { transform: none; }
+}
+
+.carta .carta-grupo.carta-chegou > h4 { animation: carta-titulo-achado 2.2s var(--c-curva); }
+
+@keyframes carta-titulo-achado {
+  0%, 40% { color: #fff; text-shadow: 0 0 14px rgba(232, 121, 74, 0.9); }
+}
+
+/* Com movimento reduzido, o destino continua marcado: um contorno parado, sem animação. */
+@media (prefers-reduced-motion: reduce) {
+  .carta .carta-chegou,
+  .carta .feito-linha.carta-chegou .feito-marca,
+  .carta .carta-grupo.carta-chegou > h4 { animation: none; }
+  /* As regras `:focus` do grupo e da linha (sem contorno depois de um clique) têm a mesma força: esta vem depois e vence. */
+  .carta .carta-chegou,
+  .carta .feito-linha.carta-chegou,
+  .carta .carta-grupo.carta-chegou { outline: 2px solid var(--c-brasa); outline-offset: 2px; }
+  .feito-dia > summary::before, .carta .carta-mes > summary::before { transition: none; }
 }

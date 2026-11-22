@@ -154,7 +154,7 @@ export function etapaDoItem(grupo: GrupoFalta, item: ItemFalta): string | null {
   return grupo === 'em_andamento' ? item.etapa : null
 }
 
-export function rotuloDoMes(mes: MesFeito): string {
+export function rotuloDoMes(mes: Pick<MesFeito, 'mes'> & { itens: { length: number } }): string {
   return `${nomeDoMes(mes.mes)} · ${contar(mes.itens.length, 'item', 'itens')}`
 }
 

@@ -1,223 +1,288 @@
-import { memo, useId, useMemo, useState, type CSSProperties } from 'react';
-import { desenharFio, rotuloCurtoDaData, type DesenhoDoFio, type NoDesenhado } from './desenho';
-import { nosDaMiniatura, quaisRotular, resumoDosDias, type DiaDoFio, type PontaDoFio } from './dados';
+import { memo, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type RefObject } from 'react';
+import type { Carta, GrupoFalta } from '../../shared/carta';
+import type { CoisaFeita } from './coisas';
+import { vizinho, type TeclaDoFio } from './navegar';
+import { reservaDosNomes, type NomeReservado, abertoDepoisDoFim, calorDaCasa, dicaDoSimbolo, idadeDaCasa, pautaDoTrilho, rotuloDoSimbolo, rotuloDoTrilho } from './pintura';
+import { rotulosDaRegua, type RotuloDaRegua } from './regua';
+import { daquiEmDiante, fraseDoFio, rotuloAcessivelDoFio, simbolosDaMiniatura } from './resumo';
+import { tecer, type Casa, type Desenho } from './tecer';
+import { trilhosDe, type Trilho } from './trilhos';
+import { useMedidaDoFio, type MedidaDoFio } from './useMedidaDoFio';
 import './fio.css';
 
 /**
- * O fio do projeto, grande: topo de "Onde paramos".
+ * O fio do projeto: topo de "Onde paramos".
  *
- * Feito para ser lido: um nó por DIA (o tamanho e o número dizem quanto foi feito), as datas na régua,
- * o nó aceso em "onde paramos" e um fio solto por grupo de pendência, com o nome escrito na ponta.
- * A regra do desenho mora em ./desenho.ts e ./dados.ts; aqui só se pinta.
+ * Uma grade de caracteres em que cada casa é um fato registrado: um símbolo por coisa feita, um trilho por IA,
+ * a descida entre trilhos na troca de IA, o pontilhado com a duração no tempo parado e o `◉` em onde paramos.
+ * A regra do desenho mora em ./tecer.ts, ./trilhos.ts, ./regua.ts e ./resumo.ts; aqui só se pinta.
  */
 
-const LARGURA = 1200;
-const ALTURA = 190;
-const DICA_MAX_ITENS = 3;
-
-const TINTA = '#e6e2d9';
-const BRASA = '#e8794a';
-
 type Estilo = CSSProperties & Record<`--${string}`, string | number>;
+type Fase = 'abrindo' | 'vivo' | 'quieto';
 
-const pct = (valor: number, total: number) => `${((valor / total) * 100).toFixed(2)}%`;
+/** O fio se escreve uma vez por projeto aberto; nas outras vezes, já aparece pronto. */
+const jaAbertos = new Set<string>();
+const MS_POR_COLUNA = 8;
+const MS_DA_FAISCA_POR_COLUNA = 10;
+const ESPERA_DA_FAISCA_MS = 250;
+/** Os anéis de onde paramos pulsam quando você chega e descansam depois, como o Tear. */
+const DESCANSO_MS = 20_000;
+const TECLAS: readonly string[] = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'];
+const LARGURA_DA_DICA = 340;
 
-/** Raio do nó pelo tanto que foi feito no dia: 1 item é um nó pequeno; 40, um nó grande. */
-function raioDoDia(quantidade: number): number {
-  return Math.min(11, 3.2 + Math.sqrt(quantidade) * 1.5);
+export interface PropsDoFio {
+  projetoId: string;
+  coisas: CoisaFeita[];
+  falta: Carta['falta'];
+  /** Clique ou Enter num símbolo. */
+  aoEscolher: (chave: string) => void;
+  /** Mouse ou foco num símbolo; `null` quando sai. */
+  aoApontar: (chave: string | null) => void;
+  /** A linha da lista que está com o mouse: o símbolo dela acende. */
+  chaveAcesa: string | null;
+  aoIrParaGrupo: (grupo: GrupoFalta) => void;
 }
 
-export function FioDoProjeto({ semente, dias, pontas }: { semente: string; dias: DiaDoFio[]; pontas: PontaDoFio[] }) {
-  const id = useId().replace(/:/g, '');
-  const principal = useMemo(() => desenharFio({ semente, nos: dias, pontasSoltas: pontas.length, largura: LARGURA, altura: ALTURA, fibras: 15 }), [semente, dias, pontas.length]);
-  const fundo = useMemo(() => desenharFio({ semente: `${semente}·fundo`, nos: dias, pontasSoltas: pontas.length, largura: LARGURA, altura: ALTURA, fibras: 11, abertura: 0.55 }), [semente, dias, pontas.length]);
-  const [ativo, setAtivo] = useState<number | null>(null);
+export function FioDoProjeto({ projetoId, coisas, falta, aoEscolher, aoApontar, chaveAcesa, aoIrParaGrupo }: PropsDoFio) {
+  const quadro = useRef<HTMLElement>(null);
+  const palco = useRef<HTMLDivElement>(null);
+  const grade = useRef<HTMLDivElement>(null);
+  const medida = useMedidaDoFio(grade, coisas);
+  const desenho = useMemo(() => (medida ? tecer(coisas, medida.colunas) : null), [coisas, medida]);
+  const fase = useAbertura(projetoId, desenho?.usadas ?? 0);
+  const [trilhoAceso, setTrilhoAceso] = useState<number | null>(null);
+  const frase = fraseDoFio(coisas);
+  // A coluna de nomes reserva a largura pelos trilhos do projeto inteiro (não só do que foi desenhado): com o resumo
+  // do começo, a largura não muda e a medida não oscila. Antes da primeira medida, ela também mostra os nomes invisíveis.
+  const trilhosDoProjeto = useMemo(() => trilhosDe(coisas).trilhos, [coisas]);
+  const reserva = useMemo(() => reservaDosNomes(coisas, trilhosDoProjeto), [coisas, trilhosDoProjeto]);
+  const trilhos = desenho?.trilhos ?? trilhosDoProjeto;
 
-  // Os nós desenhados vêm em ordem de tempo, como os dias; o máximo de nós do desenho já foi respeitado.
-  const diasDesenhados = principal.nos.map(no => dias.find(d => d.quando === no.quando)!);
-  const ultimo = principal.nos.at(-1);
-  const fim = principal.fimDoTrancado / LARGURA;
-  const meio = Math.floor(principal.fibras.length / 2);
-  const resumo = resumoDosDias(dias, pontas);
-  const pendencias = pontas.map(p => `${p.quantidade} ${p.rotulo.toLowerCase()}`).join(', ');
-  const palco: Estilo = {
-    '--fio-fim': pct(principal.fimDoTrancado, LARGURA),
-    '--fio-fim-num': fim.toFixed(3),
-    '--fio-fim-y': pct(ultimo?.y ?? principal.origem.y, ALTURA),
-  };
-  // O rótulo do fim ("onde paramos · 04 nov") é uns três rótulos de largura e fica 70% à esquerda do nó.
-  const datas = quaisRotular(principal.nos.map(n => n.x), LARGURA * 0.075, LARGURA * 0.15);
-  const contagens = quaisRotular(principal.nos.map(n => n.x), LARGURA * 0.028);
+  useBrasaDoFundo(quadro, palco, desenho, medida);
+
+  if (coisas.length === 0) {
+    return (
+      <figure className="fio-quadro fio-vazio" aria-label={frase.coisas}>
+        <figcaption className="fio-topo">
+          <span className="fio-titulo">O fio do projeto</span>
+          <span className="fio-resumo">{frase.coisas}</span>
+        </figcaption>
+      </figure>
+    );
+  }
 
   return (
-    <figure className="fio-palco" style={palco}>
-      <figcaption className="fio-legenda">
-        <span className="fio-legenda-titulo">O fio do projeto</span>
-        <span className="fio-legenda-tipos" aria-hidden="true">
-          <i className="tipo-entrega" />entrega<i className="tipo-cartao" />cartão<i className="tipo-registro" />registro
-        </span>
-        <span className="fio-legenda-resumo">{resumo}</span>
+    <figure ref={quadro} className={`fio-quadro fio-${fase}`} aria-label={`O fio do projeto: ${rotuloAcessivelDoFio(coisas)}`} data-trilho={trilhoAceso ?? undefined}>
+      <figcaption className="fio-topo">
+        <span className="fio-titulo">O fio do projeto</span>
+        <span className="fio-resumo"><b>{frase.coisas}</b>{frase.resto}{frase.ias && <> {frase.ias}</>}</span>
+        <Legenda />
       </figcaption>
 
-      <div className="fio-tela" onMouseLeave={() => setAtivo(null)}>
-        <svg className="fio fio-heroi" viewBox={`0 0 ${LARGURA} ${ALTURA}`} role="img" aria-label={`O fio do projeto: ${resumo}.${pendencias ? ` Pendências: ${pendencias}.` : ''}`}>
-          <Definicoes id={id} fim={fim} />
-          <g className="fio-camada-fundo" fill="none" stroke={`url(#${id}-fundo)`}>
-            {fundo.fibras.map((d, i) => <path key={i} d={d} className="fio-fibra fio-fibra-fundo" pathLength={1} style={{ '--i': i } as Estilo} />)}
-          </g>
-          <g className="fio-camada-principal" fill="none">
-            {principal.fibras.map((d, i) => (
-              <path key={i} d={d} pathLength={1} stroke={`url(#${id}-${i % 5 === 2 ? 'brasa' : 'tinta'})`}
-                className={i % 5 === 2 ? 'fio-fibra fio-fibra-brasa' : 'fio-fibra'} style={{ '--i': i } as Estilo} />
-            ))}
-          </g>
-          {principal.nos.length > 0 && (
-            <path d={principal.fibras[meio]} className="fio-pulso" pathLength={1} fill="none" stroke={BRASA} filter={`url(#${id}-luz)`} />
-          )}
-          <PontasSoltas desenho={principal} pontas={pontas} />
-          {ativo !== null && principal.nos[ativo] && <GuiaDoNo no={principal.nos[ativo]!} />}
-          <g className="fio-nos">
-            {principal.nos.map((no, i) => (
-              <No key={no.quando} no={no} raio={raioDoDia(diasDesenhados[i]!.quantidade)} indice={i} id={id} ativo={ativo === i} aoEntrar={() => setAtivo(i)} />
-            ))}
-          </g>
-        </svg>
-
-        {/* Quanto foi feito em cada dia, em cima do nó (só onde cabe sem encavalar). */}
-        {contagens.map(i => {
-          const no = principal.nos[i]!;
-          return (
-            <span key={no.quando} className={`fio-contagem${no.ultimo ? ' fio-contagem-agora' : ''}`} aria-hidden="true"
-              style={{ left: pct(no.x, LARGURA), top: pct(no.y - raioDoDia(diasDesenhados[i]!.quantidade) - 5, ALTURA) }}>
-              {diasDesenhados[i]!.quantidade}
-            </span>
-          );
-        })}
-
-        {/* O nome de cada grupo de pendência, na ponta do seu fio solto. */}
-        {principal.pontas.map((ponta, i) => (
-          <span key={pontas[i]!.grupo} className={`fio-ponta-rotulo fio-ponta-${pontas[i]!.destaque}`}
-            style={{ left: pct(ponta.fim.x + 9, LARGURA), top: pct(ponta.fim.y, ALTURA), '--i': i } as Estilo}>
-            <b>{pontas[i]!.quantidade}</b> {pontas[i]!.rotulo}
-          </span>
-        ))}
-
-        {ativo !== null && principal.nos[ativo] && <DicaDoDia no={principal.nos[ativo]!} dia={diasDesenhados[ativo]!} />}
+      <div className="fio-corpo">
+        <Nomes trilhos={trilhos} reserva={reserva} medida={desenho ? medida : null} vivo={desenho?.fim.trilho ?? -1} aceso={trilhoAceso} aoAcender={setTrilhoAceso} />
+        <div className="fio-palco" ref={palco}>
+          <div className="fio-grade" ref={grade} style={desenho && medida ? { fontSize: `${medida.tamanho}px`, height: `${desenho.linhas * medida.linha}px` } : undefined}>
+            {desenho && medida && (
+              <Grade desenho={desenho} medida={medida} abrindo={fase === 'abrindo'} trilhoAceso={trilhoAceso} chaveAcesa={chaveAcesa} aoEscolher={aoEscolher} aoApontar={aoApontar} />
+            )}
+          </div>
+          {desenho && medida && <Regua rotulos={rotulosDaRegua(desenho)} desenho={desenho} casa={medida.casa} />}
+        </div>
       </div>
 
-      <div className="fio-regua" aria-hidden="true">
-        {datas.map(i => {
-          const no = principal.nos[i]!;
-          const rotulo = rotuloCurtoDaData(no.quando);
-          return (
-            <span key={no.quando} className={`fio-regua-marca${no.ultimo ? ' fio-regua-agora' : ''}`} style={{ left: pct(no.x, LARGURA) }}>
-              {no.ultimo ? `onde paramos · ${rotulo}` : rotulo}
-            </span>
-          );
-        })}
-      </div>
+      <Adiante falta={falta} resumido={(desenho?.coisasResumidas ?? 0) > 0} aoIrParaGrupo={aoIrParaGrupo} />
     </figure>
   );
 }
 
-function Definicoes({ id, fim }: { id: string; fim: number }) {
-  const parada = (offset: number, cor: string, opacidade: number) => <stop offset={Math.min(1, Math.max(0, offset)).toFixed(3)} stopColor={cor} stopOpacity={opacidade} />;
+/** Em que fase o fio está: escrevendo-se (uma vez por projeto), com os anéis vivos, ou quieto. */
+function useAbertura(projetoId: string, usadas: number): Fase {
+  const [fase, setFase] = useState<Fase>('quieto');
+  const temDesenho = usadas > 0;
+  const colunas = useRef(usadas);
+  colunas.current = usadas;
+  useLayoutEffect(() => {
+    if (!temDesenho) return;
+    const primeiraVez = !jaAbertos.has(projetoId);
+    setFase(primeiraVez ? 'abrindo' : 'vivo');
+    const duracao = colunas.current * (MS_POR_COLUNA + MS_DA_FAISCA_POR_COLUNA) + ESPERA_DA_FAISCA_MS + 700;
+    // O projeto só conta como aberto quando a abertura termina: se a tela sair antes, ela recomeça.
+    const fimDaAbertura = primeiraVez ? window.setTimeout(() => { jaAbertos.add(projetoId); setFase('vivo'); }, duracao) : undefined;
+    const descanso = window.setTimeout(() => setFase('quieto'), DESCANSO_MS);
+    return () => { window.clearTimeout(fimDaAbertura); window.clearTimeout(descanso); };
+  }, [projetoId, temDesenho]);
+  return fase;
+}
+
+/** A brasa do fundo do quadro fica atrás de onde paramos. */
+function useBrasaDoFundo(quadro: RefObject<HTMLElement | null>, palco: RefObject<HTMLDivElement | null>, desenho: Desenho | null, medida: MedidaDoFio | null) {
+  useLayoutEffect(() => {
+    if (!quadro.current || !palco.current || !desenho || !medida) return;
+    quadro.current.style.setProperty('--fio-brasa-x', `${palco.current.offsetLeft + (desenho.fim.col + 0.5) * medida.casa}px`);
+    quadro.current.style.setProperty('--fio-brasa-y', `${palco.current.offsetTop + (desenho.fim.linha + 0.5) * medida.linha}px`);
+  }, [quadro, palco, desenho, medida]);
+}
+
+function Legenda() {
   return (
-    <defs>
-      <linearGradient id={`${id}-tinta`} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2={LARGURA} y2="0">
-        {parada(0, TINTA, 0.05)}{parada(fim * 0.55, TINTA, 0.26)}{parada(fim, TINTA, 0.5)}{parada(fim + (1 - fim) * 0.45, TINTA, 0.14)}{parada(1, TINTA, 0)}
-      </linearGradient>
-      <linearGradient id={`${id}-brasa`} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2={LARGURA} y2="0">
-        {parada(0, BRASA, 0.04)}{parada(fim * 0.6, BRASA, 0.4)}{parada(fim, BRASA, 0.85)}{parada(fim + (1 - fim) * 0.4, BRASA, 0.2)}{parada(1, BRASA, 0)}
-      </linearGradient>
-      <linearGradient id={`${id}-fundo`} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2={LARGURA} y2="0">
-        {parada(0, TINTA, 0.02)}{parada(fim, TINTA, 0.17)}{parada(1, TINTA, 0)}
-      </linearGradient>
-      <radialGradient id={`${id}-halo`}>
-        <stop offset="0" stopColor={BRASA} stopOpacity="0.55" />
-        <stop offset="0.45" stopColor={BRASA} stopOpacity="0.16" />
-        <stop offset="1" stopColor={BRASA} stopOpacity="0" />
-      </radialGradient>
-      <filter id={`${id}-luz`} x="-20%" y="-60%" width="140%" height="220%">
-        <feGaussianBlur stdDeviation="2.4" result="borrado" />
-        <feMerge><feMergeNode in="borrado" /><feMergeNode in="SourceGraphic" /></feMerge>
-      </filter>
-    </defs>
+    <span className="fio-legenda" aria-hidden="true">
+      <span><i>●</i>entrega</span><span><i>◆</i>cartão concluído</span><span><i>○</i>registro</span><span><i>╮</i>troca de IA</span><span><i>┄</i>parado</span>
+    </span>
   );
 }
 
-function PontasSoltas({ desenho, pontas }: { desenho: DesenhoDoFio; pontas: PontaDoFio[] }) {
+/** "Daqui em diante": o que ainda falta, por grupo; cada um leva à coluna "O que falta". Some quando não há pendência. */
+function Adiante({ falta, resumido, aoIrParaGrupo }: { falta: Carta['falta']; resumido: boolean; aoIrParaGrupo: (grupo: GrupoFalta) => void }) {
+  const pendencias = daquiEmDiante(falta);
+  if (pendencias.length === 0 && !resumido) return null;
   return (
-    <g className="fio-pontas" fill="none">
-      {desenho.pontas.map((ponta, i) => (
-        <g key={pontas[i]!.grupo} className={`fio-ponta fio-ponta-${pontas[i]!.destaque}`} style={{ '--i': i } as Estilo}>
-          <path d={ponta.d} className="fio-ponta-linha" />
-          <circle cx={ponta.fim.x} cy={ponta.fim.y} r="3.2" className="fio-ponta-aro" />
-        </g>
+    <div className="fio-adiante">
+      {pendencias.length > 0 && <span className="fio-adiante-rotulo">Daqui em diante</span>}
+      {pendencias.map(p => (
+        <button key={p.grupo} type="button" data-destino={p.grupo} className={p.pede ? 'fio-adiante-grupo fio-pede' : 'fio-adiante-grupo'} onClick={() => aoIrParaGrupo(p.grupo)}>
+          <b>{p.quantidade}</b>{p.texto.slice(String(p.quantidade).length)}
+        </button>
       ))}
-    </g>
-  );
-}
-
-function GuiaDoNo({ no }: { no: NoDesenhado }) {
-  return <line className="fio-guia" x1={no.x} y1={no.y + 12} x2={no.x} y2={ALTURA} />;
-}
-
-function No({ no, raio, indice, id, ativo, aoEntrar }: { no: NoDesenhado; raio: number; indice: number; id: string; ativo: boolean; aoEntrar: () => void }) {
-  const classe = ['fio-no', `fio-no-${no.tipo}`, no.ultimo ? 'fio-no-ultimo' : '', ativo ? 'fio-no-ativo' : ''].filter(Boolean).join(' ');
-  return (
-    <g className={classe} transform={`translate(${no.x.toFixed(1)} ${no.y.toFixed(1)})`} style={{ '--n': indice } as Estilo} onMouseEnter={aoEntrar}>
-      {no.ultimo && (
-        <>
-          <circle r={raio * 3.2} fill={`url(#${id}-halo)`} className="fio-halo" />
-          <circle r={raio + 4} className="fio-anel" />
-          <circle r={raio + 4} className="fio-anel fio-anel-2" />
-        </>
-      )}
-      <g className="fio-glifo"><Glifo no={no} raio={raio} /></g>
-      <circle r={Math.max(14, raio + 6)} className="fio-alvo" />
-    </g>
-  );
-}
-
-function Glifo({ no, raio }: { no: NoDesenhado; raio: number }) {
-  if (no.ultimo) return <circle r={raio} className="fio-nucleo" />;
-  if (no.tipo === 'tarefa') return <><circle r={raio + 3} className="fio-aro" /><circle r={raio} className="fio-cheio" /></>;
-  if (no.tipo === 'cartao') {
-    const lado = raio * 1.5;
-    return <rect x={-lado / 2} y={-lado / 2} width={lado} height={lado} transform="rotate(45)" className="fio-losango" />;
-  }
-  return <circle r={raio} className="fio-anelzinho" />;
-}
-
-function DicaDoDia({ no, dia }: { no: NoDesenhado; dia: DiaDoFio }) {
-  const fracao = no.x / LARGURA;
-  const lado = fracao < 0.16 ? 'esquerda' : fracao > 0.84 ? 'direita' : 'meio';
-  const resto = dia.itens.length - DICA_MAX_ITENS;
-  return (
-    <div className="fio-dica" style={{ left: pct(no.x, LARGURA), top: pct(no.y, ALTURA) }} role="tooltip" data-lado={lado}>
-      <span className="fio-dica-tipo">
-        {no.ultimo ? 'Onde paramos · ' : ''}{rotuloCurtoDaData(no.quando)} · {dia.quantidade} {dia.quantidade === 1 ? 'coisa feita' : 'coisas feitas'}
-      </span>
-      <ul className="fio-dica-lista">
-        {dia.itens.slice(0, DICA_MAX_ITENS).map((texto, i) => <li key={i}><span className="fio-dica-item">{texto}</span></li>)}
-      </ul>
-      {resto > 0 && <span className="fio-dica-mais">e mais {resto}</span>}
+      {resumido && <span className="fio-nota">Os dias mais antigos estão resumidos no começo do fio.</span>}
     </div>
   );
 }
 
-/**
- * Miniatura para a lista de projetos: o mesmo desenho, pequeno e sem movimento.
- * Depende só do projeto e de quantas versões ele tem: a lista pode ter cem projetos e se redesenhar
- * a cada minuto ("há 3 min"), e o desenho só é refeito quando um projeto ganha versão.
- */
-export const FioMiniatura = memo(function FioMiniatura({ semente, versoes }: { semente: string; versoes: number }) {
-  const d = useMemo(() => desenharFio({ semente, nos: nosDaMiniatura(versoes), pontasSoltas: 0, largura: 120, altura: 40, fibras: 7 }), [semente, versoes]);
+/** Os nomes dos trilhos, alinhados às linhas da grade. Sem medida, ficam invisíveis e só guardam a largura. */
+function Nomes({ trilhos, reserva, medida, vivo, aceso, aoAcender }: { trilhos: Trilho[]; reserva: NomeReservado[]; medida: MedidaDoFio | null; vivo: number; aceso: number | null; aoAcender: (trilho: number | null) => void }) {
   return (
-    <svg className="fio fio-mini" viewBox="0 0 120 40" aria-hidden="true">
-      <g fill="none">{d.fibras.map((f, i) => <path key={i} d={f} className={i === 3 ? 'fio-mini-fibra fio-mini-brasa' : 'fio-mini-fibra'} />)}</g>
-      {d.nos.map((no, i) => <circle key={i} cx={no.x} cy={no.y} r={no.ultimo ? 2.8 : 1.5} className={no.ultimo ? 'fio-mini-no fio-mini-ultimo' : 'fio-mini-no'} />)}
-    </svg>
+    <div className="fio-nomes-coluna">
+      {/* Fantasmas: invisíveis, sem altura, só seguram a largura dos nomes de todos os trilhos do projeto. */}
+      <div className="fio-nomes fio-nomes-fantasma" aria-hidden="true" style={{ '--fio-linha': '1.2em' } as Estilo}>
+        {reserva.map(nome => <span key={nome.rotulo} className="fio-fantasma">{nome.rotulo}<span>{nome.total}</span></span>)}
+      </div>
+      <div className={medida ? 'fio-nomes' : 'fio-nomes fio-nomes-reserva'} style={{ '--fio-linha': medida ? `${medida.linha}px` : '1.2em' } as Estilo}>
+      {trilhos.map((trilho, i) => (
+        <button key={trilho.chave} type="button" data-dica={rotuloDoTrilho(trilho)} aria-label={rotuloDoTrilho(trilho)}
+          className={['fio-nome', i === vivo ? 'fio-nome-vivo' : '', aceso === i ? 'fio-sel' : ''].filter(Boolean).join(' ')}
+          onMouseEnter={() => aoAcender(i)} onMouseLeave={() => aoAcender(null)} onFocus={() => aoAcender(i)} onBlur={() => aoAcender(null)}>
+          {trilho.rotulo}<span>{trilho.total}</span>
+        </button>
+      ))}
+      </div>
+    </div>
+  );
+}
+
+interface PropsDaGrade {
+  desenho: Desenho;
+  medida: MedidaDoFio;
+  abrindo: boolean;
+  trilhoAceso: number | null;
+  chaveAcesa: string | null;
+  aoEscolher: (chave: string) => void;
+  aoApontar: (chave: string | null) => void;
+}
+
+function Grade({ desenho, medida, abrindo, trilhoAceso, chaveAcesa, aoEscolher, aoApontar }: PropsDaGrade) {
+  const { casa, linha } = medida;
+  const botoes = useRef(new Map<number, HTMLButtonElement>());
+  const indiceDoAgora = desenho.casas.findIndex(c => c.classe === 'agora');
+  // Foco e dica guardam a CHAVE da coisa (origem:id), não a posição: quando o desenho muda, continuam na mesma coisa.
+  const [chaveDoFoco, setChaveDoFoco] = useState<string | null>(null);
+  const [chaveAtiva, setChaveAtiva] = useState<string | null>(null);
+  const indiceDaChave = (chave: string | null) => (chave === null ? -1 : desenho.casas.findIndex(c => c.coisa?.chave === chave));
+  // O fio é uma parada só de Tab: o símbolo que guarda o foco, ou onde paramos.
+  const parada = indiceDaChave(chaveDoFoco) >= 0 ? indiceDaChave(chaveDoFoco) : indiceDoAgora;
+  const caixa = (col: number, lin: number, casas = 1): Estilo => ({ left: `${col * casa}px`, top: `${lin * linha}px`, width: `${casas * casa}px`, height: `${linha}px`, lineHeight: `${linha}px` });
+  const tinta = (c: Casa): Estilo => ({ ...caixa(c.col, c.linha), '--t': idadeDaCasa(c.col, desenho).toFixed(3), '--q': calorDaCasa(c.col, desenho).toFixed(3), '--ordem': c.col });
+  const aceso = (trilho: number) => (trilhoAceso === trilho ? ' fio-sel' : '');
+  const aberto = abertoDepoisDoFim(desenho);
+  const indiceAtivo = indiceDaChave(chaveAtiva);
+  const simboloAtivo = indiceAtivo < 0 ? undefined : desenho.casas[indiceAtivo];
+  const diasComGuia = guiasDoDesenho(desenho);
+
+  const apontar = (chave: string | null) => {
+    setChaveAtiva(chave);
+    aoApontar(chave);
+  };
+  const aoTeclar = (evento: KeyboardEvent<HTMLDivElement>) => {
+    if (evento.key === 'Escape') { apontar(null); return; }
+    const atual = Number((evento.target as HTMLElement).dataset.i);
+    if (!TECLAS.includes(evento.key) || Number.isNaN(atual)) return;
+    evento.preventDefault();
+    const novo = vizinho(desenho.casas, atual, evento.key as TeclaDoFio);
+    setChaveDoFoco(desenho.casas[novo]!.coisa!.chave);
+    botoes.current.get(novo)?.focus();
+  };
+
+  return (
+    <div className="fio-casas" role="group" aria-label="Coisas feitas, em ordem de tempo" onKeyDown={aoTeclar} onMouseLeave={() => apontar(null)}>
+      {diasComGuia.map(col => <span key={`g${col}`} className="fio-guia" aria-hidden="true" style={{ left: `${(col + 0.5) * casa}px` }} />)}
+      {desenho.trilhos.map((trilho, i) => (
+        <span key={`p${trilho.chave}`} className={`fio-pauta${aceso(i)}`} aria-hidden="true" style={{ top: `${i * 2 * linha}px`, lineHeight: `${linha}px` }}>{pautaDoTrilho(desenho, i)}</span>
+      ))}
+      {desenho.casas.map((c, i) => c.coisa ? (
+        <button key={c.coisa.chave} type="button" data-i={i} data-chave={c.coisa.chave} tabIndex={i === parada ? 0 : -1}
+          ref={el => { if (el) botoes.current.set(i, el); else botoes.current.delete(i); }}
+          className={`fio-c fio-simbolo fio-${c.classe}${aceso(c.trilho)}${c.coisa.chave === chaveAcesa ? ' fio-ligado' : ''}`}
+          style={tinta(c)} aria-label={rotuloDoSimbolo(c.coisa, c.classe === 'agora')}
+          onMouseEnter={() => apontar(c.coisa!.chave)} onFocus={() => { setChaveDoFoco(c.coisa!.chave); apontar(c.coisa!.chave); }} onBlur={() => apontar(null)} onClick={() => aoEscolher(c.coisa!.chave)}>
+          {c.ch}
+        </button>
+      ) : (
+        <span key={`${c.col}:${c.linha}`} className={`fio-c fio-${c.classe}${aceso(c.trilho)}`} aria-hidden="true" style={tinta(c)}>{c.ch}</span>
+      ))}
+      {aberto > 0 && (
+        <span className={`fio-c fio-aberto${aceso(desenho.fim.trilho)}`} aria-hidden="true" style={{ ...caixa(desenho.fim.col + 1, desenho.fim.linha, aberto), '--ordem': desenho.usadas } as Estilo}>{'┄'.repeat(aberto)}</span>
+      )}
+      {abrindo && desenho.casas.map(c => (
+        <span key={`f${c.col}:${c.linha}`} className="fio-faisca" aria-hidden="true"
+          style={{ ...caixa(c.col, c.linha), '--passo': c.col, '--espera': `${desenho.usadas * MS_POR_COLUNA + ESPERA_DA_FAISCA_MS}ms` } as Estilo}>{c.ch}</span>
+      ))}
+      {simboloAtivo?.coisa && <Dica casa={simboloAtivo} medida={medida} largura={desenho.colunas * casa} />}
+    </div>
+  );
+}
+
+/** As colunas das guias: o primeiro símbolo de cada dia rotulado na régua, e o do último dia (rotulado "onde paramos"). */
+function guiasDoDesenho(desenho: Desenho): number[] {
+  const colunas = rotulosDaRegua(desenho).filter(r => r.tipo === 'dia').map(r => r.col);
+  const ultimo = desenho.dias.at(-1)?.col;
+  return ultimo === undefined || colunas.includes(ultimo) ? colunas : [...colunas, ultimo];
+}
+
+function Dica({ casa, medida, largura }: { casa: Casa; medida: MedidaDoFio; largura: number }) {
+  const { quando, quem, texto } = dicaDoSimbolo(casa.coisa!, casa.classe === 'agora');
+  const centro = (casa.col + 0.5) * medida.casa;
+  const esquerda = Math.max(0, Math.min(centro - LARGURA_DA_DICA / 2, largura - LARGURA_DA_DICA));
+  return (
+    <div className="fio-dica" role="tooltip" style={{ left: `${esquerda}px`, bottom: `calc(100% - ${casa.linha * medida.linha - 10}px)`, width: `${LARGURA_DA_DICA}px` }}>
+      <span className="fio-dica-quando">{quando}</span>
+      <span className="fio-dica-quem">{quem}</span>
+      <span className="fio-dica-texto">{texto}</span>
+    </div>
+  );
+}
+
+function Regua({ rotulos, desenho, casa }: { rotulos: RotuloDaRegua[]; desenho: Desenho; casa: number }) {
+  return (
+    <div className="fio-regua" aria-hidden="true">
+      {rotulos.map(r => r.tipo === 'agora' ? (
+        // Termina sob o ◉; se não couber, encosta na borda esquerda e cresce para a direita.
+        <span key="agora" className="fio-regua-agora" style={{ width: `${(desenho.fim.col + 1) * casa}px` }}>{r.texto}</span>
+      ) : (
+        <span key={`${r.tipo}${r.col}`} className={r.tipo === 'mes' ? 'fio-regua-mes' : 'fio-regua-dia'} style={{ left: `${r.col * casa}px` }}>{r.texto}</span>
+      ))}
+    </div>
+  );
+}
+
+/** Miniatura para a lista de projetos: um símbolo por versão (até 8), o último aceso. Sem movimento. */
+export const FioMiniatura = memo(function FioMiniatura({ versoes }: { versoes: number }) {
+  const simbolos = simbolosDaMiniatura(versoes);
+  const temAgora = simbolos.endsWith('◉');
+  return (
+    <span className="fio-mini" aria-hidden="true">
+      {temAgora ? simbolos.slice(0, -1) : simbolos}
+      {temAgora && <b className="fio-mini-agora">◉</b>}
+    </span>
   );
 });

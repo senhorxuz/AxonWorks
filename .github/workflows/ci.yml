@@ -1,0 +1,56 @@
+# CI da Axon: roda só pelo botão (Actions > CI > Run workflow) ou por `gh workflow run ci.yml --ref <ramo>`.
+# Sem gatilho automático de push ou pull_request: o repositório é privado e cada rodada gasta minutos
+# (mesma decisão do dono para a Nata, 19/11/2026). Não acrescente `push` nem `pull_request`.
+name: CI
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  testes:
+    name: Testes, tipos e montagem
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Tipos
+        run: npx tsc --noEmit
+      - name: Testes de unidade
+        run: npm test
+      - name: Montagem (tela e servidor)
+        run: npm run build
+
+  tela:
+    name: Tela (Playwright)
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Navegador do Playwright
+        run: npx playwright install --with-deps chromium
+      - name: Testes de tela
+        run: npx playwright test
+      - name: Relatório do Playwright
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: relatorio-playwright
+          path: output/playwright/
+          retention-days: 7

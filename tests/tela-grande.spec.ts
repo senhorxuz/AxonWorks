@@ -151,7 +151,7 @@ test('no 27", o cartão arrastado acompanha o ponteiro e mantém a largura', asy
   await page.mouse.up();
 });
 
-test('no 24" e no 27", Onde paramos põe "O que foi feito" e "O que falta" lado a lado; no notebook, um abaixo do outro', async ({ page, request }) => {
+test('no 24" e no 27", Onde paramos põe "O que foi feito" e "O que falta" lado a lado, da mesma altura e com rolagem por dentro; no notebook, um abaixo do outro, sem rolagem interna', async ({ page, request }) => {
   const projeto = await projetoComQuadro(request, 'Carta lado a lado');
   await request.post(`/api/projects/${projeto.id}/checkpoints`, { headers: HEADERS, data: {
     agent: 'Gemini', expectedRevision: 0, idempotencyKey: 'carta-lado-1', summary: 'Feito.', humanSummary: 'O login ficou pronto.', nextStep: 'Seguir.',
@@ -167,11 +167,23 @@ test('no 24" e no 27", Onde paramos põe "O que foi feito" e "O que falta" lado 
     await page.setViewportSize(tela);
     const { feito, falta } = await posicoes();
     expect(falta.x, `${tela.width} px: "O que falta" ao lado`).toBeGreaterThan(feito.x + feito.width - 1);
-    expect(Math.abs(falta.y - feito.y), `${tela.width} px: mesma altura`).toBeLessThan(2);
+    expect(Math.abs(falta.y - feito.y), `${tela.width} px: mesmo topo`).toBeLessThan(2);
+    expect(Math.abs(falta.height - feito.height), `${tela.width} px: mesma altura`).toBeLessThan(2);
+    // A partir de 1800 px cada coluna rola por dentro, com o teto de uma tela.
+    for (const coluna of ['.carta-bloco-feito', '.carta-bloco-falta']) {
+      const interna = page.locator(`${coluna} .coluna-rolagem`);
+      expect(await interna.evaluate(el => getComputedStyle(el).overflowY), `${tela.width} px: ${coluna} rola por dentro`).toMatch(/auto|scroll/);
+      expect(await interna.evaluate(el => getComputedStyle(el).overscrollBehaviorY), `${tela.width} px: ${coluna} segura a rolagem`).toBe('contain');
+    }
+    expect(feito.height, `${tela.width} px: no máximo uma tela de altura`).toBeLessThanOrEqual(tela.height);
   }
   await page.setViewportSize({ width: 1440, height: 900 });
   const { feito, falta } = await posicoes();
   expect(falta.y, 'notebook: "O que falta" abaixo').toBeGreaterThan(feito.y + feito.height - 1);
+  // Abaixo de 1800 px não há rolagem interna: a página rola e nada fica escondido dentro da coluna.
+  for (const coluna of ['.carta-bloco-feito', '.carta-bloco-falta']) {
+    expect(await page.locator(`${coluna} .coluna-rolagem`).evaluate(el => el.scrollHeight - el.clientHeight), `notebook: ${coluna} sem rolagem interna`).toBeLessThanOrEqual(1);
+  }
 });
 
 test('no 27", a ampliação não cria rolagem falsa: página curta não rola, e o painel do cartão e as janelas cabem na tela', async ({ page, request }) => {

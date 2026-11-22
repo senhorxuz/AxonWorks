@@ -6,7 +6,7 @@
  * verdade; o contorno, o bloco de páginas e cada linha de texto seguem essa mesma curva.
  * O texto (parágrafos, recuo, última linha curta) sai da semente do projeto: cada projeto, o seu livro.
  */
-import { aleatorioDe } from '../fio/desenho';
+import { aleatorioDe } from '../aleatorio';
 
 export const LARGURA_DO_LIVRO = 320;
 export const ALTURA_DO_LIVRO = 210;

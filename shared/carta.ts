@@ -30,6 +30,10 @@ export interface ItemFeito {
   id: string
   texto: string
   quando: string
+  /** Nome declarado de quem fez. Ausente quando a Axon não sabe (ou quando `peloDono`). */
+  quem?: string
+  /** Só no cartão concluído pelo dono (o texto fixo "Dono do projeto"). Quando vem, `quem` não vem. */
+  peloDono?: true
 }
 
 export interface MesFeito {

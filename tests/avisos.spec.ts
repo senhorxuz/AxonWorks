@@ -56,7 +56,7 @@ async function abrirCarta(page: Page, projeto: { id: string; name: string }) {
 
 const secao = (page: Page) => page.getByRole('region', { name: 'Avisos' });
 
-test('diretriz velha com 5 registros depois: o aviso aparece antes de "Em uma frase", na frase do dono, sem nome de ferramenta', async ({ page }) => {
+test('diretriz velha com 5 registros depois: o aviso aparece antes das colunas, na frase do dono, sem nome de ferramenta', async ({ page }) => {
   const projeto = projetoComDiretrizVelha(nomeUnico('Projeto diretriz velha'), 5);
 
   await abrirCarta(page, projeto);
@@ -68,8 +68,10 @@ test('diretriz velha com 5 registros depois: o aviso aparece antes de "Em uma fr
     /^A diretriz deste projeto não muda desde \d{2}\/\d{2}\/\d{4}, e desde então houve 5 registros\. Se o projeto mudou, o Claude pode propor a atualização, e você aprova aqui na Axon\.$/,
   );
   const avisos = await secao(page).boundingBox();
-  const frase = await page.getByRole('heading', { name: 'Em uma frase', level: 3 }).boundingBox();
-  expect(avisos!.y).toBeLessThan(frase!.y);
+  // A seção "Em uma frase" virou a manchete do alto; o aviso continua antes de todo o conteúdo (as colunas) e depois do fio.
+  const colunas = await page.getByRole('heading', { name: 'O que foi feito', level: 3 }).boundingBox();
+  expect(avisos!.y).toBeLessThan(colunas!.y);
+  await expect(page.getByRole('heading', { name: 'Em uma frase' })).toHaveCount(0);
 });
 
 test('sem aviso (projeto novo, ou diretriz velha com poucos registros), a seção não aparece', async ({ page, request }) => {

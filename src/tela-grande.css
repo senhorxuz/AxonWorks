@@ -137,10 +137,17 @@
     grid-column: 2;
   }
 
-  /* A frase do estado é o primeiro que se lê: ganha corpo, mas não vira linha cansativa. */
-  .carta .carta-bloco .carta-frase {
-    max-width: 72ch;
-    font-size: 19px;
-    line-height: 1.45;
+  /*
+   * As duas colunas terminam juntas e o bloco cabe numa tela: cada uma tem o tamanho do próprio conteúdo
+   * até o teto de uma janela, a menor estica até a maior, e o corpo rola por dentro.
+   */
+  .carta > .carta-coluna {
+    align-self: stretch;
+    max-height: calc(100vh / var(--ampliacao, 1) - 48px);
+  }
+
+  .carta > .carta-coluna .coluna-rolagem {
+    overflow-y: auto;
+    overscroll-behavior: contain;
   }
 }

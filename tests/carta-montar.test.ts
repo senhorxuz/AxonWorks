@@ -2,8 +2,9 @@ import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import { montarCarta, type DadosDaCarta } from '../server/carta/montar.ts'
 import type { ApprovalRequest } from '../shared/approvals.ts'
-import type { BoardCard, BoardColumnId } from '../shared/board.ts'
+import type { BoardCard, BoardCardEvent, BoardColumnId } from '../shared/board.ts'
 import type { Decision, ProjectBlocker, WorkDraft } from '../shared/continuity.ts'
+import type { EstadoDaEntrega } from '../shared/entrega.ts'
 import type { BacklogItem, Checkpoint, Project, Task } from '../shared/types.ts'
 
 const AGORA = new Date('2026-10-25T12:00:00.000Z')
@@ -189,6 +190,21 @@ function dados(over: Partial<DadosDaCarta> = {}): DadosDaCarta {
     blockers: [],
     rascunhoAutomatico: null,
     saude: { ultimoRegistroAutomatico: null, ultimoErro: null },
+    ...over,
+  }
+}
+
+function evento(over: Partial<BoardCardEvent> = {}): BoardCardEvent {
+  return {
+    id: 'ev-1',
+    projectId: 'proj-1',
+    cardId: 'c-done',
+    kind: 'moved',
+    actor: 'Claude',
+    fromColumn: 'in_progress',
+    toColumn: 'done',
+    summary: 'Moveu',
+    createdAt: atras(2),
     ...over,
   }
 }
@@ -590,8 +606,8 @@ describe('montarCarta: o que foi feito', () => {
     )
     assert.deepEqual(carta.feitoRecente, [
       { origem: 'cartao', id: 'c-done', texto: 'Login pronto', quando: atras(1) },
-      { origem: 'tarefa', id: 't-done', texto: 'Migrar o banco', quando: atras(2) },
-      { origem: 'registro', id: 'cp-fim', texto: 'Banco migrado.', quando: atras(2) },
+      { origem: 'tarefa', id: 't-done', texto: 'Migrar o banco', quando: atras(2), quem: 'Claude' },
+      { origem: 'registro', id: 'cp-fim', texto: 'Banco migrado.', quando: atras(2), quem: 'Claude' },
     ])
     assert.deepEqual(carta.feitoPorMes, [])
   })
@@ -865,5 +881,251 @@ describe('montarCarta: avisos (D2, diretriz velha)', () => {
       const carta = montarCarta(d, AGORA)
       assert.deepEqual([carta.avisos, carta.avisosDaRetomada], [[], []])
     }
+  })
+})
+
+describe('montarCarta: quem fez cada coisa (quem e peloDono)', () => {
+  const feito = (carta: ReturnType<typeof montarCarta>, id: string) =>
+    [...carta.feitoRecente, ...carta.feitoPorMes.flatMap((mes) => mes.itens)].find((i) => i.id === id)
+  const cartaoFeito = (over: Partial<BoardCard> = {}): BoardCard =>
+    cartao({ id: 'c-done', column: 'done', title: 'Login', updatedAt: atras(1), ...over })
+
+  it('registro: quem é o agente do checkpoint', () => {
+    const carta = montarCarta(
+      dados({ checkpoints: [checkpoint({ id: 'cp-a', agent: 'Codex', humanSummary: 'Feito.', createdAt: atras(1) })] }),
+      AGORA,
+    )
+    assert.deepEqual(feito(carta, 'cp-a'), { origem: 'registro', id: 'cp-a', texto: 'Feito.', quando: atras(1), quem: 'Codex' })
+  })
+
+  it('tarefa com checkpoint de conclusão: quem é o agente do checkpoint, não o assignee', () => {
+    const carta = montarCarta(
+      dados({
+        tasks: [tarefa({ id: 't-a', status: 'done', assignee: 'Outro', completionCheckpointId: 'cp-fim' })],
+        checkpoints: [checkpoint({ id: 'cp-fim', agent: 'Codex', createdAt: atras(1) })],
+      }),
+      AGORA,
+    )
+    assert.equal(feito(carta, 't-a')?.quem, 'Codex')
+  })
+
+  it('tarefa sem checkpoint de conclusão: usa o assignee', () => {
+    const carta = montarCarta(
+      dados({ tasks: [tarefa({ id: 't-a', status: 'done', assignee: 'Gemini', createdAt: atras(1) })] }),
+      AGORA,
+    )
+    assert.equal(feito(carta, 't-a')?.quem, 'Gemini')
+  })
+
+  it('tarefa com checkpoint de conclusão que não existe: usa o assignee', () => {
+    const carta = montarCarta(
+      dados({
+        tasks: [tarefa({ id: 't-a', status: 'done', assignee: 'Gemini', completionCheckpointId: 'sumiu', createdAt: atras(1) })],
+      }),
+      AGORA,
+    )
+    assert.equal(feito(carta, 't-a')?.quem, 'Gemini')
+  })
+
+  it('tarefa sem checkpoint e sem assignee: o campo não é enviado', () => {
+    const carta = montarCarta(dados({ tasks: [tarefa({ id: 't-a', status: 'done', createdAt: atras(1) })] }), AGORA)
+    assert.deepEqual(feito(carta, 't-a'), { origem: 'tarefa', id: 't-a', texto: 'Tarefa', quando: atras(1) })
+  })
+
+  it('tarefa com checkpoint de agente vazio: cai no assignee', () => {
+    const carta = montarCarta(
+      dados({
+        tasks: [tarefa({ id: 't-a', status: 'done', assignee: 'Gemini', completionCheckpointId: 'cp-v' })],
+        checkpoints: [checkpoint({ id: 'cp-v', agent: '', createdAt: atras(1) })],
+      }),
+      AGORA,
+    )
+    assert.equal(feito(carta, 't-a')?.quem, 'Gemini')
+  })
+
+  it('cartão concluído por IA com dois eventos para done: vale o mais recente', () => {
+    const carta = montarCarta(
+      dados({
+        cards: [cartaoFeito()],
+        eventosDosCartoes: {
+          'c-done': [
+            evento({ id: 'e-novo', actor: 'Codex', createdAt: atras(1, 2) }),
+            evento({ id: 'e-velho', actor: 'Claude', createdAt: atras(3) }),
+          ],
+        },
+      }),
+      AGORA,
+    )
+    assert.equal(feito(carta, 'c-done')?.quem, 'Codex')
+  })
+
+  it('a ordem em que os eventos chegam não muda o resultado', () => {
+    const carta = montarCarta(
+      dados({
+        cards: [cartaoFeito()],
+        eventosDosCartoes: {
+          'c-done': [
+            evento({ id: 'e-velho', actor: 'Claude', createdAt: atras(3) }),
+            evento({ id: 'e-novo', actor: 'Codex', createdAt: atras(1, 2) }),
+          ],
+        },
+      }),
+      AGORA,
+    )
+    assert.equal(feito(carta, 'c-done')?.quem, 'Codex')
+  })
+
+  it('empate no mesmo instante: vale o primeiro da lista (a ordem do store, do mais novo para o mais velho)', () => {
+    const carta = montarCarta(
+      dados({
+        cards: [cartaoFeito()],
+        eventosDosCartoes: {
+          'c-done': [evento({ id: 'e1', actor: 'Codex' }), evento({ id: 'e2', actor: 'Claude' })],
+        },
+      }),
+      AGORA,
+    )
+    assert.equal(feito(carta, 'c-done')?.quem, 'Codex')
+  })
+
+  it('cartão editado depois de concluído: o autor continua o de quem concluiu', () => {
+    const carta = montarCarta(
+      dados({
+        cards: [cartaoFeito({ updatedAt: atras(0, 1), updatedBy: 'Gemini' })],
+        eventosDosCartoes: {
+          'c-done': [
+            evento({ id: 'e-edicao', kind: 'updated', actor: 'Gemini', fromColumn: null, toColumn: null, createdAt: atras(0, 1) }),
+            evento({ id: 'e-fim', actor: 'Codex', createdAt: atras(2) }),
+          ],
+        },
+      }),
+      AGORA,
+    )
+    assert.equal(feito(carta, 'c-done')?.quem, 'Codex')
+  })
+
+  it('cartão criado já em done: o evento de criação com toColumn done vale', () => {
+    const carta = montarCarta(
+      dados({
+        cards: [cartaoFeito()],
+        eventosDosCartoes: { 'c-done': [evento({ kind: 'created', actor: 'Claude', fromColumn: null })] },
+      }),
+      AGORA,
+    )
+    assert.equal(feito(carta, 'c-done')?.quem, 'Claude')
+  })
+
+  it('o dono reordenar dentro de Concluído (done -> done) não tira a autoria de quem concluiu', () => {
+    const carta = montarCarta(
+      dados({
+        cards: [cartaoFeito()],
+        eventosDosCartoes: {
+          'c-done': [
+            evento({ id: 'e1', actor: 'Codex', createdAt: atras(3) }),
+            evento({ id: 'e2', actor: 'Dono do projeto', fromColumn: 'done', toColumn: 'done', createdAt: atras(2) }),
+          ],
+        },
+      }),
+      AGORA,
+    )
+    assert.deepEqual(feito(carta, 'c-done'), { origem: 'cartao', id: 'c-done', texto: 'Login', quando: atras(1), quem: 'Codex' })
+  })
+
+  it('outra IA reordenar dentro de Concluído continua deixando a autoria com quem concluiu', () => {
+    const carta = montarCarta(
+      dados({
+        cards: [cartaoFeito()],
+        eventosDosCartoes: {
+          'c-done': [
+            evento({ id: 'e1', actor: 'Codex', createdAt: atras(3) }),
+            evento({ id: 'e2', actor: 'Gemini', fromColumn: 'done', toColumn: 'done', createdAt: atras(2) }),
+          ],
+        },
+      }),
+      AGORA,
+    )
+    assert.equal(feito(carta, 'c-done')?.quem, 'Codex')
+  })
+
+  it('cartão concluído pelo dono: peloDono verdadeiro e sem quem', () => {
+    const carta = montarCarta(
+      dados({ cards: [cartaoFeito()], eventosDosCartoes: { 'c-done': [evento({ actor: 'Dono do projeto' })] } }),
+      AGORA,
+    )
+    assert.deepEqual(feito(carta, 'c-done'), { origem: 'cartao', id: 'c-done', texto: 'Login', quando: atras(1), peloDono: true })
+  })
+
+  it('"dono do projeto" com outra caixa e espaços nas pontas também é o dono', () => {
+    const carta = montarCarta(
+      dados({ cards: [cartaoFeito()], eventosDosCartoes: { 'c-done': [evento({ actor: '  dono do PROJETO ' })] } }),
+      AGORA,
+    )
+    assert.deepEqual(feito(carta, 'c-done'), { origem: 'cartao', id: 'c-done', texto: 'Login', quando: atras(1), peloDono: true })
+  })
+
+  it('um nome que apenas começa com "Dono do projeto" não é o dono', () => {
+    const carta = montarCarta(
+      dados({ cards: [cartaoFeito()], eventosDosCartoes: { 'c-done': [evento({ actor: 'Dono do projeto Nata' })] } }),
+      AGORA,
+    )
+    assert.deepEqual(feito(carta, 'c-done'), { origem: 'cartao', id: 'c-done', texto: 'Login', quando: atras(1), quem: 'Dono do projeto Nata' })
+  })
+
+  it('cartão sem eventos (sem o mapa, com mapa vazio ou com lista vazia): nenhum dos dois campos', () => {
+    const cards = [cartaoFeito()]
+    const esperado = { origem: 'cartao', id: 'c-done', texto: 'Login', quando: atras(1) }
+    assert.deepEqual(feito(montarCarta(dados({ cards }), AGORA), 'c-done'), esperado)
+    assert.deepEqual(feito(montarCarta(dados({ cards, eventosDosCartoes: {} }), AGORA), 'c-done'), esperado)
+    assert.deepEqual(feito(montarCarta(dados({ cards, eventosDosCartoes: { 'c-done': [] } }), AGORA), 'c-done'), esperado)
+  })
+
+  it('cartão concluído por um ator vazio: nenhum dos dois campos (ausente é "não sei", nunca nome vazio)', () => {
+    const carta = montarCarta(
+      dados({ cards: [cartaoFeito()], eventosDosCartoes: { 'c-done': [evento({ actor: '' })] } }),
+      AGORA,
+    )
+    assert.deepEqual(feito(carta, 'c-done'), { origem: 'cartao', id: 'c-done', texto: 'Login', quando: atras(1) })
+  })
+
+  it('cartão com eventos, mas nenhum que levou a done: sem campo', () => {
+    const carta = montarCarta(
+      dados({
+        cards: [cartaoFeito()],
+        eventosDosCartoes: { 'c-done': [evento({ toColumn: 'in_progress' }), evento({ id: 'e2', kind: 'deleted', toColumn: null })] },
+      }),
+      AGORA,
+    )
+    assert.deepEqual(feito(carta, 'c-done'), { origem: 'cartao', id: 'c-done', texto: 'Login', quando: atras(1) })
+  })
+
+  it('os eventos são por id do cartão: evento de outro cartão não vale', () => {
+    const carta = montarCarta(
+      dados({ cards: [cartaoFeito()], eventosDosCartoes: { 'c-outro': [evento({ actor: 'Codex' })] } }),
+      AGORA,
+    )
+    assert.deepEqual(feito(carta, 'c-done'), { origem: 'cartao', id: 'c-done', texto: 'Login', quando: atras(1) })
+  })
+})
+
+describe('montarCarta: entregas em andamento', () => {
+  const estado = (cardId: string): EstadoDaEntrega => ({
+    cardId,
+    testes: { estado: 'nao_rodado', evidenciaId: null, em: null },
+    codigo: { onde: 'nao_feito', commit: null, ramo: null, em: null },
+    publicacoes: [],
+    aprovacoes: [],
+    atualizadoEm: atras(1),
+  })
+
+  it('cartão em andamento com estado de entrega: a carta traz a entrega; sem estado, a chave não existe', () => {
+    const cards = [cartao({ id: 'c-andamento', column: 'in_progress', title: 'Publicar o site' })]
+    const com = montarCarta(dados({ cards }), AGORA, [estado('c-andamento')])
+    assert.deepEqual(
+      com.entregas?.map((e) => [e.cardId, e.titulo]),
+      [['c-andamento', 'Publicar o site']],
+    )
+    const sem = montarCarta(dados({ cards }), AGORA)
+    assert.equal('entregas' in sem, false)
+    assert.equal('entregas' in montarCarta(dados({ cards }), AGORA, [estado('de-outro-cartao')]), false)
   })
 })

@@ -2,7 +2,7 @@
  * Biblioteca — prévia dos cartões, o ex-libris em guilhoché de cada documento e a cor de cada tipo.
  * Funções puras; quem desenha é src/biblioteca/ (componentes) e o painel da Biblioteca.
  */
-import { aleatorioDe } from '../fio/desenho';
+import { aleatorioDe } from '../aleatorio';
 
 /** O começo do conteúdo em texto corrido: sem marcação, cortado na palavra, com reticências. */
 export function previaDoConteudo(texto: string, limite = 180): string {

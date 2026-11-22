@@ -1,30 +1,27 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AlertCircle, Check, Copy, RefreshCw } from 'lucide-react';
-import type { Carta, GrupoFalta, ItemFalta, ItemFeito, RascunhoAutomaticoVisivel, SalvamentoResumo } from '../../shared/carta';
+import type { Carta, GrupoFalta, ItemFalta, RascunhoAutomaticoVisivel, SalvamentoResumo } from '../../shared/carta';
 import { BotoesDeApagar, DescartarRascunhoAutomatico } from '../apagar/BotoesDeApagar';
 import { api, errorText } from '../api';
 import { useEntrada } from '../entrada';
 import { EntregasEmAndamento } from '../entregas/EntregasEmAndamento';
 import { useFeedback } from '../Feedback';
-import { diasDaCarta, pontasDaCarta } from '../fio/dados';
+import { coisasDaCarta } from '../fio/coisas';
 import { FioDoProjeto } from '../fio/FioDoProjeto';
+import { abrirParaMostrar } from './chegada';
+import { ColunaFalta } from './ColunaFalta';
+import { ColunaFeito, chaveDoMes, type ControleDoFeito } from './ColunaFeito';
+import { diasDoFeito } from './dias';
+import { useChegada } from './useChegada';
 import type { EstadoDaCarta } from './useCarta';
 import { fraseDoSalvamento, horaDoSalvamento, listasDoSalvamento, rotuloDoSalvamento } from './salvamentos';
 import {
   atorDaConfirmacao,
-  contar,
-  cortarTexto,
   diaEMes,
-  dicaDoItem,
-  etapaDoItem,
   fraseParaContinuar,
   gruposDaFalta,
   linhaDeSaude,
-  podeConfirmar,
-  rotuloDaOrigem,
-  rotuloDoMes,
   ultimaVezAqui,
-  type GrupoDaTela,
 } from './texto';
 import './onde-paramos.css';
 
@@ -35,8 +32,6 @@ import './onde-paramos.css';
  *
  * A Axon não abre IA: "Continuar com o Claude" só copia uma frase para colar no Claude Code.
  */
-
-const LIMITE_DO_DETALHE = 240;
 
 export function OndeParamos(props: { projectId: string; estado: EstadoDaCarta; aoConfirmarDecisao: () => Promise<void> }) {
   const { projectId, estado, aoConfirmarDecisao } = props;
@@ -57,6 +52,7 @@ export function OndeParamos(props: { projectId: string; estado: EstadoDaCarta; a
   }
   return (
     <CartaPronta
+      key={projectId}
       projectId={projectId}
       carta={carta}
       erro={erro}
@@ -75,8 +71,41 @@ function CartaPronta(props: { projectId: string; carta: Carta; erro: string; rec
   const grupos = gruposDaFalta(carta.falta);
   const saude = linhaDeSaude(carta.saude, carta.ultimaAtividade);
   const semFeito = carta.feitoRecente.length === 0 && carta.feitoPorMes.length === 0 && carta.rascunhoAutomatico === null;
-  const diasDoFio = useMemo(() => diasDaCarta(carta), [carta]);
-  const pontasDoFio = useMemo(() => pontasDaCarta(carta), [carta]);
+  const coisasDaLista = useMemo(() => coisasDaCarta(carta), [carta]);
+  const coisasDoFio = coisasDaLista.validas;
+  // A coluna conta tudo o que a lista mostra (também o grupo "Sem data"); o fio desenha só as de data válida.
+  const totalDoFeito = coisasDoFio.length + coisasDaLista.semData.length;
+  const lista = useMemo(() => diasDoFeito(carta), [carta]);
+  const raiz = useRef<HTMLElement>(null);
+  const { chegou, irPara } = useChegada(raiz);
+  // Só o dia de onde paramos começa aberto; o que o dono abre depois fica aberto enquanto a carta é relida.
+  const [abertos, setAbertos] = useState<ReadonlySet<string>>(() => new Set(lista.diaAberto === null ? [] : [lista.diaAberto]));
+  // Se uma releitura trouxer a coisa mais nova num dia novo, esse dia também abre; o que o dono abriu fica como está.
+  useEffect(() => {
+    const novo = lista.diaAberto;
+    if (novo !== null) setAbertos(antes => (antes.has(novo) ? antes : new Set([...antes, novo])));
+  }, [lista.diaAberto]);
+  const [linhasAbertas, setLinhasAbertas] = useState<ReadonlySet<string>>(() => new Set());
+  // O símbolo do fio e a linha da lista são a mesma coisa: um acende o outro.
+  const [apontadaNoFio, setApontadaNoFio] = useState<string | null>(null);
+  const [apontadaNaLista, setApontadaNaLista] = useState<string | null>(null);
+  const aoAbrir = useCallback((chave: string, aberto: boolean) => setAbertos(antes => comOuSem(antes, chave, aberto)), []);
+  const aoAbrirLinha = useCallback((chave: string, aberta: boolean) => setLinhasAbertas(antes => comOuSem(antes, chave, aberta)), []);
+  const controle: ControleDoFeito = {
+    abertos, aoAbrir, linhasAbertas, aoAbrirLinha,
+    chaveAcesa: apontadaNoFio, aoApontar: setApontadaNaLista,
+    chegou: chegou?.tipo === 'coisa' ? chegou.chave : null,
+  };
+
+  /** Clique num símbolo do fio: abre o que esconde a linha e leva a tela até ela. */
+  function irParaCoisa(chave: string) {
+    const onde = abrirParaMostrar(lista, chave);
+    if (!onde) return;
+    setAbertos(antes => new Set([...antes, onde.dia, ...(onde.mes === null ? [] : [chaveDoMes(onde.mes)])]));
+    if (chave !== lista.chaveDeOndeParamos) aoAbrirLinha(chave, true);
+    irPara({ tipo: 'coisa', chave });
+  }
+  const irParaGrupo = (grupo: GrupoFalta) => irPara({ tipo: 'grupo', grupo });
 
   async function confirmar(item: ItemFalta & { versao: number }) {
     setFalha('');
@@ -97,13 +126,16 @@ function CartaPronta(props: { projectId: string; carta: Carta; erro: string; rec
   }
 
   return (
-    <section className="carta" aria-labelledby="carta-titulo">
-      <header>
+    <section className="carta" aria-labelledby="carta-titulo" ref={raiz}>
+      <header className={carta.emUmaFrase ? 'carta-cabeca carta-cabeca-com-manchete' : 'carta-cabeca'}>
         <h2 id="carta-titulo" className="carta-titulo">Onde paramos</h2>
         <p className="carta-ultima">{ultimaVezAqui(carta.ultimaAtividade, carta.diasParado)}</p>
+        {carta.emUmaFrase
+          ? <p className="carta-frase carta-manchete">{carta.emUmaFrase}</p>
+          : <p className="carta-vazio">Ainda não há uma frase simples do estado do projeto. Quando uma IA salvar um registro com a frase para o dono, ela aparece aqui.</p>}
       </header>
 
-      <FioDoProjeto semente={carta.projeto.id} dias={diasDoFio} pontas={pontasDoFio} />
+      <FioDoProjeto projetoId={carta.projeto.id} coisas={coisasDoFio} falta={carta.falta} aoEscolher={irParaCoisa} aoApontar={setApontadaNoFio} chaveAcesa={apontadaNaLista} aoIrParaGrupo={irParaGrupo} />
 
       {erro && (
         <div className="alert" role="alert">
@@ -121,38 +153,16 @@ function CartaPronta(props: { projectId: string; carta: Carta; erro: string; rec
 
       {carta.avisos.length > 0 && <Avisos avisos={carta.avisos} />}
 
-      <section className="carta-bloco" aria-labelledby="carta-frase-titulo">
-        <h3 id="carta-frase-titulo">Em uma frase</h3>
-        {carta.emUmaFrase
-          ? <p className="carta-frase">{carta.emUmaFrase}</p>
-          : <p className="carta-vazio">Ainda não há uma frase simples do estado do projeto. Quando uma IA salvar um registro com a frase para o dono, ela aparece aqui.</p>}
-      </section>
+      <ColunaFeito
+        lista={lista}
+        total={totalDoFeito}
+        manchete={carta.emUmaFrase}
+        controle={controle}
+        vazio={semFeito}
+        rascunho={carta.rascunhoAutomatico && <RascunhoAutomatico projectId={projectId} rascunho={carta.rascunhoAutomatico} recarregar={recarregar} />}
+      />
 
-      <section className="carta-bloco carta-bloco-feito" aria-labelledby="carta-feito-titulo">
-        <h3 id="carta-feito-titulo">O que foi feito</h3>
-        {carta.rascunhoAutomatico && <RascunhoAutomatico projectId={projectId} rascunho={carta.rascunhoAutomatico} recarregar={recarregar} />}
-        {carta.feitoRecente.length > 0 && (
-          <>
-            <h4 className="carta-subtitulo">Recente</h4>
-            <ListaDoFeito itens={carta.feitoRecente} />
-          </>
-        )}
-        {carta.feitoPorMes.map(mes => (
-          <details className="carta-mes" key={mes.mes}>
-            <summary>{rotuloDoMes(mes)}</summary>
-            <ListaDoFeito itens={mes.itens} />
-          </details>
-        ))}
-        {semFeito && <p className="carta-vazio">Nada concluído registrado ainda. Quando um cartão for concluído ou uma IA salvar um registro, o que foi feito aparece aqui.</p>}
-      </section>
-
-      <section className="carta-bloco carta-bloco-falta" aria-labelledby="carta-falta-titulo">
-        <h3 id="carta-falta-titulo">O que falta</h3>
-        {grupos.length === 0 && <p className="carta-vazio">Nenhuma pendência registrada: nada espera por você, nada está travado ou em andamento, e não há ideias guardadas.</p>}
-        {grupos.map(grupo => (
-          <GrupoDaFalta key={grupo.id} grupo={grupo} confirmandoId={confirmandoId} aoConfirmar={confirmar} />
-        ))}
-      </section>
+      <ColunaFalta grupos={grupos} confirmandoId={confirmandoId} aoConfirmar={confirmar} chegou={chegou?.tipo === 'grupo' ? chegou.grupo : null} aoIrParaGrupo={irParaGrupo} />
 
       <EntregasEmAndamento entregas={carta.entregas} />
 
@@ -255,101 +265,6 @@ function DetalhesTecnicos({ salvamento }: { salvamento: SalvamentoResumo }) {
   );
 }
 
-function ListaDoFeito({ itens }: { itens: ItemFeito[] }) {
-  return (
-    <ul className="carta-feito">
-      {itens.map(item => (
-        <li key={`${item.origem}-${item.id}`}>
-          <span>{item.texto}</span>
-          <time dateTime={item.quando}>{diaEMes(item.quando)}</time>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-function GrupoDaFalta(props: { grupo: GrupoDaTela; confirmandoId: string | null; aoConfirmar: (item: ItemFalta & { versao: number }) => Promise<void> }) {
-  const { grupo, confirmandoId, aoConfirmar } = props;
-  const lista = (
-    <ul className="carta-itens">
-      {grupo.itens.map(item => (
-        <ItemDaFalta
-          key={`${item.origem}-${item.id}`}
-          grupo={grupo.id}
-          item={item}
-          confirmando={confirmandoId === item.id}
-          aoConfirmar={aoConfirmar}
-        />
-      ))}
-    </ul>
-  );
-  const idDoTitulo = `carta-grupo-${grupo.id}`;
-  return (
-    <section className="carta-grupo" data-grupo={grupo.id} aria-labelledby={idDoTitulo}>
-      <h4 id={idDoTitulo}>
-        {grupo.titulo}{' '}
-        <span className="carta-contagem">{grupo.itens.length}</span>
-      </h4>
-      {grupo.recolhido
-        ? <details><summary>Ver {contar(grupo.itens.length, 'ideia', 'ideias')}</summary>{lista}</details>
-        : lista}
-    </section>
-  );
-}
-
-function ItemDaFalta(props: { grupo: GrupoFalta; item: ItemFalta; confirmando: boolean; aoConfirmar: (item: ItemFalta & { versao: number }) => Promise<void> }) {
-  const { grupo, item, confirmando, aoConfirmar } = props;
-  const etapa = etapaDoItem(grupo, item);
-  const dica = dicaDoItem(item);
-
-  return (
-    <li className="carta-item">
-      <div className="carta-item-topo">
-        <span className="carta-origem">{rotuloDaOrigem(item.origem)}</span>
-        {etapa && <span className="carta-etapa">{etapa}</span>}
-      </div>
-      <p className="carta-item-titulo">{item.titulo}</p>
-      {item.detalhe && <Detalhe rotulo={grupo === 'travado' ? 'Motivo: ' : ''} texto={item.detalhe} />}
-      {dica && <p className="carta-dica">{dica}</p>}
-      {podeConfirmar(item) && (
-        <div className="carta-item-acao">
-          <button
-            type="button"
-            className="button secondary"
-            disabled={confirmando}
-            aria-busy={confirmando}
-            aria-label={`Confirmar decisão: ${item.titulo}`}
-            onClick={() => void aoConfirmar(item)}
-          >
-            <Check size={15} />
-            Confirmar decisão
-          </button>
-        </div>
-      )}
-    </li>
-  );
-}
-
-/** Descrição do item: até 240 caracteres; o resto abre com "Ver tudo". */
-function Detalhe({ rotulo, texto }: { rotulo: string; texto: string }) {
-  const [aberto, setAberto] = useState(false);
-  const curto = cortarTexto(texto, LIMITE_DO_DETALHE);
-  const cortado = curto !== texto;
-  return (
-    <>
-      <p className="carta-detalhe">
-        {rotulo && <span className="carta-rotulo">{rotulo}</span>}
-        {aberto || !cortado ? texto : curto}
-      </p>
-      {cortado && (
-        <button type="button" className="text-button carta-ver-mais" aria-expanded={aberto} onClick={() => setAberto(valor => !valor)}>
-          {aberto ? 'Ver menos' : 'Ver tudo'}
-        </button>
-      )}
-    </>
-  );
-}
-
 function ContinuarComOClaude({ nomeDoProjeto }: { nomeDoProjeto: string }) {
   const frase = fraseParaContinuar(nomeDoProjeto);
   const [copiado, setCopiado] = useState(false);
@@ -403,4 +318,11 @@ function ContinuarComOClaude({ nomeDoProjeto }: { nomeDoProjeto: string }) {
       )}
     </section>
   );
+}
+
+/** O mesmo conjunto, com a chave dentro ou fora. */
+function comOuSem(conjunto: ReadonlySet<string>, chave: string, dentro: boolean): ReadonlySet<string> {
+  const novo = new Set(conjunto);
+  if (dentro) novo.add(chave); else novo.delete(chave);
+  return novo;
 }

@@ -1,5 +1,19 @@
 # Novidades da Axon
 
+## 22 de novembro de 2026 · Onde paramos, mais fácil de ler
+
+**A frase do estado agora é a manchete.** A primeira coisa que você lê em **Onde paramos** é a frase simples do estado do projeto, no alto, em letras grandes.
+
+**O fio mostra quem fez o quê.** Cada coisa feita é um símbolo no fio, com um trilho para cada IA que trabalhou no projeto. Quando a IA muda, o fio desce de um trilho para o outro; quando o projeto ficou parado, aparece quantos dias. Passe o mouse (ou use as setas do teclado) para ver quando, quem e o quê. Clicar num símbolo leva você direto à linha dele em **O que foi feito**.
+
+**O que foi feito virou uma lista por dia.** Só o dia de onde paramos começa aberto; os outros são uma linha com a primeira afirmação do dia, e cada coisa abre ao clicar. Meses antigos ficam recolhidos.
+
+**O que falta e o que foi feito ficam lado a lado, da mesma altura.** Em monitores grandes, cada lista rola por dentro, e um aviso no pé diz se ainda há mais embaixo. Em telas menores, ficam uma embaixo da outra, como antes.
+
+**Todo clique que leva a outro lugar mostra onde você chegou.** O destino acende por um instante e recebe o foco. Para quem prefere sem movimento, ele ganha um contorno em vez da animação.
+
+**"Daqui em diante".** Abaixo do fio, um botão por grupo de pendência leva você ao grupo certo em **O que falta**.
+
 ## Novembro de 2026 · Etapas 3 e 4
 
 ### O que muda para você

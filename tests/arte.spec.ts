@@ -14,32 +14,28 @@ async function projetoComHistoria(request: APIRequestContext, nome: string) {
   return projeto as { id: string };
 }
 
-test('Onde paramos mostra o fio do projeto para ser lido: um nó por dia com a contagem, e um fio solto com nome por grupo de pendência', async ({ page, request }) => {
+test('Onde paramos mostra o fio do projeto para ser lido: um símbolo por coisa feita, o resumo, onde paramos e o que vem daqui em diante', async ({ page, request }) => {
   const projeto = await projetoComHistoria(request, 'Fio com história');
   await page.goto(`/#project/${projeto.id}`);
   await page.getByRole('tab', { name: 'Onde paramos', exact: true }).click();
-  const palco = page.locator('.fio-palco');
-  await expect(palco).toBeVisible();
-  // Registro e cartão concluído no mesmo dia: um nó só, com 2.
-  await expect(palco.locator('.fio-legenda-resumo')).toHaveText('2 coisas feitas em 1 dia');
-  await expect(palco.locator('.fio-heroi .fio-no')).toHaveCount(1);
-  await expect(palco.locator('.fio-no-ultimo')).toHaveCount(1);
-  await expect(palco.locator('.fio-contagem')).toHaveText(['2']);
-  await expect(palco.locator('.fio-regua-agora')).toHaveText(/^onde paramos · \d{2} \w{3}$/);
-  // Um fio solto por grupo que tem pendência, com o nome escrito na ponta.
-  await expect(palco.locator('.fio-ponta')).toHaveCount(2);
-  await expect(palco.locator('.fio-ponta-rotulo')).toHaveText(['1 Em andamento', '1 Ideias']);
-  await expect(palco.locator('svg[role="img"]')).toHaveAttribute('aria-label', /2 coisas feitas em 1 dia\. Pendências: 1 em andamento, 1 ideias\./);
+  const quadro = page.locator('.fio-quadro');
+  await expect(quadro).toBeVisible();
+  // Registro e cartão concluído da mesma IA: dois símbolos, um trilho, e um só é "onde paramos".
+  await expect(quadro.locator('.fio-resumo')).toHaveText('2 coisas feitas em 1 dia de trabalho. Sempre com a mesma IA.');
+  await expect(quadro.locator('button.fio-simbolo')).toHaveCount(2);
+  await expect(quadro.locator('.fio-agora')).toHaveCount(1);
+  await expect(quadro.locator('.fio-nome')).toHaveCount(1);
+  await expect(quadro).toHaveAttribute('aria-label', /^O fio do projeto: 2 coisas feitas em 1 dia, sempre com a mesma IA; onde paramos: /);
+  // "Daqui em diante": um botão por grupo que tem pendência.
+  await expect(quadro.locator('button.fio-adiante-grupo')).toHaveText(['1 em andamento', '1 ideia']);
 
-  // A dica do dia lista o que foi feito naquele dia.
+  // A dica do símbolo mostra quando, quem e o quê.
   await page.waitForTimeout(1200);
-  await palco.locator('.fio-no').first().hover();
-  const dica = palco.locator('.fio-dica');
+  await quadro.locator('button.fio-simbolo[data-chave^="registro:"]').hover();
+  const dica = quadro.locator('.fio-dica[role="tooltip"]');
   await expect(dica).toBeVisible();
-  await expect(dica.locator('.fio-dica-tipo')).toContainText('2 coisas feitas');
-  await expect(dica.locator('li')).toHaveCount(2);
-  await expect(dica).toContainText('O cadastro ficou pronto.');
-  await expect(dica).toContainText('Página de login');
+  await expect(dica.locator('.fio-dica-quem')).toHaveText('Gemini');
+  await expect(dica.locator('.fio-dica-texto')).toHaveText('O cadastro ficou pronto.');
 });
 
 test('a lista de projetos mostra a miniatura do fio de cada projeto e o Tear vivo com todos eles', async ({ page, request }) => {
@@ -117,10 +113,13 @@ test('com movimento reduzido, o fio aparece pronto e o Tear fica parado', async 
 
   await page.goto(`/#project/${projeto.id}`);
   await page.getByRole('tab', { name: 'Onde paramos', exact: true }).click();
-  const fibra = page.locator('.fio-heroi .fio-fibra').first();
-  await expect(fibra).toBeVisible();
-  expect(await fibra.evaluate(el => getComputedStyle(el).animationName)).toBe('none');
-  expect(await page.locator('.fio-pulso').evaluate(el => getComputedStyle(el).display)).toBe('none');
+  const agora = page.locator('.fio-quadro .fio-agora');
+  await expect(agora).toBeVisible();
+  // Nada se move: o fio já aparece pronto, sem faísca, e os anéis de onde paramos ficam parados.
+  expect(await page.locator('.fio-faisca').evaluateAll(els => els.every(el => getComputedStyle(el).display === 'none'))).toBe(true);
+  for (const pseudo of ['::before', '::after']) {
+    expect(await agora.evaluate((el, p) => getComputedStyle(el, p).animationName, pseudo)).toBe('none');
+  }
 });
 
 test('botões: a luz acompanha o mouse e o aperto solta uma onda no ponto exato', async ({ page }) => {

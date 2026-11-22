@@ -204,7 +204,7 @@ test('decisão que já mudou por outro lado: avisa, atualiza e não aceita duas 
   expect(lista.find((d: { id: string }) => d.id === decisao.id).acceptedBy).toBe('Outra pessoa');
 });
 
-test('ideias mostram só a contagem e abrem ao clicar', async ({ page, request }) => {
+test('ideias seguem a mesma forma dos outros grupos: a contagem no título e cada ideia numa linha, sem botão "Ver N ideias"', async ({ page, request }) => {
   const projeto = await criarProjeto(request, nomeUnico('Projeto ideias'));
   for (const titulo of ['Modo claro', 'Cupom de boas-vindas', 'Aplicativo no celular']) await guardarIdeia(request, projeto.id, titulo);
 
@@ -212,12 +212,9 @@ test('ideias mostram só a contagem e abrem ao clicar', async ({ page, request }
 
   const ideias = page.locator('[data-grupo="ideias"]');
   await expect(ideias.locator('h4')).toHaveText(/Ideias guardadas\s*3/);
-  await expect(page.getByText('Cupom de boas-vindas')).toBeHidden();
-
-  await ideias.getByText('Ver 3 ideias').click();
-
+  await expect(ideias.getByText('Ver 3 ideias')).toHaveCount(0);
   for (const titulo of ['Modo claro', 'Cupom de boas-vindas', 'Aplicativo no celular']) {
-    await expect(page.getByText(titulo, { exact: true })).toBeVisible();
+    await expect(ideias.getByText(titulo, { exact: true })).toBeVisible();
   }
 });
 
@@ -332,16 +329,20 @@ test('o que foi feito: recente aberto, meses antigos recolhidos', async ({ page,
   await abrirCarta(page, projeto);
 
   const feito = page.locator('.carta-bloco').filter({ has: page.getByRole('heading', { name: 'O que foi feito' }) });
-  await expect(feito.getByText('Site no ar')).toBeVisible();
+  // O dia de onde paramos abre sozinho e mostra o texto inteiro (o resumo do dia some quando ele está aberto).
+  await expect(feito.locator('.feito-agora')).toContainText('Site no ar');
   const meses = feito.locator('details.carta-mes > summary');
   await expect(meses).toHaveText(['agosto de 2026 · 2 itens', 'julho de 2026 · 1 item']);
-  await expect(feito.getByText('Cadastro de alunos')).toBeHidden();
+  // Cada dia fechado mostra só a primeira afirmação dele (`.feito-fecho`); o texto inteiro vem ao abrir o dia.
+  const fecho = (texto: string) => feito.locator('.feito-fecho', { hasText: texto });
+  await expect(fecho('Cadastro de alunos')).toBeHidden();
 
   await meses.first().click();
 
-  await expect(feito.getByText('Cadastro de alunos')).toBeVisible();
-  await expect(feito.getByText('Página de preços')).toBeVisible();
-  await expect(feito.getByText('Logo definida')).toBeHidden();
+  // Dentro do mês aberto, cada dia é uma linha só (fechada) com a primeira afirmação do dia.
+  await expect(fecho('Cadastro de alunos')).toBeVisible();
+  await expect(fecho('Página de preços')).toBeVisible();
+  await expect(fecho('Logo definida')).toBeHidden();
 });
 
 test('última sessão anotada sozinha aparece com o aviso de que ainda não foi registrada', async ({ page, request }) => {

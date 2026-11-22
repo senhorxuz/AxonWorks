@@ -1,7 +1,7 @@
 // Monta a "carta" (tela "Onde paramos") a partir do estado do projeto. Puro: sem relógio, sem banco.
 // Quem lê o banco é `ler.ts`; quem decide a hora é o chamador (`agora`).
 import type { ApprovalRequest } from '../../shared/approvals.js'
-import { BOARD_COLUMNS, type BoardCard, type BoardColumnId } from '../../shared/board.js'
+import { BOARD_COLUMNS, type BoardCard, type BoardCardEvent, type BoardColumnId } from '../../shared/board.js'
 import {
   SALVAMENTOS_NA_CARTA,
   type Carta,
@@ -25,6 +25,8 @@ export interface DadosDaCarta {
   tasks: Task[]
   checkpoints: Checkpoint[]
   cards: BoardCard[]
+  /** Eventos do quadro por id do cartão (do mais novo para o mais velho); só os cartões concluídos precisam vir. */
+  eventosDosCartoes?: Record<string, BoardCardEvent[]>
   backlog: BacklogItem[]
   decisions: Decision[]
   approvals: ApprovalRequest[]
@@ -201,38 +203,76 @@ function montarFalta(dados: DadosDaCarta): Record<GrupoFalta, ItemFalta[]> {
 // O que foi feito
 // ---------------------------------------------------------------------------------------------
 
-function feitoDosCartoes(cards: BoardCard[]): ItemFeito[] {
-  return cards
-    .filter((card) => card.column === 'done')
-    .map((card): ItemFeito => ({ origem: 'cartao', id: card.id, texto: card.title, quando: card.updatedAt }))
+/** O ator que a tela do quadro assina quando o dono não salvou o próprio nome (`nomeDoDono()`). */
+const ATOR_DO_DONO = 'dono do projeto'
+
+/** Quem concluiu o cartão: o ator do evento mais recente que o levou para "concluído" (não o de quem mexeu por último). Reordenar dentro de Concluído grava done -> done e não conta. */
+function quemConcluiu(eventos: BoardCardEvent[] | undefined): string | undefined {
+  const concluidos = eventos?.filter((evento) => evento.toColumn === 'done' && evento.fromColumn !== 'done')
+  return concluidos && maisNovoPrimeiro(concluidos, (evento) => evento.createdAt)[0]?.actor
 }
 
-/** Tarefa pronta vale desde o registro que a concluiu; sem ele, desde que foi criada. */
+/** Só o texto fixo vale como o dono: o nome que ele salva no navegador não chega ao servidor de forma confiável. */
+function autoria(ator: string | undefined): Pick<ItemFeito, 'quem' | 'peloDono'> {
+  if (ator === undefined) return {}
+  return ator.trim().toLowerCase() === ATOR_DO_DONO ? { peloDono: true } : comQuem(ator)
+}
+
+/** `quem` só entra quando há nome: ausente é "não sei", nunca texto vazio. */
+function comQuem(nome: string | null | undefined): Pick<ItemFeito, 'quem'> {
+  return nome ? { quem: nome } : {}
+}
+
+function feitoDosCartoes(cards: BoardCard[], eventos: DadosDaCarta['eventosDosCartoes']): ItemFeito[] {
+  return cards
+    .filter((card) => card.column === 'done')
+    .map(
+      (card): ItemFeito => ({
+        origem: 'cartao',
+        id: card.id,
+        texto: card.title,
+        quando: card.updatedAt,
+        ...autoria(quemConcluiu(eventos?.[card.id])),
+      }),
+    )
+}
+
+/** Tarefa pronta vale desde o registro que a concluiu; sem ele, desde que foi criada. Quem fez: o autor desse registro, senão o responsável. */
 function feitoDasTarefas(tasks: Task[], checkpoints: Checkpoint[]): ItemFeito[] {
-  const quandoDoCheckpoint = new Map<string | null, string>(checkpoints.map((c) => [c.id, c.createdAt]))
+  const doCheckpoint = new Map<string | null, Checkpoint>(checkpoints.map((c) => [c.id, c]))
   return tasks
     .filter((task) => task.status === 'done')
-    .map(
-      (task): ItemFeito => ({
+    .map((task): ItemFeito => {
+      const conclusao = doCheckpoint.get(task.completionCheckpointId)
+      return {
         origem: 'tarefa',
         id: task.id,
         texto: task.title,
-        quando: quandoDoCheckpoint.get(task.completionCheckpointId) ?? task.createdAt,
-      }),
-    )
+        quando: conclusao?.createdAt ?? task.createdAt,
+        ...comQuem(primeiroTexto(conclusao?.agent, task.assignee)),
+      }
+    })
 }
 
 function feitoDosRegistros(checkpoints: Checkpoint[]): ItemFeito[] {
   return checkpoints.flatMap((checkpoint): ItemFeito[] =>
     checkpoint.humanSummary
-      ? [{ origem: 'registro', id: checkpoint.id, texto: checkpoint.humanSummary, quando: checkpoint.createdAt }]
+      ? [
+          {
+            origem: 'registro',
+            id: checkpoint.id,
+            texto: checkpoint.humanSummary,
+            quando: checkpoint.createdAt,
+            ...comQuem(checkpoint.agent),
+          },
+        ]
       : [],
   )
 }
 
 function coletarFeito(dados: DadosDaCarta): ItemFeito[] {
   const itens = [
-    ...feitoDosCartoes(dados.cards),
+    ...feitoDosCartoes(dados.cards, dados.eventosDosCartoes),
     ...feitoDasTarefas(dados.tasks, dados.checkpoints),
     ...feitoDosRegistros(dados.checkpoints),
   ]
@@ -319,11 +359,11 @@ function avisos(dados: DadosDaCarta, agora: Date): Pick<Carta, 'avisos' | 'aviso
   }
 }
 
-export function montarCarta(dados: DadosDaCarta, agora: Date, estadosDasEntregas: EstadoDaEntrega[] = []): Carta {
+export function montarCarta(dados: DadosDaCarta, agora: Date, estadosDasEntregas?: EstadoDaEntrega[]): Carta {
   const ultima = ultimaAtividade(dados)
   const feito = repartirFeito(coletarFeito(dados), ultima)
   const ultimoRegistro = checkpointMaisRecente(dados.checkpoints)
-  const entregas = resumirEntregas(estadosDasEntregas, dados.cards)
+  const entregas = estadosDasEntregas ? resumirEntregas(estadosDasEntregas, dados.cards) : []
   return {
     projeto: { id: dados.project.id, nome: dados.project.name, objetivo: dados.project.objective },
     ultimaAtividade: ultima,

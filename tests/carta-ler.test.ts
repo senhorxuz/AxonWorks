@@ -90,6 +90,27 @@ describe('lerDadosDaCarta', () => {
     assert.deepEqual(carta.falta.ideias.map((i) => i.titulo), ['Ideia solta'])
   })
 
+  it('eventosDosCartoes traz os eventos só dos cartões concluídos, por id; quem concluiu chega à carta', () => {
+    const { store, projectId, agora } = novaAxon()
+    const feito = store.createBoardCard(projectId, { actor: 'Claude', title: 'Login pronto', column: 'in_progress' })
+    store.moveBoardCard(projectId, feito.id, { actor: 'Codex', column: 'done', expectedVersion: feito.version })
+    const aberto = store.createBoardCard(projectId, { actor: 'Claude', title: 'Ainda aberto', column: 'pending' })
+
+    const dados = lerDadosDaCarta(store, projectId)
+    assert.deepEqual(Object.keys(dados.eventosDosCartoes ?? {}), [feito.id])
+    assert.equal(dados.eventosDosCartoes?.[aberto.id], undefined)
+    assert.deepEqual(dados.eventosDosCartoes?.[feito.id], store.listBoardCardEvents(projectId, feito.id))
+
+    const carta = montarCarta(dados, agora())
+    assert.equal(carta.feitoRecente.find((i) => i.id === feito.id)?.quem, 'Codex')
+  })
+
+  it('sem cartão concluído: eventosDosCartoes é um mapa vazio', () => {
+    const { store, projectId } = novaAxon()
+    store.createBoardCard(projectId, { actor: 'Claude', title: 'Aberto', column: 'pending' })
+    assert.deepEqual(lerDadosDaCarta(store, projectId).eventosDosCartoes, {})
+  })
+
   it('traz as decisões propostas (e só elas viram pendência do dono)', () => {
     const { store, projectId, agora } = novaAxon()
     const aceita = store.proposeDecision(projectId, { agent: 'Claude', title: 'Já aceita', body: 'a' })
